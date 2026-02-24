@@ -158,12 +158,12 @@ export default function ReportsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-start justify-between gap-4 flex-wrap">
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Rapports</h1>
           <p className="text-sm text-muted-foreground">{dateLabel}</p>
         </div>
-        <Button variant="outline" size="sm" onClick={exportAll}>
+        <Button variant="outline" size="sm" className="w-full md:w-auto" onClick={exportAll}>
           <Download className="mr-1.5 h-4 w-4" />
           Exporter CSV
         </Button>

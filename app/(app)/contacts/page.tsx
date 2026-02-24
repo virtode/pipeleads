@@ -121,39 +121,42 @@ function ContactsPageContent() {
   return (
     <div className="space-y-4">
       {/* En-tête */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Contacts</h1>
           <p className="text-sm text-muted-foreground">
             {data?.total ?? 0} contact{(data?.total ?? 0) !== 1 ? 's' : ''}
           </p>
         </div>
-        <div className="flex gap-2">
-          {/* Import dropdown */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm">
-                <Upload className="mr-1.5 h-4 w-4" />
-                Importer
-                <ChevronDown className="ml-1 h-3.5 w-3.5 opacity-70" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => setIsImportCSVOpen(true)}>
-                Fichier CSV
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setIsImportVCFOpen(true)}>
-                Fichier VCF / vCard
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+        <div className="flex flex-col gap-2 md:flex-row">
+          {/* Import + Export sur la même ligne en mobile */}
+          <div className="grid grid-cols-2 gap-2 md:contents">
+            {/* Import dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="w-full md:w-auto">
+                  <Upload className="mr-1.5 h-4 w-4" />
+                  Importer
+                  <ChevronDown className="ml-1 h-3.5 w-3.5 opacity-70" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setIsImportCSVOpen(true)}>
+                  Fichier CSV
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setIsImportVCFOpen(true)}>
+                  Fichier VCF / vCard
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
-          <Button variant="outline" size="sm" onClick={openExportAll}>
-            <Download className="mr-1.5 h-4 w-4" />
-            Exporter
-          </Button>
+            <Button variant="outline" size="sm" className="w-full md:w-auto" onClick={openExportAll}>
+              <Download className="mr-1.5 h-4 w-4" />
+              Exporter
+            </Button>
+          </div>
 
-          <Button size="sm" onClick={() => setIsCreateOpen(true)}>
+          <Button size="sm" className="w-full md:w-auto" onClick={() => setIsCreateOpen(true)}>
             <Plus className="mr-1.5 h-4 w-4" />
             Nouveau contact
           </Button>

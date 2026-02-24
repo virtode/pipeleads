@@ -74,20 +74,20 @@ export default function LeadsPage() {
   return (
     <div className="flex flex-col gap-4 h-full">
       {/* Toolbar */}
-      <div className="flex items-center gap-3 flex-wrap">
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Leads</h1>
         </div>
-        <div className="flex items-center gap-2 ml-auto flex-wrap">
+        <div className="flex flex-col gap-2 md:flex-row md:items-center">
           {/* Pipeline selector */}
           {pipelinesLoading ? (
-            <Skeleton className="h-9 w-52 rounded-md" />
+            <Skeleton className="h-9 w-full rounded-md md:w-52" />
           ) : (
             <Select
               value={pipelineId ?? ''}
               onValueChange={(v) => setSelectedPipelineId(v)}
             >
-              <SelectTrigger className="w-52">
+              <SelectTrigger className="w-full md:w-52">
                 <SelectValue placeholder="Choisir un pipeline" />
               </SelectTrigger>
               <SelectContent>
@@ -100,24 +100,27 @@ export default function LeadsPage() {
             </Select>
           )}
 
-          {/* Add contact */}
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setIsPickerOpen(true)}
-            disabled={!pipelineId}
-          >
-            <UserPlus className="mr-1.5 h-4 w-4" />
-            Ajouter un contact
-          </Button>
+          <div className="grid grid-cols-2 gap-2 md:contents">
+            {/* Add contact */}
+            <Button
+              size="sm"
+              variant="outline"
+              className="w-full md:w-auto"
+              onClick={() => setIsPickerOpen(true)}
+              disabled={!pipelineId}
+            >
+              <UserPlus className="mr-1.5 h-4 w-4" />
+              Ajouter un contact
+            </Button>
 
-          {/* Manage pipelines */}
-          <Button size="sm" variant="ghost" asChild>
-            <Link href="/pipelines">
-              <Settings className="mr-1.5 h-4 w-4" />
-              Gérer
-            </Link>
-          </Button>
+            {/* Manage pipelines */}
+            <Button size="sm" variant="ghost" className="w-full md:w-auto" asChild>
+              <Link href="/pipelines">
+                <Settings className="mr-1.5 h-4 w-4" />
+                Gérer
+              </Link>
+            </Button>
+          </div>
         </div>
       </div>
 

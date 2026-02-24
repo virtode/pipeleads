@@ -43,14 +43,14 @@ export default function PipelinesPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Pipelines</h1>
           <p className="text-sm text-muted-foreground">
             Gère les étapes de tes processus de vente et de suivi.
           </p>
         </div>
-        <Button size="sm" onClick={() => setEditTarget('new')}>
+        <Button size="sm" className="w-full md:w-auto" onClick={() => setEditTarget('new')}>
           <Plus className="mr-1.5 h-4 w-4" />
           Nouveau pipeline
         </Button>
