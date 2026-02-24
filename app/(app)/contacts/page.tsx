@@ -130,7 +130,7 @@ function ContactsPageContent() {
         </div>
         <div className="flex flex-col gap-2 md:flex-row">
           {/* Import + Export sur la même ligne en mobile */}
-          <div className="grid grid-cols-2 gap-2 md:contents">
+          <div className="grid grid-cols-2 gap-2 md:flex md:gap-2">
             {/* Import dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

@@ -100,7 +100,7 @@ export default function LeadsPage() {
             </Select>
           )}
 
-          <div className="grid grid-cols-2 gap-2 md:contents">
+          <div className="grid grid-cols-2 gap-2 md:flex md:gap-2">
             {/* Add contact */}
             <Button
               size="sm"
