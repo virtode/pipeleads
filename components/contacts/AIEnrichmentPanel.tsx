@@ -347,39 +347,41 @@ export function AIEnrichmentPanel({
                 value={e.id}
                 className="rounded-lg border last:!border-b px-3 data-[state=open]:bg-muted/30"
               >
-                <AccordionTrigger className="py-2.5 hover:no-underline">
-                  <div className="flex items-center gap-2 text-left">
-                    {e.type === 'contact_profile' ? (
-                      <User className="h-3.5 w-3.5 text-violet-500 shrink-0" />
-                    ) : (
-                      <Building2 className="h-3.5 w-3.5 text-blue-500 shrink-0" />
-                    )}
-                    <span className="text-xs font-medium">
-                      {e.type === 'contact_profile' ? 'Profil contact' : 'Actualités société'}
-                    </span>
-                    <span className="flex items-center gap-1 text-xs text-muted-foreground ml-auto mr-2">
-                      <Clock className="h-3 w-3" />
-                      {formatDate(e.created_at)}
-                    </span>
+                {/* Wrap trigger + delete button in a flex row — delete sits outside
+                    the AccordionTrigger <button> to keep HTML valid (no button-in-button) */}
+                <div className="flex items-center gap-1">
+                  <div className="flex-1 min-w-0">
+                    <AccordionTrigger className="py-2.5 hover:no-underline">
+                      <div className="flex items-center gap-2 text-left">
+                        {e.type === 'contact_profile' ? (
+                          <User className="h-3.5 w-3.5 text-violet-500 shrink-0" />
+                        ) : (
+                          <Building2 className="h-3.5 w-3.5 text-blue-500 shrink-0" />
+                        )}
+                        <span className="text-xs font-medium">
+                          {e.type === 'contact_profile' ? 'Profil contact' : 'Actualités société'}
+                        </span>
+                        <span className="flex items-center gap-1 text-xs text-muted-foreground ml-auto mr-2">
+                          <Clock className="h-3 w-3" />
+                          {formatDate(e.created_at)}
+                        </span>
+                      </div>
+                    </AccordionTrigger>
                   </div>
-                </AccordionTrigger>
+                  <button
+                    className="shrink-0 flex h-6 w-6 items-center justify-center rounded text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 transition-colors"
+                    onClick={() => deleteEnrichment.mutate(e.id)}
+                    disabled={deleteEnrichment.isPending && deleteEnrichment.variables === e.id}
+                    title="Supprimer cette recherche"
+                  >
+                    {deleteEnrichment.isPending && deleteEnrichment.variables === e.id
+                      ? <Loader2 className="h-3 w-3 animate-spin" />
+                      : <Trash2 className="h-3 w-3" />}
+                  </button>
+                </div>
                 <AccordionContent className="pt-1 pb-3">
                   <div className="text-sm space-y-0.5">
                     {renderMarkdown(e.content)}
-                  </div>
-                  <div className="mt-3 flex justify-end border-t pt-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 gap-1.5 text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                      onClick={() => deleteEnrichment.mutate(e.id)}
-                      disabled={deleteEnrichment.isPending && deleteEnrichment.variables === e.id}
-                    >
-                      {deleteEnrichment.isPending && deleteEnrichment.variables === e.id
-                        ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        : <Trash2 className="h-3.5 w-3.5" />}
-                      Supprimer
-                    </Button>
                   </div>
                 </AccordionContent>
               </AccordionItem>
