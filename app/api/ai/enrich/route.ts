@@ -120,30 +120,37 @@ export async function POST(request: NextRequest): Promise<NextResponse<ApiRespon
       content = await enrichCompanyNews(company)
     }
   } catch (err) {
-    console.error('[AI Enrich] Agent error:', err)
-
-    // Friendly error messages
     const message = err instanceof Error ? err.message : String(err)
-    if (message.includes('rate') || message.includes('overloaded')) {
+    const status = (err as { status?: number })?.status
+
+    console.error('[AI Enrich] Agent error — status:', status, '— message:', message, err)
+
+    if (status === 401 || message.toLowerCase().includes('auth') || message.toLowerCase().includes('api key') || message.toLowerCase().includes('apikey')) {
+      return NextResponse.json(
+        { data: null, error: 'Clé API Anthropic invalide ou manquante dans les variables d\'environnement.' },
+        { status: 500 }
+      )
+    }
+    if (status === 529 || message.toLowerCase().includes('overloaded')) {
       return NextResponse.json(
         { data: null, error: 'L\'API Anthropic est surchargée. Réessaie dans quelques instants.' },
         { status: 503 }
       )
     }
-    if (message.includes('timeout') || message.includes('ETIMEDOUT')) {
+    if (status === 429 || message.toLowerCase().includes('rate')) {
+      return NextResponse.json(
+        { data: null, error: 'Limite de requêtes Anthropic atteinte. Réessaie dans une minute.' },
+        { status: 429 }
+      )
+    }
+    if (message.toLowerCase().includes('timeout') || message.toLowerCase().includes('etimedout')) {
       return NextResponse.json(
         { data: null, error: 'La recherche a pris trop de temps. Réessaie.' },
         { status: 504 }
       )
     }
-    if (message.includes('authentication') || message.includes('API key')) {
-      return NextResponse.json(
-        { data: null, error: 'Clé API Anthropic invalide ou non configurée.' },
-        { status: 500 }
-      )
-    }
     return NextResponse.json(
-      { data: null, error: 'Erreur lors de la recherche IA. Réessaie.' },
+      { data: null, error: `Erreur IA : ${message}` },
       { status: 500 }
     )
   }
