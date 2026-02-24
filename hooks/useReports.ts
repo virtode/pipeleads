@@ -1,0 +1,368 @@
+'use client'
+
+import { useQuery } from '@tanstack/react-query'
+import { useStytchSession } from '@stytch/nextjs'
+import { createClient } from '@/lib/supabase/client'
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+export interface ReportFilters {
+  pipelineId: string | null
+  startDate: Date
+  endDate: Date
+}
+
+export interface StageDistributionItem {
+  stageId: string | null
+  stageName: string
+  stageColor: string
+  count: number
+}
+
+export interface TimelinePoint {
+  date: string   // 'YYYY-MM-DD'
+  count: number  // moves on that day
+}
+
+export interface TagCount {
+  tag: string
+  count: number
+}
+
+export interface InactiveContact {
+  id: string
+  first_name: string
+  last_name: string | null
+  company: string | null
+  daysSinceLastActivity: number
+}
+
+export interface ConversionStep {
+  stageId: string
+  stageName: string
+  stageColor: string
+  count: number
+  rate: number   // % from previous step (0–100)
+}
+
+export interface KpiData {
+  totalContacts: number
+  addedThisMonth: number
+  activePipelines: number
+  contactsWithoutStage: number
+}
+
+// ---------------------------------------------------------------------------
+// KPIs
+// ---------------------------------------------------------------------------
+
+export function useKpis() {
+  const { session } = useStytchSession()
+
+  return useQuery({
+    queryKey: ['reports-kpis'],
+    queryFn: async (): Promise<KpiData> => {
+      const supabase = createClient()
+
+      const now = new Date()
+      const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
+
+      const [contactsRes, addedRes, pipelinesRes, noStageRes] = await Promise.all([
+        supabase.from('contacts').select('id', { count: 'exact', head: true }),
+        supabase.from('contacts').select('id', { count: 'exact', head: true }).gte('created_at', firstOfMonth),
+        supabase.from('pipelines').select('id', { count: 'exact', head: true }),
+        // contacts in a pipeline but with null stage
+        supabase.from('contact_pipeline').select('id', { count: 'exact', head: true }).is('stage_id', null),
+      ])
+
+      return {
+        totalContacts: contactsRes.count ?? 0,
+        addedThisMonth: addedRes.count ?? 0,
+        activePipelines: pipelinesRes.count ?? 0,
+        contactsWithoutStage: noStageRes.count ?? 0,
+      }
+    },
+    enabled: !!session,
+    staleTime: 2 * 60_000,
+  })
+}
+
+// ---------------------------------------------------------------------------
+// Distribution contacts par statut (étape) dans un pipeline
+// ---------------------------------------------------------------------------
+
+export function useStageDistribution(filters: ReportFilters) {
+  const { session } = useStytchSession()
+
+  return useQuery({
+    queryKey: ['reports-distribution', filters.pipelineId],
+    queryFn: async (): Promise<StageDistributionItem[]> => {
+      if (!filters.pipelineId) return []
+      const supabase = createClient()
+
+      // Fetch stages for this pipeline
+      const { data: stages, error: stagesErr } = await supabase
+        .from('pipeline_stages')
+        .select('id, name, color')
+        .eq('pipeline_id', filters.pipelineId)
+        .order('position', { ascending: true })
+
+      if (stagesErr) throw stagesErr
+
+      // Count per stage
+      const { data: entries, error: entriesErr } = await supabase
+        .from('contact_pipeline')
+        .select('stage_id')
+        .eq('pipeline_id', filters.pipelineId)
+
+      if (entriesErr) throw entriesErr
+
+      const counts = new Map<string | null, number>()
+      for (const entry of entries ?? []) {
+        const key = entry.stage_id
+        counts.set(key, (counts.get(key) ?? 0) + 1)
+      }
+
+      const result: StageDistributionItem[] = (stages ?? []).map((stage) => ({
+        stageId: stage.id,
+        stageName: stage.name,
+        stageColor: stage.color,
+        count: counts.get(stage.id) ?? 0,
+      }))
+
+      // Add "unassigned" if any
+      const unassignedCount = counts.get(null) ?? 0
+      if (unassignedCount > 0) {
+        result.push({
+          stageId: null,
+          stageName: 'Sans étape',
+          stageColor: '#94a3b8',
+          count: unassignedCount,
+        })
+      }
+
+      return result
+    },
+    enabled: !!session && !!filters.pipelineId,
+    staleTime: 60_000,
+  })
+}
+
+// ---------------------------------------------------------------------------
+// Timeline — mouvements par jour
+// ---------------------------------------------------------------------------
+
+export function useTimeline(filters: ReportFilters) {
+  const { session } = useStytchSession()
+
+  return useQuery({
+    queryKey: ['reports-timeline', filters.pipelineId, filters.startDate.toISOString().slice(0, 10), filters.endDate.toISOString().slice(0, 10)],
+    queryFn: async (): Promise<TimelinePoint[]> => {
+      const supabase = createClient()
+
+      let query = supabase
+        .from('pipeline_history')
+        .select('changed_at')
+        .gte('changed_at', filters.startDate.toISOString())
+        .lte('changed_at', filters.endDate.toISOString())
+
+      if (filters.pipelineId) {
+        query = query.eq('pipeline_id', filters.pipelineId)
+      }
+
+      const { data, error } = await query
+      if (error) throw error
+
+      // Group by day
+      const counts = new Map<string, number>()
+      for (const row of data ?? []) {
+        const day = row.changed_at.slice(0, 10)
+        counts.set(day, (counts.get(day) ?? 0) + 1)
+      }
+
+      // Build continuous series
+      const result: TimelinePoint[] = []
+      const cursor = new Date(filters.startDate)
+      cursor.setHours(0, 0, 0, 0)
+      const end = new Date(filters.endDate)
+      end.setHours(23, 59, 59, 999)
+
+      while (cursor <= end) {
+        const key = cursor.toISOString().slice(0, 10)
+        result.push({ date: key, count: counts.get(key) ?? 0 })
+        cursor.setDate(cursor.getDate() + 1)
+      }
+
+      return result
+    },
+    enabled: !!session,
+    staleTime: 60_000,
+  })
+}
+
+// ---------------------------------------------------------------------------
+// Top 10 tags
+// ---------------------------------------------------------------------------
+
+export function useTagsDistribution() {
+  const { session } = useStytchSession()
+
+  return useQuery({
+    queryKey: ['reports-tags'],
+    queryFn: async (): Promise<TagCount[]> => {
+      const supabase = createClient()
+      const { data, error } = await supabase
+        .from('contacts')
+        .select('tags')
+        .not('tags', 'is', null)
+
+      if (error) throw error
+
+      const counts = new Map<string, number>()
+      for (const row of data ?? []) {
+        for (const tag of row.tags ?? []) {
+          counts.set(tag, (counts.get(tag) ?? 0) + 1)
+        }
+      }
+
+      return [...counts.entries()]
+        .map(([tag, count]) => ({ tag, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 10)
+    },
+    enabled: !!session,
+    staleTime: 2 * 60_000,
+  })
+}
+
+// ---------------------------------------------------------------------------
+// Contacts inactifs (pas de mouvement pipeline depuis N jours)
+// ---------------------------------------------------------------------------
+
+export function useInactiveContacts(days: number, pipelineId: string | null) {
+  const { session } = useStytchSession()
+
+  return useQuery({
+    queryKey: ['reports-inactive', days, pipelineId],
+    queryFn: async (): Promise<InactiveContact[]> => {
+      const supabase = createClient()
+      const threshold = new Date()
+      threshold.setDate(threshold.getDate() - days)
+
+      // Get contact_pipeline rows with last update
+      let query = supabase
+        .from('contact_pipeline')
+        .select('contact_id, updated_at, contacts(id, first_name, last_name, company)')
+        .lt('updated_at', threshold.toISOString())
+
+      if (pipelineId) {
+        query = query.eq('pipeline_id', pipelineId)
+      }
+
+      const { data, error } = await query
+      if (error) throw error
+
+      const now = Date.now()
+      return (data ?? [])
+        .map((row) => {
+          const c = row.contacts as { id: string; first_name: string; last_name: string | null; company: string | null } | null
+          if (!c) return null
+          const daysSince = Math.floor((now - new Date(row.updated_at).getTime()) / 86_400_000)
+          return {
+            id: c.id,
+            first_name: c.first_name,
+            last_name: c.last_name,
+            company: c.company,
+            daysSinceLastActivity: daysSince,
+          }
+        })
+        .filter((x): x is InactiveContact => x !== null)
+        .sort((a, b) => b.daysSinceLastActivity - a.daysSinceLastActivity)
+        .slice(0, 20)
+    },
+    enabled: !!session,
+    staleTime: 5 * 60_000,
+  })
+}
+
+// ---------------------------------------------------------------------------
+// Funnel de conversion entre étapes consécutives
+// ---------------------------------------------------------------------------
+
+export function useConversionFunnel(pipelineId: string | null, filters: ReportFilters) {
+  const { session } = useStytchSession()
+
+  return useQuery({
+    queryKey: ['reports-funnel', pipelineId, filters.startDate.toISOString().slice(0, 10), filters.endDate.toISOString().slice(0, 10)],
+    queryFn: async (): Promise<ConversionStep[]> => {
+      if (!pipelineId) return []
+      const supabase = createClient()
+
+      // Fetch stages ordered
+      const { data: stages, error: stagesErr } = await supabase
+        .from('pipeline_stages')
+        .select('id, name, color, position')
+        .eq('pipeline_id', pipelineId)
+        .order('position', { ascending: true })
+
+      if (stagesErr) throw stagesErr
+      if (!stages || stages.length === 0) return []
+
+      // For each stage, count contacts that EVER reached it (appear in history as to_stage_id)
+      // within the period — or currently sit there
+      const { data: history, error: histErr } = await supabase
+        .from('pipeline_history')
+        .select('to_stage_id')
+        .eq('pipeline_id', pipelineId)
+        .gte('changed_at', filters.startDate.toISOString())
+        .lte('changed_at', filters.endDate.toISOString())
+        .not('to_stage_id', 'is', null)
+
+      if (histErr) throw histErr
+
+      // Count unique contacts per stage that appeared as destination
+      const stageCounts = new Map<string, number>()
+      for (const row of history ?? []) {
+        if (row.to_stage_id) {
+          stageCounts.set(row.to_stage_id, (stageCounts.get(row.to_stage_id) ?? 0) + 1)
+        }
+      }
+
+      // Also count current positions
+      const { data: current, error: currentErr } = await supabase
+        .from('contact_pipeline')
+        .select('stage_id')
+        .eq('pipeline_id', pipelineId)
+        .not('stage_id', 'is', null)
+
+      if (currentErr) throw currentErr
+
+      // Merge current into counts (use max — contact was in stage if it currently is or was moved there)
+      const allCounts = new Map<string, number>(stageCounts)
+      for (const row of current ?? []) {
+        if (row.stage_id) {
+          allCounts.set(row.stage_id, (allCounts.get(row.stage_id) ?? 0) + 1)
+        }
+      }
+
+      const result: ConversionStep[] = stages.map((stage, i) => {
+        const count = allCounts.get(stage.id) ?? 0
+        const prevCount = i === 0 ? count : (allCounts.get(stages[i - 1].id) ?? 0)
+        const rate = prevCount > 0 ? Math.round((count / prevCount) * 100) : 0
+        return {
+          stageId: stage.id,
+          stageName: stage.name,
+          stageColor: stage.color,
+          count,
+          rate: i === 0 ? 100 : rate,
+        }
+      })
+
+      return result
+    },
+    enabled: !!session && !!pipelineId,
+    staleTime: 60_000,
+  })
+}

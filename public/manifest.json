@@ -1,0 +1,18 @@
+{
+  "name": "LeadFlow CRM",
+  "short_name": "LeadFlow",
+  "description": "Application personnelle de gestion de contacts et de leads",
+  "start_url": "/contacts",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#6366f1",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
