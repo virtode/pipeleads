@@ -51,7 +51,7 @@ export function usePipelines() {
         .order('created_at', { ascending: true })
         .order('position', { referencedTable: 'pipeline_stages', ascending: true })
 
-      if (error) throw error
+      if (error) { console.error('[usePipelines query]', error); throw error }
       return (data ?? []) as PipelineWithStages[]
     },
     enabled: !!session,
@@ -164,7 +164,11 @@ export function useCreatePipeline() {
       queryClient.invalidateQueries({ queryKey: ['pipelines'] })
       toast.success('Pipeline créé')
     },
-    onError: () => toast.error('Erreur lors de la création'),
+    onError: (err) => {
+      console.error('[useCreatePipeline]', err)
+      const msg = (err as { message?: string })?.message ?? String(err)
+      toast.error(`Erreur création pipeline : ${msg}`)
+    },
   })
 }
 
@@ -188,7 +192,11 @@ export function useUpdatePipeline() {
       queryClient.invalidateQueries({ queryKey: ['pipeline', id] })
       toast.success('Pipeline mis à jour')
     },
-    onError: () => toast.error('Erreur lors de la mise à jour'),
+    onError: (err) => {
+      console.error('[useUpdatePipeline]', err)
+      const msg = (err as { message?: string })?.message ?? String(err)
+      toast.error(`Erreur mise à jour pipeline : ${msg}`)
+    },
   })
 }
 
@@ -206,7 +214,11 @@ export function useDeletePipeline() {
       queryClient.invalidateQueries({ queryKey: ['kanban'] })
       toast.success('Pipeline supprimé')
     },
-    onError: () => toast.error('Erreur lors de la suppression'),
+    onError: (err) => {
+      console.error('[useDeletePipeline]', err)
+      const msg = (err as { message?: string })?.message ?? String(err)
+      toast.error(`Erreur suppression pipeline : ${msg}`)
+    },
   })
 }
 

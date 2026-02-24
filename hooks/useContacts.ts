@@ -56,7 +56,7 @@ export function useContacts({
       query = query.range(from, from + CONTACTS_PAGE_SIZE - 1)
 
       const { data, error, count } = await query
-      if (error) throw error
+      if (error) { console.error('[useContacts query]', error); throw error }
 
       return { contacts: data ?? [], total: count ?? 0 }
     },
@@ -145,7 +145,11 @@ export function useCreateContact() {
       queryClient.invalidateQueries({ queryKey: ['contact-tags'] })
       toast.success('Contact créé')
     },
-    onError: () => toast.error('Erreur lors de la création'),
+    onError: (err) => {
+      console.error('[useCreateContact]', err)
+      const msg = (err as { message?: string })?.message ?? String(err)
+      toast.error(`Erreur création : ${msg}`)
+    },
   })
 }
 
@@ -172,7 +176,11 @@ export function useUpdateContact() {
       queryClient.invalidateQueries({ queryKey: ['contact-tags'] })
       toast.success('Contact mis à jour')
     },
-    onError: () => toast.error('Erreur lors de la mise à jour'),
+    onError: (err) => {
+      console.error('[useUpdateContact]', err)
+      const msg = (err as { message?: string })?.message ?? String(err)
+      toast.error(`Erreur mise à jour : ${msg}`)
+    },
   })
 }
 
@@ -190,7 +198,11 @@ export function useDeleteContact() {
       queryClient.invalidateQueries({ queryKey: ['contact-tags'] })
       toast.success('Contact supprimé')
     },
-    onError: () => toast.error('Erreur lors de la suppression'),
+    onError: (err) => {
+      console.error('[useDeleteContact]', err)
+      const msg = (err as { message?: string })?.message ?? String(err)
+      toast.error(`Erreur suppression : ${msg}`)
+    },
   })
 }
 
@@ -208,6 +220,10 @@ export function useDeleteContacts() {
       queryClient.invalidateQueries({ queryKey: ['contact-tags'] })
       toast.success(`${ids.length} contact${ids.length > 1 ? 's' : ''} supprimé${ids.length > 1 ? 's' : ''}`)
     },
-    onError: () => toast.error('Erreur lors de la suppression'),
+    onError: (err) => {
+      console.error('[useDeleteContacts]', err)
+      const msg = (err as { message?: string })?.message ?? String(err)
+      toast.error(`Erreur suppression : ${msg}`)
+    },
   })
 }
