@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
+import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { enrichContactProfile, enrichCompanyNews } from '@/lib/ai/agent'
 import type { ApiResponse } from '@/types'
@@ -55,6 +56,13 @@ function checkRateLimit(contactId: string): boolean {
 }
 
 // ---------------------------------------------------------------------------
+// Zod validators for extracted fields
+// ---------------------------------------------------------------------------
+
+const urlSchema = z.string().url()
+const emailSchema = z.string().email()
+
+// ---------------------------------------------------------------------------
 // POST /api/ai/enrich
 // ---------------------------------------------------------------------------
 
@@ -63,7 +71,14 @@ interface EnrichBody {
   type: 'contact_profile' | 'company_news'
 }
 
-export async function POST(request: NextRequest): Promise<NextResponse<ApiResponse<{ id: string; content: string; created_at: string }>>> {
+interface EnrichResponseData {
+  id: string
+  content: string
+  created_at: string
+  updated_fields: string[]
+}
+
+export async function POST(request: NextRequest): Promise<NextResponse<ApiResponse<EnrichResponseData>>> {
   // 1. Auth
   const userId = await getSessionUserId()
   if (!userId) {
@@ -105,10 +120,10 @@ export async function POST(request: NextRequest): Promise<NextResponse<ApiRespon
   }
 
   // 5. Run AI enrichment
-  let content: string
+  let enrichmentResult: Awaited<ReturnType<typeof enrichContactProfile>>
   try {
     if (type === 'contact_profile') {
-      content = await enrichContactProfile(contact)
+      enrichmentResult = await enrichContactProfile(contact)
     } else {
       const company = contact.company ?? [contact.first_name, contact.last_name].filter(Boolean).join(' ')
       if (!company) {
@@ -117,7 +132,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<ApiRespon
           { status: 400 }
         )
       }
-      content = await enrichCompanyNews(company)
+      enrichmentResult = await enrichCompanyNews(company)
     }
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
@@ -155,13 +170,13 @@ export async function POST(request: NextRequest): Promise<NextResponse<ApiRespon
     )
   }
 
-  // 6. Save to ai_enrichments
+  // 6. Save summary to ai_enrichments
   const { data: enrichment, error: saveErr } = await supabase
     .from('ai_enrichments')
     .insert({
       contact_id: contactId,
       type,
-      content,
+      content: enrichmentResult.summary,
       model: 'claude-sonnet-4-6',
     })
     .select('id, content, created_at')
@@ -172,5 +187,53 @@ export async function POST(request: NextRequest): Promise<NextResponse<ApiRespon
     return NextResponse.json({ data: null, error: 'Erreur lors de la sauvegarde.' }, { status: 500 })
   }
 
-  return NextResponse.json({ data: enrichment, error: null }, { status: 200 })
+  // 7. Apply extracted fields to contact (only empty fields, validated)
+  const updated_fields: string[] = []
+  const { extracted_fields } = enrichmentResult
+
+  if (Object.keys(extracted_fields).length > 0) {
+    const contactUpdates: Record<string, unknown> = {}
+
+    // URL fields — only update if the field is currently empty
+    const urlFields = ['linkedin_url', 'twitter_url', 'website'] as const
+    for (const field of urlFields) {
+      const value = extracted_fields[field]
+      if (value && !contact[field]) {
+        const parsed = urlSchema.safeParse(value)
+        if (parsed.success) {
+          contactUpdates[field] = parsed.data
+          updated_fields.push(field)
+        }
+      }
+    }
+
+    // Email — add to array if not already present and array is empty
+    if (extracted_fields.email && !(contact.email as string[] | null)?.length) {
+      const parsed = emailSchema.safeParse(extracted_fields.email)
+      if (parsed.success) {
+        const existing = (contact.email as string[] | null) ?? []
+        if (!existing.includes(parsed.data)) {
+          contactUpdates.email = [...existing, parsed.data]
+          updated_fields.push('email')
+        }
+      }
+    }
+
+    if (Object.keys(contactUpdates).length > 0) {
+      const { error: updateErr } = await supabase
+        .from('contacts')
+        .update({ ...contactUpdates, updated_at: new Date().toISOString() })
+        .eq('id', contactId)
+
+      if (updateErr) {
+        console.error('[AI Enrich] Contact update error:', updateErr)
+        // Non-fatal — enrichment was saved, just log the update failure
+      }
+    }
+  }
+
+  return NextResponse.json({
+    data: { ...enrichment, updated_fields },
+    error: null,
+  }, { status: 200 })
 }

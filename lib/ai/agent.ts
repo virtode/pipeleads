@@ -37,6 +37,20 @@ const MODEL = 'claude-sonnet-4-6'
 const TODAY = () => new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })
 
 // ---------------------------------------------------------------------------
+// Result type — summary (markdown) + structured extracted fields
+// ---------------------------------------------------------------------------
+
+export interface EnrichmentResult {
+  summary: string
+  extracted_fields: Partial<{
+    linkedin_url: string
+    twitter_url: string
+    email: string
+    website: string
+  }>
+}
+
+// ---------------------------------------------------------------------------
 // Shared: extract final text from response content blocks
 // ---------------------------------------------------------------------------
 
@@ -49,10 +63,36 @@ function extractText(content: Anthropic.Messages.ContentBlock[]): string {
 }
 
 // ---------------------------------------------------------------------------
+// Parse the last ```json block in the text and split summary / extracted_fields
+// ---------------------------------------------------------------------------
+
+function parseResult(content: Anthropic.Messages.ContentBlock[]): EnrichmentResult {
+  const fullText = extractText(content)
+
+  // Find the last ```json … ``` block
+  const jsonStart = fullText.lastIndexOf('```json')
+  if (jsonStart === -1) return { summary: fullText, extracted_fields: {} }
+
+  const jsonEnd = fullText.indexOf('```', jsonStart + 7)
+  if (jsonEnd === -1) return { summary: fullText, extracted_fields: {} }
+
+  const jsonStr = fullText.slice(jsonStart + 7, jsonEnd).trim()
+  const summary = fullText.slice(0, jsonStart).trim()
+
+  try {
+    const parsed = JSON.parse(jsonStr) as { extracted_fields?: Record<string, string> }
+    return { summary, extracted_fields: parsed.extracted_fields ?? {} }
+  } catch {
+    // Malformed JSON — keep full text as summary
+    return { summary: fullText, extracted_fields: {} }
+  }
+}
+
+// ---------------------------------------------------------------------------
 // enrichContactProfile
 // ---------------------------------------------------------------------------
 
-export async function enrichContactProfile(contact: Contact): Promise<string> {
+export async function enrichContactProfile(contact: Contact): Promise<EnrichmentResult> {
   const name = [contact.first_name, contact.last_name].filter(Boolean).join(' ')
   const context = [
     contact.job_title && `Titre : ${contact.job_title}`,
@@ -84,7 +124,17 @@ Liste des sources consultées (URLs).
 
 **Date de recherche : ${TODAY()}**
 
-Si tu ne trouves pas d'informations suffisantes, indique-le clairement et précise ce qui manque pour une meilleure recherche.`
+Si tu ne trouves pas d'informations suffisantes, indique-le clairement et précise ce qui manque pour une meilleure recherche.
+
+---
+
+Après ton rapport, ajoute exactement un bloc JSON contenant uniquement les champs que tu as trouvés avec haute certitude (URL vérifiée ou email confirmé). N'inclus jamais un champ incertain ou deviné.
+
+\`\`\`json
+{"extracted_fields": {"linkedin_url": "https://linkedin.com/in/...", "twitter_url": "https://twitter.com/...", "email": "prenom.nom@entreprise.com"}}
+\`\`\`
+
+Omets tout champ non trouvé avec certitude. Si aucun champ n'est certain, retourne \`{"extracted_fields": {}}\`.`
 
   const response = await withRetry(() =>
     client.messages.create({
@@ -95,16 +145,16 @@ Si tu ne trouves pas d'informations suffisantes, indique-le clairement et préci
     })
   )
 
-  const text = extractText(response.content)
-  if (!text) throw new Error('Aucun résultat généré par le modèle.')
-  return text
+  const result = parseResult(response.content)
+  if (!result.summary) throw new Error('Aucun résultat généré par le modèle.')
+  return result
 }
 
 // ---------------------------------------------------------------------------
 // enrichCompanyNews
 // ---------------------------------------------------------------------------
 
-export async function enrichCompanyNews(company: string): Promise<string> {
+export async function enrichCompanyNews(company: string): Promise<EnrichmentResult> {
   const prompt = `Recherche les dernières actualités sur l'entreprise **${company}**.
 
 Fournis un rapport de veille structuré en français comprenant :
@@ -126,7 +176,17 @@ Liste des sources consultées (URLs).
 
 **Date de recherche : ${TODAY()}**
 
-Si l'entreprise est peu connue ou que les informations sont limitées, indique-le et partage ce que tu as trouvé.`
+Si l'entreprise est peu connue ou que les informations sont limitées, indique-le et partage ce que tu as trouvé.
+
+---
+
+Après ton rapport, ajoute exactement un bloc JSON contenant le site web officiel de l'entreprise si tu l'as trouvé avec certitude (URL vérifiée). N'inclus pas le champ si tu n'es pas certain.
+
+\`\`\`json
+{"extracted_fields": {"website": "https://www.entreprise.com"}}
+\`\`\`
+
+Si le site n'est pas trouvé avec certitude, retourne \`{"extracted_fields": {}}\`.`
 
   const response = await withRetry(() =>
     client.messages.create({
@@ -137,7 +197,7 @@ Si l'entreprise est peu connue ou que les informations sont limitées, indique-l
     })
   )
 
-  const text = extractText(response.content)
-  if (!text) throw new Error('Aucun résultat généré par le modèle.')
-  return text
+  const result = parseResult(response.content)
+  if (!result.summary) throw new Error('Aucun résultat généré par le modèle.')
+  return result
 }

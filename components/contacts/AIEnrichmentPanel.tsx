@@ -176,6 +176,21 @@ export function AIEnrichmentPanel({
       // Refresh contact data so the parent re-renders with the new enrichment
       queryClient.invalidateQueries({ queryKey: ['contact', contactId] })
       toast.success(type === 'contact_profile' ? 'Profil enrichi avec succès' : 'Actualités récupérées')
+
+      // Notify if fields were auto-filled
+      const updatedFields: string[] = json.data.updated_fields ?? []
+      if (updatedFields.length > 0) {
+        const FIELD_LABELS: Record<string, string> = {
+          linkedin_url: 'LinkedIn',
+          twitter_url: 'Twitter/X',
+          email: 'Email',
+          website: 'Site web',
+        }
+        const labels = updatedFields.map((f) => FIELD_LABELS[f] ?? f)
+        toast.info(
+          `Fiche mise à jour : ${labels.join(', ')} ajouté${labels.length > 1 ? 's' : ''}`
+        )
+      }
     } catch {
       setError('Erreur réseau — vérifie ta connexion.')
       toast.error('Erreur lors de l\'enrichissement IA')
