@@ -314,7 +314,7 @@ export function AIEnrichmentPanel({
               <AccordionItem
                 key={e.id}
                 value={e.id}
-                className="rounded-lg border px-3 data-[state=open]:bg-muted/30"
+                className="rounded-lg border last:!border-b px-3 data-[state=open]:bg-muted/30"
               >
                 <AccordionTrigger className="py-2.5 hover:no-underline">
                   <div className="flex items-center gap-2 text-left">
