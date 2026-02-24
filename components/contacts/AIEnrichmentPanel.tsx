@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Sparkles, Building2, User, RefreshCw, ChevronDown, Clock, AlertCircle } from 'lucide-react'
+import { Sparkles, Building2, User, RefreshCw, ChevronDown, Clock, AlertCircle, Trash2, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -11,8 +11,9 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useQueryClient } from '@tanstack/react-query'
+import { useQueryClient, useMutation } from '@tanstack/react-query'
 import { toast } from 'sonner'
+import { createClient } from '@/lib/supabase/client'
 
 // ---------------------------------------------------------------------------
 // Lightweight inline markdown renderer
@@ -141,6 +142,21 @@ export function AIEnrichmentPanel({
   const [loading, setLoading] = useState<EnrichType | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [freshResult, setFreshResult] = useState<Enrichment | null>(null)
+
+  const deleteEnrichment = useMutation({
+    mutationFn: async (id: string) => {
+      const supabase = createClient()
+      const { error } = await supabase.from('ai_enrichments').delete().eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['contact', contactId] })
+      toast.success('Recherche supprimée')
+    },
+    onError: () => {
+      toast.error('Erreur lors de la suppression')
+    },
+  })
 
   const maxHistory = compact ? 2 : 5
   const history = enrichments.slice(0, maxHistory)
@@ -350,6 +366,20 @@ export function AIEnrichmentPanel({
                 <AccordionContent className="pt-1 pb-3">
                   <div className="text-sm space-y-0.5">
                     {renderMarkdown(e.content)}
+                  </div>
+                  <div className="mt-3 flex justify-end border-t pt-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 gap-1.5 text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                      onClick={() => deleteEnrichment.mutate(e.id)}
+                      disabled={deleteEnrichment.isPending && deleteEnrichment.variables === e.id}
+                    >
+                      {deleteEnrichment.isPending && deleteEnrichment.variables === e.id
+                        ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        : <Trash2 className="h-3.5 w-3.5" />}
+                      Supprimer
+                    </Button>
                   </div>
                 </AccordionContent>
               </AccordionItem>

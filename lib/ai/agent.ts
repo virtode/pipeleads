@@ -139,7 +139,7 @@ Omets tout champ non trouvé avec certitude. Si aucun champ n'est certain, retou
   const response = await withRetry(() =>
     client.messages.create({
       model: MODEL,
-      max_tokens: 2000,
+      max_tokens: 4096,
       tools: [{ type: 'web_search_20250305' as const, name: 'web_search' as const }],
       messages: [{ role: 'user', content: prompt }],
     })
@@ -191,7 +191,7 @@ Si le site n'est pas trouvé avec certitude, retourne \`{"extracted_fields": {}}
   const response = await withRetry(() =>
     client.messages.create({
       model: MODEL,
-      max_tokens: 2000,
+      max_tokens: 4096,
       tools: [{ type: 'web_search_20250305' as const, name: 'web_search' as const }],
       messages: [{ role: 'user', content: prompt }],
     })
