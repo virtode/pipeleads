@@ -63,28 +63,59 @@ function extractText(content: Anthropic.Messages.ContentBlock[]): string {
 }
 
 // ---------------------------------------------------------------------------
-// Parse the last ```json block in the text and split summary / extracted_fields
+// Phase 2 — lean extraction call: parse URLs/email from the report text
+// No web search, small token budget, returns plain JSON only.
 // ---------------------------------------------------------------------------
 
-function parseResult(content: Anthropic.Messages.ContentBlock[]): EnrichmentResult {
-  const fullText = extractText(content)
+type ExtractableField = keyof EnrichmentResult['extracted_fields']
 
-  // Find the last ```json … ``` block
-  const jsonStart = fullText.lastIndexOf('```json')
-  if (jsonStart === -1) return { summary: fullText, extracted_fields: {} }
+const FIELD_DESCRIPTIONS: Record<ExtractableField, string> = {
+  linkedin_url: 'URL du profil LinkedIn (doit commencer par https://linkedin.com/in/ ou https://www.linkedin.com/in/)',
+  twitter_url:  'URL du profil Twitter ou X (doit commencer par https://twitter.com/ ou https://x.com/)',
+  email:        'Adresse email professionnelle',
+  website:      'URL du site web officiel de l\'entreprise (doit commencer par https:// ou http://)',
+}
 
-  const jsonEnd = fullText.indexOf('```', jsonStart + 7)
-  if (jsonEnd === -1) return { summary: fullText, extracted_fields: {} }
+async function extractFieldsFromReport(
+  reportText: string,
+  fields: ExtractableField[]
+): Promise<EnrichmentResult['extracted_fields']> {
+  if (!reportText.trim() || fields.length === 0) return {}
 
-  const jsonStr = fullText.slice(jsonStart + 7, jsonEnd).trim()
-  const summary = fullText.slice(0, jsonStart).trim()
+  const requested = fields
+    .map((f) => `- "${f}" : ${FIELD_DESCRIPTIONS[f]}`)
+    .join('\n')
+
+  const prompt = `Voici un rapport de recherche :
+
+---
+${reportText}
+---
+
+Extrais uniquement les informations suivantes si elles apparaissent clairement dans ce texte (ne devine rien) :
+${requested}
+
+Réponds UNIQUEMENT avec un objet JSON valide, sans explication ni texte autour. Exemples valides :
+{"linkedin_url": "https://linkedin.com/in/exemple", "email": "contact@exemple.com"}
+{}
+
+N'inclus un champ que si l'information est explicitement présente dans le texte ci-dessus.`
 
   try {
-    const parsed = JSON.parse(jsonStr) as { extracted_fields?: Record<string, string> }
-    return { summary, extracted_fields: parsed.extracted_fields ?? {} }
+    const response = await withRetry(() =>
+      client.messages.create({
+        model: MODEL,
+        max_tokens: 256,
+        messages: [{ role: 'user', content: prompt }],
+      })
+    )
+    const raw = extractText(response.content)
+    // Extract the first JSON object found in the response
+    const match = raw.match(/\{[\s\S]*\}/)
+    if (!match) return {}
+    return JSON.parse(match[0]) as EnrichmentResult['extracted_fields']
   } catch {
-    // Malformed JSON — keep full text as summary
-    return { summary: fullText, extracted_fields: {} }
+    return {}
   }
 }
 
@@ -124,18 +155,9 @@ Liste des sources consultées (URLs).
 
 **Date de recherche : ${TODAY()}**
 
-Si tu ne trouves pas d'informations suffisantes, indique-le clairement et précise ce qui manque pour une meilleure recherche.
+Si tu ne trouves pas d'informations suffisantes, indique-le clairement et précise ce qui manque pour une meilleure recherche.`
 
----
-
-Après ton rapport, ajoute exactement un bloc JSON contenant uniquement les champs que tu as trouvés avec haute certitude (URL vérifiée ou email confirmé). N'inclus jamais un champ incertain ou deviné.
-
-\`\`\`json
-{"extracted_fields": {"linkedin_url": "https://linkedin.com/in/...", "twitter_url": "https://twitter.com/...", "email": "prenom.nom@entreprise.com"}}
-\`\`\`
-
-Omets tout champ non trouvé avec certitude. Si aucun champ n'est certain, retourne \`{"extracted_fields": {}}\`.`
-
+  // Phase 1: web search + report
   const response = await withRetry(() =>
     client.messages.create({
       model: MODEL,
@@ -145,16 +167,25 @@ Omets tout champ non trouvé avec certitude. Si aucun champ n'est certain, retou
     })
   )
 
-  const result = parseResult(response.content)
-  if (!result.summary) throw new Error('Aucun résultat généré par le modèle.')
-  return result
+  const summary = extractText(response.content)
+  if (!summary) throw new Error('Aucun résultat généré par le modèle.')
+
+  // Phase 2: extract structured fields from the report (only fields not already set)
+  const fieldsToExtract: ExtractableField[] = []
+  if (!contact.linkedin_url) fieldsToExtract.push('linkedin_url')
+  if (!contact.twitter_url)  fieldsToExtract.push('twitter_url')
+  if (!(contact.email as string[] | null)?.length) fieldsToExtract.push('email')
+
+  const extracted_fields = await extractFieldsFromReport(summary, fieldsToExtract)
+
+  return { summary, extracted_fields }
 }
 
 // ---------------------------------------------------------------------------
 // enrichCompanyNews
 // ---------------------------------------------------------------------------
 
-export async function enrichCompanyNews(company: string): Promise<EnrichmentResult> {
+export async function enrichCompanyNews(company: string, contact?: Contact): Promise<EnrichmentResult> {
   const prompt = `Recherche les dernières actualités sur l'entreprise **${company}**.
 
 Fournis un rapport de veille structuré en français comprenant :
@@ -176,18 +207,9 @@ Liste des sources consultées (URLs).
 
 **Date de recherche : ${TODAY()}**
 
-Si l'entreprise est peu connue ou que les informations sont limitées, indique-le et partage ce que tu as trouvé.
+Si l'entreprise est peu connue ou que les informations sont limitées, indique-le et partage ce que tu as trouvé.`
 
----
-
-Après ton rapport, ajoute exactement un bloc JSON contenant le site web officiel de l'entreprise si tu l'as trouvé avec certitude (URL vérifiée). N'inclus pas le champ si tu n'es pas certain.
-
-\`\`\`json
-{"extracted_fields": {"website": "https://www.entreprise.com"}}
-\`\`\`
-
-Si le site n'est pas trouvé avec certitude, retourne \`{"extracted_fields": {}}\`.`
-
+  // Phase 1: web search + report
   const response = await withRetry(() =>
     client.messages.create({
       model: MODEL,
@@ -197,7 +219,14 @@ Si le site n'est pas trouvé avec certitude, retourne \`{"extracted_fields": {}}
     })
   )
 
-  const result = parseResult(response.content)
-  if (!result.summary) throw new Error('Aucun résultat généré par le modèle.')
-  return result
+  const summary = extractText(response.content)
+  if (!summary) throw new Error('Aucun résultat généré par le modèle.')
+
+  // Phase 2: extract website if not already set on the contact
+  const fieldsToExtract: ExtractableField[] = []
+  if (!contact?.website) fieldsToExtract.push('website')
+
+  const extracted_fields = await extractFieldsFromReport(summary, fieldsToExtract)
+
+  return { summary, extracted_fields }
 }

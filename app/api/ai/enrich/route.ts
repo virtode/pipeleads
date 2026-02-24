@@ -132,7 +132,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<ApiRespon
           { status: 400 }
         )
       }
-      enrichmentResult = await enrichCompanyNews(company)
+      enrichmentResult = await enrichCompanyNews(company, contact)
     }
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
