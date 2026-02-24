@@ -5,6 +5,34 @@ const client = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
 })
 
+// ---------------------------------------------------------------------------
+// Retry with exponential backoff (for 529 overloaded errors)
+// ---------------------------------------------------------------------------
+
+async function withRetry<T>(
+  fn: () => Promise<T>,
+  maxAttempts = 4,
+  baseDelayMs = 2000
+): Promise<T> {
+  let lastError: unknown
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    try {
+      return await fn()
+    } catch (err) {
+      lastError = err
+      const status = (err as { status?: number })?.status
+      // Only retry on 529 (overloaded) or 529-like errors
+      if (status !== 529) throw err
+      if (attempt < maxAttempts - 1) {
+        const delay = baseDelayMs * Math.pow(2, attempt) // 2s, 4s, 8s
+        console.warn(`[AI] Overloaded (attempt ${attempt + 1}/${maxAttempts}), retrying in ${delay}ms…`)
+        await new Promise((resolve) => setTimeout(resolve, delay))
+      }
+    }
+  }
+  throw lastError
+}
+
 const MODEL = 'claude-sonnet-4-6'
 const TODAY = () => new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })
 
@@ -58,12 +86,14 @@ Liste des sources consultées (URLs).
 
 Si tu ne trouves pas d'informations suffisantes, indique-le clairement et précise ce qui manque pour une meilleure recherche.`
 
-  const response = await client.messages.create({
-    model: MODEL,
-    max_tokens: 2000,
-    tools: [{ type: 'web_search_20250305' as const, name: 'web_search' as const }],
-    messages: [{ role: 'user', content: prompt }],
-  })
+  const response = await withRetry(() =>
+    client.messages.create({
+      model: MODEL,
+      max_tokens: 2000,
+      tools: [{ type: 'web_search_20250305' as const, name: 'web_search' as const }],
+      messages: [{ role: 'user', content: prompt }],
+    })
+  )
 
   const text = extractText(response.content)
   if (!text) throw new Error('Aucun résultat généré par le modèle.')
@@ -98,12 +128,14 @@ Liste des sources consultées (URLs).
 
 Si l'entreprise est peu connue ou que les informations sont limitées, indique-le et partage ce que tu as trouvé.`
 
-  const response = await client.messages.create({
-    model: MODEL,
-    max_tokens: 2000,
-    tools: [{ type: 'web_search_20250305' as const, name: 'web_search' as const }],
-    messages: [{ role: 'user', content: prompt }],
-  })
+  const response = await withRetry(() =>
+    client.messages.create({
+      model: MODEL,
+      max_tokens: 2000,
+      tools: [{ type: 'web_search_20250305' as const, name: 'web_search' as const }],
+      messages: [{ role: 'user', content: prompt }],
+    })
+  )
 
   const text = extractText(response.content)
   if (!text) throw new Error('Aucun résultat généré par le modèle.')
