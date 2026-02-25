@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
+import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -102,7 +102,13 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
 
   return (
     <Sheet open={isOpen} onOpenChange={(open) => { if (!open) onClose() }}>
-      <SheetContent className="flex w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-md">
+      <SheetContent showCloseButton={false} className="flex w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-md">
+
+        {/* Desktop-only close button — same visual as the default shadcn X */}
+        <SheetClose className="ring-offset-background focus:ring-ring data-[state=open]:bg-secondary absolute top-4 right-4 hidden md:flex rounded-sm opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none">
+          <X className="size-4" />
+          <span className="sr-only">Fermer</span>
+        </SheetClose>
 
         {isLoading || !contact ? (
           <div className="flex flex-1 flex-col gap-4 p-6">
@@ -474,6 +480,15 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
             </div>
           </>
         )}
+        {/* Mobile-only sticky close bar */}
+        <div className="sticky bottom-0 border-t bg-white dark:bg-zinc-900 p-3 md:hidden">
+          <SheetClose asChild>
+            <Button variant="outline" className="h-12 w-full">
+              Fermer
+            </Button>
+          </SheetClose>
+        </div>
+
       </SheetContent>
     </Sheet>
   )
