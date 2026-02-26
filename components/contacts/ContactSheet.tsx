@@ -184,6 +184,14 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
                 <TabsTrigger value="ai" className="rounded-none pb-3 pt-2.5 px-0 h-auto">
                   IA{enrichments.length > 0 && ` (${enrichments.length})`}
                 </TabsTrigger>
+                <TabsTrigger value="notes" className="rounded-none pb-3 pt-2.5 px-0 h-auto">
+                  <span className="relative">
+                    Notes
+                    {contact.notes && (
+                      <span className="absolute -top-0.5 -right-2.5 h-1.5 w-1.5 rounded-full bg-primary" />
+                    )}
+                  </span>
+                </TabsTrigger>
               </TabsList>
 
               {/* Informations */}
@@ -433,6 +441,34 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
                   hasCompany={!!contact.company}
                   enrichments={enrichments}
                 />
+              </TabsContent>
+
+              {/* Notes */}
+              <TabsContent value="notes" className="overflow-y-auto px-6 py-5 space-y-3">
+                {contact.notes ? (
+                  <>
+                    <div className="flex justify-end">
+                      <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setMode('edit')}>
+                        <Pencil className="mr-1 h-3.5 w-3.5" />
+                        Modifier
+                      </Button>
+                    </div>
+                    <div className="bg-muted rounded-lg p-4 text-sm whitespace-pre-wrap">
+                      {contact.notes}
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex flex-col items-center gap-3 py-10 text-center">
+                    <FileText className="h-8 w-8 text-muted-foreground/50" />
+                    <p className="text-sm text-muted-foreground">Aucune note</p>
+                    <button
+                      onClick={() => setMode('edit')}
+                      className="text-sm text-primary hover:underline"
+                    >
+                      Modifier le contact
+                    </button>
+                  </div>
+                )}
               </TabsContent>
             </Tabs>
 
