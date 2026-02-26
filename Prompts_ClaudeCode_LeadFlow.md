@@ -1,4 +1,4 @@
-# Guide de prompts — LeadFlow CRM pour Claude Code
+# Guide de prompts — PipeLeads pour Claude Code
 
 Copie-colle chaque prompt dans Claude Code **dans l'ordre**.
 Attends que chaque étape soit terminée et validée avant de passer à la suivante.
@@ -18,7 +18,7 @@ Les prompts sont conçus pour être autonomes et progressifs.
 ## PROMPT 1 — Setup du projet
 
 ```
-Initialise le projet LeadFlow CRM en suivant exactement les instructions du CLAUDE.md.
+Initialise le projet PipeLeads en suivant exactement les instructions du CLAUDE.md.
 
 Effectue les actions suivantes dans l'ordre :
 1. Crée un nouveau projet Next.js 15 avec TypeScript, Tailwind CSS et App Router dans le dossier courant (npx create-next-app@latest . --typescript --tailwind --app --src-dir false --import-alias "@/*")
@@ -40,7 +40,7 @@ Effectue les actions suivantes dans l'ordre :
 ## PROMPT 2 — Base de données Supabase
 
 ```
-Crée le schéma complet de la base de données Supabase pour LeadFlow CRM.
+Crée le schéma complet de la base de données Supabase pour PipeLeads.
 
 1. Crée le fichier supabase/migrations/001_initial_schema.sql avec le schéma SQL complet tel que défini dans le CLAUDE.md (tables, RLS policies, indexes)
 2. Ajoute des index de performance sur les colonnes fréquemment filtrées :
@@ -60,7 +60,7 @@ Crée le schéma complet de la base de données Supabase pour LeadFlow CRM.
 ## PROMPT 3 — Authentification Stytch
 
 ```
-Implémente l'authentification complète avec Stytch pour LeadFlow CRM.
+Implémente l'authentification complète avec Stytch pour PipeLeads.
 
 L'application est à usage solo : une seule personne se connecte.
 Méthodes supportées : Magic Link par email + OAuth Google.
@@ -214,7 +214,7 @@ INTÉGRATION DANS LA FICHE CONTACT :
 ## PROMPT 7 — Rapports et analytics
 
 ```
-Implémente le module de rapports pour LeadFlow CRM.
+Implémente le module de rapports pour PipeLeads.
 
 1. Crée hooks/useReports.ts avec TanStack Query pour les requêtes analytiques :
    - Distribution des contacts par statut de pipeline
@@ -327,7 +327,7 @@ OBJECTIF : permettre d'exporter les contacts et leur statut de pipeline vers une
 ## PROMPT 10 — Finitions et polish
 
 ```
-Finalise l'application LeadFlow CRM avec les éléments manquants.
+Finalise l'application PipeLeads avec les éléments manquants.
 
 1. THÈME SOMBRE : Assure-toi que le mode sombre fonctionne partout. Ajoute un toggle thème clair/sombre dans le header (icône soleil/lune).
 
@@ -351,7 +351,7 @@ Finalise l'application LeadFlow CRM avec les éléments manquants.
    - Echap → ferme les panels/dialogs ouverts
 
 6. MÉTADONNÉES SEO et manifeste PWA :
-   - Titre : "LeadFlow CRM"
+   - Titre : "PipeLeads"
    - Favicon personnalisé
    - manifest.json pour installation en PWA
 

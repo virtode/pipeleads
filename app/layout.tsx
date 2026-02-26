@@ -23,8 +23,8 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: {
-    default: 'LeadFlow CRM',
-    template: '%s · LeadFlow',
+    default: 'PipeLeads',
+    template: '%s · PipeLeads',
   },
   description: 'Application personnelle de gestion de contacts et de leads.',
   manifest: '/manifest.json',
@@ -40,9 +40,9 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'fr_FR',
-    title: 'LeadFlow CRM',
+    title: 'PipeLeads',
     description: 'Application personnelle de gestion de contacts et de leads.',
-    siteName: 'LeadFlow CRM',
+    siteName: 'PipeLeads',
   },
 }
 

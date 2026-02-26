@@ -50,7 +50,7 @@ export function Sidebar({ onNavigate }: SidebarProps) {
         <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary text-primary-foreground">
           <Zap className="h-4 w-4" />
         </div>
-        <span className="font-semibold tracking-tight">LeadFlow</span>
+        <span className="font-semibold tracking-tight">PipeLeads</span>
       </div>
 
       {/* Navigation */}

@@ -19,7 +19,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <div className="md:hidden">
             <MobileSidebar />
           </div>
-          <span className="font-semibold md:hidden">LeadFlow</span>
+          <span className="font-semibold md:hidden">PipeLeads</span>
 
           {/* Spacer */}
           <div className="flex-1" />

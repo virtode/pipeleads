@@ -1,6 +1,6 @@
-# CLAUDE.md — LeadFlow CRM
+# CLAUDE.md — PipeLeads
 
-Ce fichier définit les règles de développement pour LeadFlow CRM.
+Ce fichier définit les règles de développement pour PipeLeads.
 Lis-le entièrement avant d'écrire la moindre ligne de code.
 
 ---
