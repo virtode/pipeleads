@@ -77,9 +77,11 @@ interface ContactFormProps {
   contact?: Contact | null
   onSuccess: () => void
   onCancel: () => void
+  formId?: string
+  hideActions?: boolean
 }
 
-export function ContactForm({ contact, onSuccess, onCancel }: ContactFormProps) {
+export function ContactForm({ contact, onSuccess, onCancel, formId, hideActions }: ContactFormProps) {
   const createMutation = useCreateContact()
   const updateMutation = useUpdateContact()
   const isPending = createMutation.isPending || updateMutation.isPending
@@ -125,7 +127,7 @@ export function ContactForm({ contact, onSuccess, onCancel }: ContactFormProps) 
   }
 
   return (
-    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+    <form id={formId} onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
 
       {/* Identité */}
       <section className="space-y-3">
@@ -344,15 +346,17 @@ export function ContactForm({ contact, onSuccess, onCancel }: ContactFormProps) 
       </section>
 
       {/* Actions */}
-      <div className="flex justify-end gap-2 pt-2">
-        <Button type="button" variant="outline" onClick={onCancel} disabled={isPending}>
-          Annuler
-        </Button>
-        <Button type="submit" disabled={isPending}>
-          {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          {contact ? 'Enregistrer' : 'Créer le contact'}
-        </Button>
-      </div>
+      {!hideActions && (
+        <div className="flex justify-end gap-2 pt-2">
+          <Button type="button" variant="outline" onClick={onCancel} disabled={isPending}>
+            Annuler
+          </Button>
+          <Button type="submit" disabled={isPending}>
+            {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {contact ? 'Enregistrer' : 'Créer le contact'}
+          </Button>
+        </div>
+      )}
     </form>
   )
 }

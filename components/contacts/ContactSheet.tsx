@@ -132,45 +132,51 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
               <Skeleton key={i} className="h-4 w-full" />
             ))}
           </div>
-        ) : mode === 'edit' ? (
-          <>
-            <SheetHeader className="border-b px-6 py-4">
-              <SheetTitle>Modifier le contact</SheetTitle>
-            </SheetHeader>
-            <div className="flex-1 overflow-y-auto px-6 py-4">
-              <ContactForm
-                contact={contact}
-                onSuccess={() => setMode('view')}
-                onCancel={() => setMode('view')}
-              />
-            </div>
-          </>
         ) : (
           <>
             {/* Header */}
-            <SheetHeader className="border-b px-6 py-4">
-              <div className="flex items-center gap-3">
-                <Avatar className="h-12 w-12">
-                  <AvatarImage src={contact.photo_url ?? undefined} />
-                  <AvatarFallback>
-                    {getInitials(contact.first_name, contact.last_name)}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="min-w-0 flex-1">
-                  <SheetTitle className="truncate">
-                    {contact.first_name} {contact.last_name}
-                  </SheetTitle>
-                  {(contact.job_title || contact.company) && (
-                    <p className="truncate text-sm text-muted-foreground">
-                      {[contact.job_title, contact.company].filter(Boolean).join(' · ')}
-                    </p>
-                  )}
+            {mode === 'edit' ? (
+              <SheetHeader className="border-b px-6 py-4">
+                <SheetTitle>Modifier le contact</SheetTitle>
+              </SheetHeader>
+            ) : (
+              <SheetHeader className="border-b px-6 py-4">
+                <div className="flex items-center gap-3">
+                  <Avatar className="h-12 w-12">
+                    <AvatarImage src={contact.photo_url ?? undefined} />
+                    <AvatarFallback>
+                      {getInitials(contact.first_name, contact.last_name)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0 flex-1">
+                    <SheetTitle className="truncate">
+                      {contact.first_name} {contact.last_name}
+                    </SheetTitle>
+                    {(contact.job_title || contact.company) && (
+                      <p className="truncate text-sm text-muted-foreground">
+                        {[contact.job_title, contact.company].filter(Boolean).join(' · ')}
+                      </p>
+                    )}
+                  </div>
                 </div>
-              </div>
-            </SheetHeader>
+              </SheetHeader>
+            )}
 
-            {/* Tabbed content */}
-            <Tabs defaultValue="info" className="flex-1 overflow-hidden gap-0">
+            {/* Edit form */}
+            {mode === 'edit' && (
+              <div className="flex-1 overflow-y-auto px-6 py-4">
+                <ContactForm
+                  formId="contact-edit-form"
+                  hideActions={true}
+                  contact={contact}
+                  onSuccess={() => setMode('view')}
+                  onCancel={() => setMode('view')}
+                />
+              </div>
+            )}
+
+            {/* Tabbed content (view mode only) */}
+            {mode === 'view' && <Tabs defaultValue="info" className="flex-1 overflow-hidden gap-0">
               <TabsList
                 variant="line"
                 className="w-full justify-start rounded-none border-b px-6 gap-4 h-auto py-0"
@@ -461,60 +467,67 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
                   <div className="flex flex-col items-center gap-3 py-10 text-center">
                     <FileText className="h-8 w-8 text-muted-foreground/50" />
                     <p className="text-sm text-muted-foreground">Aucune note</p>
-                    <button
-                      onClick={() => setMode('edit')}
-                      className="text-sm text-primary hover:underline"
-                    >
-                      Modifier le contact
-                    </button>
                   </div>
                 )}
               </TabsContent>
-            </Tabs>
+            </Tabs>}
 
             {/* Barre d'actions sticky en bas */}
             <div className="sticky bottom-0 border-t bg-white dark:bg-zinc-900 p-4 flex gap-2">
-              {/* Supprimer — à gauche, destructif */}
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="destructive" size="sm" className="h-12 px-4" disabled={deleteMutation.isPending}>
-                    {deleteMutation.isPending ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Trash2 className="h-4 w-4" />
-                    )}
+              {mode === 'edit' ? (
+                <>
+                  <Button variant="outline" className="flex-1 h-12" onClick={() => setMode('view')}>
+                    Annuler
                   </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Supprimer ce contact ?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      {contact.first_name} {contact.last_name} sera définitivement supprimé
-                      avec tout son historique pipeline.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Annuler</AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={handleDelete}
-                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                    >
-                      Supprimer
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+                  <Button type="submit" form="contact-edit-form" className="flex-1 h-12">
+                    Enregistrer
+                  </Button>
+                </>
+              ) : (
+                <>
+                  {/* Supprimer — à gauche, destructif */}
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="destructive" size="sm" className="h-12 px-4" disabled={deleteMutation.isPending}>
+                        {deleteMutation.isPending ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Supprimer ce contact ?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          {contact.first_name} {contact.last_name} sera définitivement supprimé
+                          avec tout son historique pipeline.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Annuler</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={handleDelete}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          Supprimer
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
 
-              {/* Modifier — au centre */}
-              <Button variant="outline" className="flex-1 h-12" onClick={() => setMode('edit')}>
-                <Pencil className="mr-1.5 h-4 w-4" />
-                Modifier
-              </Button>
+                  {/* Modifier — au centre */}
+                  <Button variant="outline" className="flex-1 h-12" onClick={() => setMode('edit')}>
+                    <Pencil className="mr-1.5 h-4 w-4" />
+                    Modifier
+                  </Button>
 
-              {/* Fermer — à droite */}
-              <SheetClose asChild>
-                <Button className="flex-1 h-12">Fermer</Button>
-              </SheetClose>
+                  {/* Fermer — à droite */}
+                  <SheetClose asChild>
+                    <Button className="flex-1 h-12">Fermer</Button>
+                  </SheetClose>
+                </>
+              )}
             </div>
           </>
         )}
