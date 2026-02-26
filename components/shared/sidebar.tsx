@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import { useStytch } from '@stytch/nextjs'
 import {
@@ -10,7 +11,6 @@ import {
   BarChart2,
   Settings,
   LogOut,
-  Zap,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -46,11 +46,8 @@ export function Sidebar({ onNavigate }: SidebarProps) {
   return (
     <div className="flex h-full flex-col">
       {/* Logo */}
-      <div className="flex h-14 items-center gap-2 border-b px-4">
-        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-          <Zap className="h-4 w-4" />
-        </div>
-        <span className="font-semibold tracking-tight">PipeLeads</span>
+      <div className="flex h-14 items-center border-b px-4">
+        <Image src="/logo.svg" alt="PipeLeads" width={140} height={35} />
       </div>
 
       {/* Navigation */}

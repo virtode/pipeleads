@@ -8,7 +8,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Loader2, Mail, Zap } from 'lucide-react'
+import Image from 'next/image'
+import { Loader2, Mail } from 'lucide-react'
 
 export default function LoginPage() {
   const stytch = useStytch()
@@ -55,10 +56,13 @@ export default function LoginPage() {
 
         {/* Logo / titre */}
         <div className="flex flex-col items-center gap-2 text-center">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-            <Zap className="h-5 w-5" />
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight">PipeLeads</h1>
+          <Image
+            src="/logo.svg"
+            alt="PipeLeads"
+            width={160}
+            height={40}
+            className="mx-auto mb-8"
+          />
           <p className="text-sm text-muted-foreground">
             Connecte-toi pour accéder à ton espace
           </p>

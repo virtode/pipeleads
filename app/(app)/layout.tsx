@@ -1,5 +1,6 @@
 import { Sidebar } from '@/components/shared/sidebar'
 import { MobileSidebar } from '@/components/shared/mobile-sidebar'
+import { MobileHeaderLogo } from '@/components/shared/MobileHeaderLogo'
 import { ThemeToggle } from '@/components/shared/ThemeToggle'
 import { CommandPalette } from '@/components/shared/CommandPalette'
 
@@ -19,7 +20,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <div className="md:hidden">
             <MobileSidebar />
           </div>
-          <span className="font-semibold md:hidden">PipeLeads</span>
+          <div className="md:hidden">
+            <MobileHeaderLogo />
+          </div>
 
           {/* Spacer */}
           <div className="flex-1" />
