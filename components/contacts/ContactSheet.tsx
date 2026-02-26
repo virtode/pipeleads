@@ -26,6 +26,7 @@ import {
 import { ContactForm, type ContactFormHandle } from './ContactForm'
 import { AIEnrichmentPanel } from './AIEnrichmentPanel'
 import { useContact, useDeleteContact } from '@/hooks/useContacts'
+import { useSwipeToClose } from '@/hooks/useSwipeToClose'
 import { usePipelines, useAssignContactToPipeline, useRemoveContactFromPipeline } from '@/hooks/usePipelines'
 import {
   Select,
@@ -73,6 +74,7 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
   const [mode, setMode] = useState<'view' | 'edit'>('view')
   const [addingPipelineId, setAddingPipelineId] = useState<string | null>(null)
   const formRef = useRef<ContactFormHandle>(null)
+  const swipe = useSwipeToClose({ onClose })
   const { data: contact, isLoading } = useContact(contactId)
   const deleteMutation = useDeleteContact()
   const { data: allPipelines } = usePipelines()
@@ -113,6 +115,12 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
   return (
     <Sheet open={isOpen} onOpenChange={(open) => { if (!open) onClose() }}>
       <SheetContent showCloseButton={false} className="flex w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-md">
+
+        {/* Drag indicator — mobile only */}
+        <div className="mx-auto mt-2 mb-1 h-1 w-10 rounded-full bg-muted-foreground/30 md:hidden" />
+
+        {/* Swipe-to-close wrapper */}
+        <div className="flex flex-1 flex-col overflow-hidden" {...swipe}>
 
         {/* Desktop-only close button — same visual as the default shadcn X */}
         <SheetClose className="ring-offset-background focus:ring-ring data-[state=open]:bg-secondary absolute top-4 right-4 hidden md:flex rounded-sm opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none">
@@ -533,6 +541,7 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
           </>
         )}
 
+        </div>{/* end swipe wrapper */}
       </SheetContent>
     </Sheet>
   )
