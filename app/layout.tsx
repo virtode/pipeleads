@@ -28,10 +28,6 @@ export const metadata: Metadata = {
   },
   description: 'Application personnelle de gestion de contacts et de leads.',
   manifest: '/manifest.json',
-  icons: {
-    icon: '/icon-light.png',
-    apple: '/icon-light.png',
-  },
   robots: {
     index: false,
     follow: false,
