@@ -30,7 +30,6 @@ export const metadata: Metadata = {
   manifest: '/manifest.json',
   icons: {
     icon: '/icon-light.png',
-    shortcut: '/icon-light.png',
     apple: '/icon-light.png',
   },
   robots: {

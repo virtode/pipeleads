@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import { useStytch } from '@stytch/nextjs'
 import {
@@ -46,7 +47,7 @@ export function Sidebar({ onNavigate }: SidebarProps) {
     <div className="flex h-full flex-col">
       {/* Logo */}
       <div className="flex h-14 items-center border-b px-4">
-        <img src="/logo.svg" alt="PipeLeads" width={140} height={35} />
+        <Image src="/logo.png" alt="PipeLeads" width={140} height={35} priority />
       </div>
 
       {/* Navigation */}
