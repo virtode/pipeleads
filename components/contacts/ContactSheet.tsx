@@ -116,9 +116,6 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
     <Sheet open={isOpen} onOpenChange={(open) => { if (!open) onClose() }}>
       <SheetContent showCloseButton={false} className="flex w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-md">
 
-        {/* Drag indicator — mobile only */}
-        <div className="mx-auto mt-2 mb-1 h-1 w-10 rounded-full bg-muted-foreground/30 md:hidden" />
-
         {/* Swipe-to-close wrapper */}
         <div className="flex flex-1 flex-col overflow-hidden" {...swipe}>
 
