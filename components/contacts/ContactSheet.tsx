@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
   Mail, Phone, Building2, MapPin, Globe, Linkedin, Twitter,
   Tag, FileText, Pencil, Trash2, ExternalLink, Loader2, GitBranch, Plus, X,
@@ -23,7 +23,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
-import { ContactForm } from './ContactForm'
+import { ContactForm, type ContactFormHandle } from './ContactForm'
 import { AIEnrichmentPanel } from './AIEnrichmentPanel'
 import { useContact, useDeleteContact } from '@/hooks/useContacts'
 import { usePipelines, useAssignContactToPipeline, useRemoveContactFromPipeline } from '@/hooks/usePipelines'
@@ -72,6 +72,7 @@ interface ContactSheetProps {
 export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactSheetProps) {
   const [mode, setMode] = useState<'view' | 'edit'>('view')
   const [addingPipelineId, setAddingPipelineId] = useState<string | null>(null)
+  const formRef = useRef<ContactFormHandle>(null)
   const { data: contact, isLoading } = useContact(contactId)
   const deleteMutation = useDeleteContact()
   const { data: allPipelines } = usePipelines()
@@ -166,7 +167,7 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
             {mode === 'edit' && (
               <div className="flex-1 overflow-y-auto px-6 py-4">
                 <ContactForm
-                  formId="contact-edit-form"
+                  ref={formRef}
                   hideActions={true}
                   contact={contact}
                   onSuccess={() => setMode('view')}
@@ -476,10 +477,10 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
             <div className="sticky bottom-0 border-t bg-white dark:bg-zinc-900 p-4 flex gap-2">
               {mode === 'edit' ? (
                 <>
-                  <Button variant="outline" className="flex-1 h-12" onClick={() => setMode('view')}>
+                  <Button type="button" variant="outline" className="flex-1 h-12" onClick={() => setMode('view')}>
                     Annuler
                   </Button>
-                  <Button type="submit" form="contact-edit-form" className="flex-1 h-12">
+                  <Button type="button" className="flex-1 h-12" onClick={() => formRef.current?.submit()}>
                     Enregistrer
                   </Button>
                 </>

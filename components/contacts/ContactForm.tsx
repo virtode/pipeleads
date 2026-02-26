@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useImperativeHandle, forwardRef } from 'react'
 import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -73,15 +73,19 @@ function getDefaultValues(contact?: Contact | null): ContactFormValues {
 // Composant
 // ---------------------------------------------------------------------------
 
+export interface ContactFormHandle {
+  submit: () => void
+}
+
 interface ContactFormProps {
   contact?: Contact | null
   onSuccess: () => void
   onCancel: () => void
-  formId?: string
   hideActions?: boolean
 }
 
-export function ContactForm({ contact, onSuccess, onCancel, formId, hideActions }: ContactFormProps) {
+export const ContactForm = forwardRef<ContactFormHandle, ContactFormProps>(
+function ContactForm({ contact, onSuccess, onCancel, hideActions }, ref) {
   const createMutation = useCreateContact()
   const updateMutation = useUpdateContact()
   const isPending = createMutation.isPending || updateMutation.isPending
@@ -99,6 +103,10 @@ export function ContactForm({ contact, onSuccess, onCancel, formId, hideActions 
   const emailFields = useFieldArray({ control: form.control, name: 'emails' })
   const phoneFields = useFieldArray({ control: form.control, name: 'phones' })
   const tagFields = useFieldArray({ control: form.control, name: 'tags' })
+
+  useImperativeHandle(ref, () => ({
+    submit: () => { form.handleSubmit(onSubmit)() },
+  }))
 
   async function onSubmit(values: ContactFormValues) {
     const payload = {
@@ -127,7 +135,7 @@ export function ContactForm({ contact, onSuccess, onCancel, formId, hideActions 
   }
 
   return (
-    <form id={formId} onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
 
       {/* Identité */}
       <section className="space-y-3">
@@ -359,4 +367,4 @@ export function ContactForm({ contact, onSuccess, onCancel, formId, hideActions 
       )}
     </form>
   )
-}
+})
