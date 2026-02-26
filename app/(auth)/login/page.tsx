@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import Image from 'next/image'
 import { Loader2, Mail } from 'lucide-react'
 
 export default function LoginPage() {
@@ -56,7 +55,7 @@ export default function LoginPage() {
 
         {/* Logo / titre */}
         <div className="flex flex-col items-center gap-2 text-center">
-          <Image
+          <img
             src="/logo.svg"
             alt="PipeLeads"
             width={160}
