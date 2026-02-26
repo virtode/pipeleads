@@ -19,7 +19,7 @@
       "Bash(brew install:*)",
       "Bash(gh repo:*)",
       "Bash(git remote add origin https://github.com/mateyk/pipeleads.git && git push -u origin main 2>&1)",
-      "Bash(git remote set-url origin git@github.com:mateyk/pipeleads.git && git push -u origin main 2>&1)",
+      "Bash(git remote set-url origin https://github.com/mateyk/pipeleads.git && git push -u origin main 2>&1)",
       "Bash(git:*)"
     ]
   }
