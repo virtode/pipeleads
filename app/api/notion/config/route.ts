@@ -1,38 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { encrypt, decrypt } from '@/lib/notion/crypto'
 import type { ApiResponse } from '@/types'
-
-// ---------------------------------------------------------------------------
-// Auth helper (shared with /api/ai/enrich)
-// ---------------------------------------------------------------------------
-
-function decodeJwtPayload(token: string): { sub?: string; exp?: number } | null {
-  try {
-    const parts = token.split('.')
-    if (parts.length !== 3) return null
-    const padded = parts[1]
-      .replace(/-/g, '+')
-      .replace(/_/g, '/')
-      .padEnd(parts[1].length + ((4 - (parts[1].length % 4)) % 4), '=')
-    return JSON.parse(Buffer.from(padded, 'base64').toString('utf8'))
-  } catch {
-    return null
-  }
-}
-
-async function getSessionUserId(): Promise<string | null> {
-  const cookieStore = await cookies()
-  const jwt =
-    cookieStore.get('stytch_session_jwt')?.value ||
-    cookieStore.get('stytch_session')?.value
-  if (!jwt) return null
-  const payload = decodeJwtPayload(jwt)
-  if (!payload) return null
-  if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) return null
-  return payload.sub ?? null
-}
 
 // ---------------------------------------------------------------------------
 // GET /api/notion/config
@@ -47,16 +16,16 @@ export async function GET(): Promise<
     has_token: boolean
   } | null>>
 > {
-  const userId = await getSessionUserId()
-  if (!userId) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
     return NextResponse.json({ data: null, error: 'Non authentifié' }, { status: 401 })
   }
 
-  const supabase = await createClient()
   const { data, error } = await supabase
     .from('notion_config')
     .select('database_id, encrypted_token, field_mapping, last_sync_at')
-    .eq('user_id', userId)
+    .eq('user_id', user.id)
     .maybeSingle()
 
   if (error) {
@@ -91,8 +60,9 @@ interface ConfigBody {
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse<ApiResponse<{ ok: true }>>> {
-  const userId = await getSessionUserId()
-  if (!userId) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
     return NextResponse.json({ data: null, error: 'Non authentifié' }, { status: 401 })
   }
 
@@ -112,13 +82,11 @@ export async function POST(request: NextRequest): Promise<NextResponse<ApiRespon
     )
   }
 
-  const supabase = await createClient()
-
   // Fetch existing row to decide whether to update the token
   const { data: existing } = await supabase
     .from('notion_config')
     .select('id, encrypted_token')
-    .eq('user_id', userId)
+    .eq('user_id', user.id)
     .maybeSingle()
 
   // Encrypt new token if provided; keep existing one otherwise
@@ -136,7 +104,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<ApiRespon
   }
 
   const upsertData = {
-    user_id: userId,
+    user_id: user.id,
     database_id,
     encrypted_token: encryptedToken,
     field_mapping,

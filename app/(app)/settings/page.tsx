@@ -8,7 +8,7 @@ import {
   AlertCircle, Loader2, LogOut, Database,
   ArrowRight, Info,
 } from 'lucide-react'
-import { useStytch, useStytchUser } from '@stytch/nextjs'
+import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -64,8 +64,12 @@ interface SyncReport {
 
 export default function SettingsPage() {
   const router = useRouter()
-  const stytch = useStytch()
-  const { user } = useStytchUser()
+  const [userEmail, setUserEmail] = useState<string | null>(null)
+
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.auth.getUser().then(({ data }) => setUserEmail(data.user?.email ?? null))
+  }, [])
 
   // --- Notion config state ---
   const [token, setToken] = useState('')
@@ -233,7 +237,8 @@ export default function SettingsPage() {
   async function handleLogout() {
     setLogoutLoading(true)
     try {
-      await stytch.session.revoke()
+      const supabase = createClient()
+      await supabase.auth.signOut()
       router.push('/login')
     } catch {
       setLogoutLoading(false)
@@ -564,12 +569,10 @@ export default function SettingsPage() {
 
         <Card>
           <CardContent className="pt-5 space-y-4">
-            {user && (
+            {userEmail && (
               <div className="space-y-0.5">
                 <p className="text-sm font-medium">Utilisateur connecté</p>
-                <p className="text-sm text-muted-foreground">
-                  {user.emails?.[0]?.email ?? user.phone_numbers?.[0]?.phone_number ?? 'Inconnu'}
-                </p>
+                <p className="text-sm text-muted-foreground">{userEmail}</p>
               </div>
             )}
 

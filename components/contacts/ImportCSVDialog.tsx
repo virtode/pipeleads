@@ -32,7 +32,6 @@ import {
 } from '@/lib/import/csv'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
-import { useStytchSession } from '@stytch/nextjs'
 import { useQueryClient } from '@tanstack/react-query'
 
 type Step = 'upload' | 'mapping' | 'options' | 'importing' | 'done'
@@ -53,7 +52,6 @@ interface ImportCSVDialogProps {
 const NONE_VALUE = '__none__'
 
 export function ImportCSVDialog({ open, onOpenChange }: ImportCSVDialogProps) {
-  const { session } = useStytchSession()
   const queryClient = useQueryClient()
 
   const [step, setStep] = useState<Step>('upload')
@@ -127,13 +125,13 @@ export function ImportCSVDialog({ open, onOpenChange }: ImportCSVDialogProps) {
   }
 
   async function startImport() {
-    if (!session) return
     setStep('importing')
     setProgress(0)
 
     const contacts = mapCSVToContacts(csvRows, mapping)
-    const userId = session.user_id
     const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    const userId = user?.id ?? ''
 
     const result: ImportResult = { created: 0, skipped: 0, errors: 0, errorMessages: [] }
 

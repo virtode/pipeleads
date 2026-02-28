@@ -4,7 +4,6 @@ import { Suspense, useState, useEffect } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Plus, Download, Upload, ChevronDown } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
-import { useStytchSession } from '@stytch/nextjs'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -33,7 +32,6 @@ import type { Contact, ContactFilters as Filters, ContactSortField } from '@/typ
 const EMPTY_FILTERS: Filters = { search: '', tags: [], company: '' }
 
 function ContactsPageContent() {
-  const { session } = useStytchSession()
   const searchParams = useSearchParams()
   const router = useRouter()
   const [page, setPage] = useState(0)
@@ -85,7 +83,7 @@ function ContactsPageContent() {
       if (error) throw error
       return (data ?? []) as Contact[]
     },
-    enabled: isExportOpen && !!session,
+    enabled: isExportOpen,
     staleTime: 60_000,
   })
 

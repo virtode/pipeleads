@@ -1,7 +1,6 @@
 'use client'
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useStytchSession } from '@stytch/nextjs'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
 import type { InsertDto, UpdateDto } from '@/lib/supabase/types'
@@ -39,8 +38,6 @@ export interface KanbanData {
 // ---------------------------------------------------------------------------
 
 export function usePipelines() {
-  const { session } = useStytchSession()
-
   return useQuery({
     queryKey: ['pipelines'],
     queryFn: async () => {
@@ -54,13 +51,10 @@ export function usePipelines() {
       if (error) { console.error('[usePipelines query]', error); throw error }
       return (data ?? []) as PipelineWithStages[]
     },
-    enabled: !!session,
   })
 }
 
 export function usePipeline(id: string | null) {
-  const { session } = useStytchSession()
-
   return useQuery({
     queryKey: ['pipeline', id],
     queryFn: async () => {
@@ -76,13 +70,11 @@ export function usePipeline(id: string | null) {
       if (error) throw error
       return data as PipelineWithStages
     },
-    enabled: !!id && !!session,
+    enabled: !!id,
   })
 }
 
 export function useKanban(pipelineId: string | null) {
-  const { session } = useStytchSession()
-
   return useQuery({
     queryKey: ['kanban', pipelineId],
     queryFn: async () => {
@@ -137,7 +129,7 @@ export function useKanban(pipelineId: string | null) {
 
       return result
     },
-    enabled: !!pipelineId && !!session,
+    enabled: !!pipelineId,
   })
 }
 
@@ -146,15 +138,15 @@ export function useKanban(pipelineId: string | null) {
 // ---------------------------------------------------------------------------
 
 export function useCreatePipeline() {
-  const { session } = useStytchSession()
   const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: async (input: Omit<InsertDto<'pipelines'>, 'user_id'>) => {
       const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
       const { data, error } = await supabase
         .from('pipelines')
-        .insert({ ...input, user_id: session?.user_id ?? '' })
+        .insert({ ...input, user_id: user?.id ?? '' })
         .select()
         .single()
       if (error) throw error

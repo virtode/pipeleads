@@ -1,32 +1,19 @@
 'use client'
 
 import { useState } from 'react'
-import { useStytch, useStytchSession } from '@stytch/nextjs'
-import { useRouter } from 'next/navigation'
-import { useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import Image from 'next/image'
 import { Loader2, Mail } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
 
 export default function LoginPage() {
-  const stytch = useStytch()
-  const { session } = useStytchSession()
-  const router = useRouter()
-
   const [email, setEmail] = useState('')
   const [isSending, setIsSending] = useState(false)
   const [sent, setSent] = useState(false)
   const [error, setError] = useState<string | null>(null)
-
-  // Redirige si déjà connecté
-  useEffect(() => {
-    if (session) {
-      router.replace('/contacts')
-    }
-  }, [session, router])
 
   async function handleMagicLink(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -36,15 +23,28 @@ export default function LoginPage() {
     setError(null)
 
     try {
-      await stytch.magicLinks.email.loginOrCreate(email.trim(), {
-        login_magic_link_url: `${window.location.origin}/callback`,
-        signup_magic_link_url: `${window.location.origin}/callback`,
+      const supabase = createClient()
+      const { error: otpError } = await supabase.auth.signInWithOtp({
+        email: email.trim(),
+        options: {
+          shouldCreateUser: false,
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
       })
+
+      if (otpError) {
+        if (otpError.message.toLowerCase().includes('signups not allowed')) {
+          setError('Adresse email non reconnue. Contacte l\'administrateur.')
+        } else {
+          setError(`Erreur : ${otpError.message}`)
+        }
+        return
+      }
+
       setSent(true)
     } catch (err) {
-      console.error('[Stytch] Magic link error:', err)
-      const message = err instanceof Error ? err.message : JSON.stringify(err)
-      setError(`Erreur : ${message}`)
+      console.error('[Auth] Magic link error:', err)
+      setError('Erreur inattendue. Réessaie.')
     } finally {
       setIsSending(false)
     }
@@ -110,7 +110,7 @@ export default function LoginPage() {
               </form>
             ) : (
               <div className="rounded-lg bg-muted p-4 text-center text-sm">
-                <p className="font-medium">Vérifie ta boîte mail !</p>
+                <p className="font-medium">Vérifie ta boîte mail ✉️</p>
                 <p className="mt-1 text-muted-foreground">
                   Un lien de connexion a été envoyé à{' '}
                   <span className="font-medium text-foreground">{email}</span>.

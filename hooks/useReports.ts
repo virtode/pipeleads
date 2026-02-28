@@ -1,7 +1,6 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
-import { useStytchSession } from '@stytch/nextjs'
 import { createClient } from '@/lib/supabase/client'
 
 // ---------------------------------------------------------------------------
@@ -59,8 +58,6 @@ export interface KpiData {
 // ---------------------------------------------------------------------------
 
 export function useKpis() {
-  const { session } = useStytchSession()
-
   return useQuery({
     queryKey: ['reports-kpis'],
     queryFn: async (): Promise<KpiData> => {
@@ -84,7 +81,6 @@ export function useKpis() {
         contactsWithoutStage: noStageRes.count ?? 0,
       }
     },
-    enabled: !!session,
     staleTime: 2 * 60_000,
   })
 }
@@ -94,8 +90,6 @@ export function useKpis() {
 // ---------------------------------------------------------------------------
 
 export function useStageDistribution(filters: ReportFilters) {
-  const { session } = useStytchSession()
-
   return useQuery({
     queryKey: ['reports-distribution', filters.pipelineId],
     queryFn: async (): Promise<StageDistributionItem[]> => {
@@ -145,7 +139,7 @@ export function useStageDistribution(filters: ReportFilters) {
 
       return result
     },
-    enabled: !!session && !!filters.pipelineId,
+    enabled: !!filters.pipelineId,
     staleTime: 60_000,
   })
 }
@@ -155,8 +149,6 @@ export function useStageDistribution(filters: ReportFilters) {
 // ---------------------------------------------------------------------------
 
 export function useTimeline(filters: ReportFilters) {
-  const { session } = useStytchSession()
-
   return useQuery({
     queryKey: ['reports-timeline', filters.pipelineId, filters.startDate.toISOString().slice(0, 10), filters.endDate.toISOString().slice(0, 10)],
     queryFn: async (): Promise<TimelinePoint[]> => {
@@ -197,7 +189,6 @@ export function useTimeline(filters: ReportFilters) {
 
       return result
     },
-    enabled: !!session,
     staleTime: 60_000,
   })
 }
@@ -207,8 +198,6 @@ export function useTimeline(filters: ReportFilters) {
 // ---------------------------------------------------------------------------
 
 export function useTagsDistribution() {
-  const { session } = useStytchSession()
-
   return useQuery({
     queryKey: ['reports-tags'],
     queryFn: async (): Promise<TagCount[]> => {
@@ -232,7 +221,6 @@ export function useTagsDistribution() {
         .sort((a, b) => b.count - a.count)
         .slice(0, 10)
     },
-    enabled: !!session,
     staleTime: 2 * 60_000,
   })
 }
@@ -242,8 +230,6 @@ export function useTagsDistribution() {
 // ---------------------------------------------------------------------------
 
 export function useInactiveContacts(days: number, pipelineId: string | null) {
-  const { session } = useStytchSession()
-
   return useQuery({
     queryKey: ['reports-inactive', days, pipelineId],
     queryFn: async (): Promise<InactiveContact[]> => {
@@ -282,7 +268,6 @@ export function useInactiveContacts(days: number, pipelineId: string | null) {
         .sort((a, b) => b.daysSinceLastActivity - a.daysSinceLastActivity)
         .slice(0, 20)
     },
-    enabled: !!session,
     staleTime: 5 * 60_000,
   })
 }
@@ -292,8 +277,6 @@ export function useInactiveContacts(days: number, pipelineId: string | null) {
 // ---------------------------------------------------------------------------
 
 export function useConversionFunnel(pipelineId: string | null, filters: ReportFilters) {
-  const { session } = useStytchSession()
-
   return useQuery({
     queryKey: ['reports-funnel', pipelineId, filters.startDate.toISOString().slice(0, 10), filters.endDate.toISOString().slice(0, 10)],
     queryFn: async (): Promise<ConversionStep[]> => {
@@ -362,7 +345,7 @@ export function useConversionFunnel(pipelineId: string | null, filters: ReportFi
 
       return result
     },
-    enabled: !!session && !!pipelineId,
+    enabled: !!pipelineId,
     staleTime: 60_000,
   })
 }

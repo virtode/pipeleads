@@ -3,7 +3,6 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
-import { useStytch } from '@stytch/nextjs'
 import {
   Users,
   Kanban,
@@ -14,6 +13,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { createClient } from '@/lib/supabase/client'
 
 interface NavItem {
   label: string
@@ -36,10 +36,10 @@ interface SidebarProps {
 export function Sidebar({ onNavigate }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
-  const stytch = useStytch()
 
   async function handleLogout() {
-    await stytch.session.revoke()
+    const supabase = createClient()
+    await supabase.auth.signOut()
     router.replace('/login')
   }
 

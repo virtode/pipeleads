@@ -31,7 +31,6 @@ import {
   type PipelineWithStages,
 } from '@/hooks/usePipelines'
 import { createClient } from '@/lib/supabase/client'
-import { useStytchSession } from '@stytch/nextjs'
 import { useQueryClient } from '@tanstack/react-query'
 
 // ---------------------------------------------------------------------------
@@ -160,7 +159,6 @@ interface PipelineEditorProps {
 }
 
 export function PipelineEditor({ pipeline, onSuccess, onCancel }: PipelineEditorProps) {
-  const { session } = useStytchSession()
   const queryClient = useQueryClient()
   const createPipeline = useCreatePipeline()
   const updatePipeline = useUpdatePipeline()

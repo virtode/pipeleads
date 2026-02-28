@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
 import { z } from 'zod'
 import { streamText } from 'ai'
 import { anthropic } from '@ai-sdk/anthropic'
@@ -9,41 +8,6 @@ import {
   buildCompanyNewsPrompt,
   extractFieldsFromReport,
 } from '@/lib/ai/agent'
-
-// ---------------------------------------------------------------------------
-// Session verification (Stytch JWT — decode without library)
-// ---------------------------------------------------------------------------
-
-function decodeJwtPayload(token: string): { sub?: string; exp?: number } | null {
-  try {
-    const parts = token.split('.')
-    if (parts.length !== 3) return null
-    // base64url → base64 → JSON
-    const padded = parts[1].replace(/-/g, '+').replace(/_/g, '/').padEnd(
-      parts[1].length + ((4 - (parts[1].length % 4)) % 4), '='
-    )
-    return JSON.parse(Buffer.from(padded, 'base64').toString('utf8'))
-  } catch {
-    return null
-  }
-}
-
-async function getSessionUserId(): Promise<string | null> {
-  const cookieStore = await cookies()
-  const jwt =
-    cookieStore.get('stytch_session_jwt')?.value ||
-    cookieStore.get('stytch_session')?.value
-
-  if (!jwt) return null
-
-  const payload = decodeJwtPayload(jwt)
-  if (!payload) return null
-
-  // Check expiry
-  if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) return null
-
-  return payload.sub ?? null
-}
 
 // ---------------------------------------------------------------------------
 // Rate limiter — in-memory, per contactId:type (max 1 req / 10 s)
@@ -73,8 +37,9 @@ const emailSchema = z.string().email()
 
 export async function POST(request: NextRequest): Promise<Response> {
   // 1. Auth
-  const userId = await getSessionUserId()
-  if (!userId) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
     return NextResponse.json({ data: null, error: 'Non authentifié' }, { status: 401 })
   }
 
@@ -103,7 +68,6 @@ export async function POST(request: NextRequest): Promise<Response> {
   }
 
   // 4. Fetch contact (verify ownership via RLS)
-  const supabase = await createClient()
   const { data: contact, error: contactErr } = await supabase
     .from('contacts')
     .select('*')

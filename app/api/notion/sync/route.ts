@@ -1,40 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { decrypt } from '@/lib/notion/crypto'
 import { syncAllContacts } from '@/lib/notion/sync'
 import type { SyncReport } from '@/lib/notion/sync'
 import type { ApiResponse } from '@/types'
-
-// ---------------------------------------------------------------------------
-// Auth helper
-// ---------------------------------------------------------------------------
-
-function decodeJwtPayload(token: string): { sub?: string; exp?: number } | null {
-  try {
-    const parts = token.split('.')
-    if (parts.length !== 3) return null
-    const padded = parts[1]
-      .replace(/-/g, '+')
-      .replace(/_/g, '/')
-      .padEnd(parts[1].length + ((4 - (parts[1].length % 4)) % 4), '=')
-    return JSON.parse(Buffer.from(padded, 'base64').toString('utf8'))
-  } catch {
-    return null
-  }
-}
-
-async function getSessionUserId(): Promise<string | null> {
-  const cookieStore = await cookies()
-  const jwt =
-    cookieStore.get('stytch_session_jwt')?.value ||
-    cookieStore.get('stytch_session')?.value
-  if (!jwt) return null
-  const payload = decodeJwtPayload(jwt)
-  if (!payload) return null
-  if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) return null
-  return payload.sub ?? null
-}
 
 // ---------------------------------------------------------------------------
 // In-memory lock — prevent concurrent syncs
@@ -54,10 +23,12 @@ interface SyncBody {
 export async function POST(
   request: NextRequest,
 ): Promise<NextResponse<ApiResponse<SyncReport & { duration_ms: number }>>> {
-  const userId = await getSessionUserId()
-  if (!userId) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
     return NextResponse.json({ data: null, error: 'Non authentifié' }, { status: 401 })
   }
+  const userId = user.id
 
   // Prevent concurrent syncs
   if (syncInProgress.get(userId)) {
@@ -73,8 +44,6 @@ export async function POST(
   } catch {
     // body is optional
   }
-
-  const supabase = await createClient()
 
   // 1. Load config
   const { data: config, error: configErr } = await supabase

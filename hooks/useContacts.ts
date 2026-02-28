@@ -1,7 +1,6 @@
 'use client'
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useStytchSession } from '@stytch/nextjs'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
 import type { ContactFilters, ContactSortField } from '@/types'
@@ -24,8 +23,6 @@ export function useContacts({
   filters = {},
   sort = { field: 'created_at', direction: 'desc' },
 }: UseContactsParams = {}) {
-  const { session } = useStytchSession()
-
   return useQuery({
     queryKey: ['contacts', page, filters, sort],
     queryFn: async () => {
@@ -60,13 +57,10 @@ export function useContacts({
 
       return { contacts: data ?? [], total: count ?? 0 }
     },
-    enabled: !!session,
   })
 }
 
 export function useContact(id: string | null) {
-  const { session } = useStytchSession()
-
   return useQuery({
     queryKey: ['contact', id],
     queryFn: async () => {
@@ -93,13 +87,11 @@ export function useContact(id: string | null) {
       if (error) throw error
       return data
     },
-    enabled: !!id && !!session,
+    enabled: !!id,
   })
 }
 
 export function useContactTags() {
-  const { session } = useStytchSession()
-
   return useQuery({
     queryKey: ['contact-tags'],
     queryFn: async () => {
@@ -113,7 +105,6 @@ export function useContactTags() {
       const all = (data ?? []).flatMap((c) => c.tags ?? [])
       return [...new Set(all)].sort()
     },
-    enabled: !!session,
     staleTime: 5 * 60_000,
   })
 }
@@ -123,13 +114,13 @@ export function useContactTags() {
 // ---------------------------------------------------------------------------
 
 export function useCreateContact() {
-  const { session } = useStytchSession()
   const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: async (input: Omit<InsertDto<'contacts'>, 'user_id'>) => {
       const supabase = createClient()
-      const userId = session?.user_id ?? ''
+      const { data: { user } } = await supabase.auth.getUser()
+      const userId = user?.id ?? ''
 
       const { data, error } = await supabase
         .from('contacts')
