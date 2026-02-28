@@ -1,9 +1,7 @@
-import Anthropic from '@anthropic-ai/sdk'
+import { generateText, generateObject } from 'ai'
+import { anthropic } from '@ai-sdk/anthropic'
+import { z } from 'zod'
 import type { Contact } from '@/types'
-
-const client = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY!,
-})
 
 // ---------------------------------------------------------------------------
 // Retry with exponential backoff (for 529 overloaded errors)
@@ -20,9 +18,12 @@ async function withRetry<T>(
       return await fn()
     } catch (err) {
       lastError = err
-      const status = (err as { status?: number })?.status
-      // Only retry on 529 (overloaded) or 529-like errors
-      if (status !== 529) throw err
+      // Vercel AI SDK wraps API errors — check both statusCode and status
+      const code =
+        (err as { statusCode?: number })?.statusCode ??
+        (err as { status?: number })?.status
+      // Only retry on 529 (overloaded) errors
+      if (code !== 529) throw err
       if (attempt < maxAttempts - 1) {
         const delay = baseDelayMs * Math.pow(2, attempt) // 2s, 4s, 8s
         console.warn(`[AI] Overloaded (attempt ${attempt + 1}/${maxAttempts}), retrying in ${delay}ms…`)
@@ -51,20 +52,19 @@ export interface EnrichmentResult {
 }
 
 // ---------------------------------------------------------------------------
-// Shared: extract final text from response content blocks
+// Zod schema for generateObject() field extraction
 // ---------------------------------------------------------------------------
 
-function extractText(content: Anthropic.Messages.ContentBlock[]): string {
-  return content
-    .filter((block): block is Anthropic.Messages.TextBlock => block.type === 'text')
-    .map((block) => block.text)
-    .join('\n')
-    .trim()
-}
+const extractedFieldsSchema = z.object({
+  linkedin_url: z.string().url().optional(),
+  twitter_url:  z.string().url().optional(),
+  email:        z.string().email().optional(),
+  website:      z.string().url().optional(),
+})
 
 // ---------------------------------------------------------------------------
-// Phase 2 — lean extraction call: parse URLs/email from the report text
-// No web search, small token budget, returns plain JSON only.
+// Phase 2 — lean extraction call using generateObject()
+// No web search, small token budget, returns structured fields directly.
 // ---------------------------------------------------------------------------
 
 type ExtractableField = keyof EnrichmentResult['extracted_fields']
@@ -76,7 +76,7 @@ const FIELD_DESCRIPTIONS: Record<ExtractableField, string> = {
   website:      'URL du site web officiel de l\'entreprise (doit commencer par https:// ou http://)',
 }
 
-async function extractFieldsFromReport(
+export async function extractFieldsFromReport(
   reportText: string,
   fields: ExtractableField[]
 ): Promise<EnrichmentResult['extracted_fields']> {
@@ -95,35 +95,34 @@ ${reportText}
 Extrais uniquement les informations suivantes si elles apparaissent clairement dans ce texte (ne devine rien) :
 ${requested}
 
-Réponds UNIQUEMENT avec un objet JSON valide, sans explication ni texte autour. Exemples valides :
-{"linkedin_url": "https://linkedin.com/in/exemple", "email": "contact@exemple.com"}
-{}
-
-N'inclus un champ que si l'information est explicitement présente dans le texte ci-dessus.`
+N'inclus un champ que si l'information est explicitement présente dans le texte ci-dessus.
+Si une information n'est pas trouvée, omet simplement ce champ.`
 
   try {
-    const response = await withRetry(() =>
-      client.messages.create({
-        model: MODEL,
-        max_tokens: 256,
-        messages: [{ role: 'user', content: prompt }],
+    const { object } = await withRetry(() =>
+      generateObject({
+        model: anthropic(MODEL),
+        schema: extractedFieldsSchema,
+        prompt,
+        maxOutputTokens: 256,
       })
     )
-    const raw = extractText(response.content)
-    // Extract the first JSON object found in the response
-    const match = raw.match(/\{[\s\S]*\}/)
-    if (!match) return {}
-    return JSON.parse(match[0]) as EnrichmentResult['extracted_fields']
+    // Return only the requested fields that have a value
+    return Object.fromEntries(
+      fields
+        .filter((f) => object[f] !== undefined)
+        .map((f) => [f, object[f]])
+    ) as EnrichmentResult['extracted_fields']
   } catch {
     return {}
   }
 }
 
 // ---------------------------------------------------------------------------
-// enrichContactProfile
+// Prompt builders — exported for use in the streaming route
 // ---------------------------------------------------------------------------
 
-export async function enrichContactProfile(contact: Contact): Promise<EnrichmentResult> {
+export function buildContactProfilePrompt(contact: Contact): string {
   const name = [contact.first_name, contact.last_name].filter(Boolean).join(' ')
   const context = [
     contact.job_title && `Titre : ${contact.job_title}`,
@@ -134,7 +133,7 @@ export async function enrichContactProfile(contact: Contact): Promise<Enrichment
     contact.city && `Localisation : ${contact.city}${contact.country ? ', ' + contact.country : ''}`,
   ].filter(Boolean).join('\n')
 
-  const prompt = `Recherche des informations professionnelles sur **${name}**.
+  return `Recherche des informations professionnelles sur **${name}**.
 
 Contexte disponible :
 ${context || '(aucun contexte supplémentaire)'}
@@ -156,37 +155,10 @@ Liste des sources consultées (URLs).
 **Date de recherche : ${TODAY()}**
 
 Si tu ne trouves pas d'informations suffisantes, indique-le clairement et précise ce qui manque pour une meilleure recherche.`
-
-  // Phase 1: web search + report
-  const response = await withRetry(() =>
-    client.messages.create({
-      model: MODEL,
-      max_tokens: 4096,
-      tools: [{ type: 'web_search_20250305' as const, name: 'web_search' as const }],
-      messages: [{ role: 'user', content: prompt }],
-    })
-  )
-
-  const summary = extractText(response.content)
-  if (!summary) throw new Error('Aucun résultat généré par le modèle.')
-
-  // Phase 2: extract structured fields from the report (only fields not already set)
-  const fieldsToExtract: ExtractableField[] = []
-  if (!contact.linkedin_url) fieldsToExtract.push('linkedin_url')
-  if (!contact.twitter_url)  fieldsToExtract.push('twitter_url')
-  if (!(contact.email as string[] | null)?.length) fieldsToExtract.push('email')
-
-  const extracted_fields = await extractFieldsFromReport(summary, fieldsToExtract)
-
-  return { summary, extracted_fields }
 }
 
-// ---------------------------------------------------------------------------
-// enrichCompanyNews
-// ---------------------------------------------------------------------------
-
-export async function enrichCompanyNews(company: string, contact?: Contact): Promise<EnrichmentResult> {
-  const prompt = `Recherche les dernières actualités sur l'entreprise **${company}**.
+export function buildCompanyNewsPrompt(company: string): string {
+  return `Recherche les dernières actualités sur l'entreprise **${company}**.
 
 Fournis un rapport de veille structuré en français comprenant :
 
@@ -208,21 +180,56 @@ Liste des sources consultées (URLs).
 **Date de recherche : ${TODAY()}**
 
 Si l'entreprise est peu connue ou que les informations sont limitées, indique-le et partage ce que tu as trouvé.`
+}
 
-  // Phase 1: web search + report
-  const response = await withRetry(() =>
-    client.messages.create({
-      model: MODEL,
-      max_tokens: 4096,
-      tools: [{ type: 'web_search_20250305' as const, name: 'web_search' as const }],
-      messages: [{ role: 'user', content: prompt }],
+// ---------------------------------------------------------------------------
+// enrichContactProfile — public interface (unchanged)
+// ---------------------------------------------------------------------------
+
+export async function enrichContactProfile(contact: Contact): Promise<EnrichmentResult> {
+  const { text: summary } = await withRetry(() =>
+    generateText({
+      model: anthropic(MODEL),
+      maxOutputTokens: 4096,
+      tools: {
+        web_search: anthropic.tools.webSearch_20250305(),
+      },
+      prompt: buildContactProfilePrompt(contact),
     })
   )
 
-  const summary = extractText(response.content)
   if (!summary) throw new Error('Aucun résultat généré par le modèle.')
 
-  // Phase 2: extract website if not already set on the contact
+  // Phase 2: extract structured fields (only missing ones)
+  const fieldsToExtract: ExtractableField[] = []
+  if (!contact.linkedin_url) fieldsToExtract.push('linkedin_url')
+  if (!contact.twitter_url)  fieldsToExtract.push('twitter_url')
+  if (!(contact.email as string[] | null)?.length) fieldsToExtract.push('email')
+
+  const extracted_fields = await extractFieldsFromReport(summary, fieldsToExtract)
+
+  return { summary, extracted_fields }
+}
+
+// ---------------------------------------------------------------------------
+// enrichCompanyNews — public interface (unchanged)
+// ---------------------------------------------------------------------------
+
+export async function enrichCompanyNews(company: string, contact?: Contact): Promise<EnrichmentResult> {
+  const { text: summary } = await withRetry(() =>
+    generateText({
+      model: anthropic(MODEL),
+      maxOutputTokens: 4096,
+      tools: {
+        web_search: anthropic.tools.webSearch_20250305(),
+      },
+      prompt: buildCompanyNewsPrompt(company),
+    })
+  )
+
+  if (!summary) throw new Error('Aucun résultat généré par le modèle.')
+
+  // Phase 2: extract website if not already on contact
   const fieldsToExtract: ExtractableField[] = []
   if (!contact?.website) fieldsToExtract.push('website')
 

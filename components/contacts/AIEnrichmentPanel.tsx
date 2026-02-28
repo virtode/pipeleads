@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useCompletion } from '@ai-sdk/react'
 import { Sparkles, Building2, User, RefreshCw, ChevronDown, Clock, AlertCircle, Trash2, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -139,9 +140,30 @@ export function AIEnrichmentPanel({
   compact = false,
 }: AIEnrichmentPanelProps) {
   const queryClient = useQueryClient()
-  const [loading, setLoading] = useState<EnrichType | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [freshResult, setFreshResult] = useState<Enrichment | null>(null)
+  const [activeType, setActiveType] = useState<EnrichType | null>(null)
+  const [completionError, setCompletionError] = useState<string | null>(null)
+
+  const { completion, complete, isLoading, setCompletion } = useCompletion({
+    api: '/api/ai/enrich',
+    streamProtocol: 'text',
+    onFinish: () => {
+      queryClient.invalidateQueries({ queryKey: ['contact', contactId] })
+      toast.success(
+        activeType === 'contact_profile' ? 'Profil enrichi avec succès' : 'Actualités récupérées'
+      )
+    },
+    onError: (err) => {
+      let message = 'Erreur lors de l\'enrichissement IA'
+      try {
+        const parsed = JSON.parse(err.message) as { error?: string }
+        if (parsed.error) message = parsed.error
+      } catch {
+        if (err.message) message = err.message
+      }
+      setCompletionError(message)
+      toast.error('Erreur lors de l\'enrichissement IA')
+    },
+  })
 
   const deleteEnrichment = useMutation({
     mutationFn: async (id: string) => {
@@ -161,58 +183,11 @@ export function AIEnrichmentPanel({
   const maxHistory = compact ? 2 : 5
   const history = enrichments.slice(0, maxHistory)
 
-  async function handleEnrich(type: EnrichType) {
-    setLoading(type)
-    setError(null)
-    setFreshResult(null)
-
-    try {
-      const res = await fetch('/api/ai/enrich', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contactId, type }),
-      })
-
-      const json = await res.json()
-
-      if (!res.ok || json.error) {
-        setError(json.error ?? 'Erreur inconnue')
-        return
-      }
-
-      const result: Enrichment = {
-        id: json.data.id,
-        type,
-        content: json.data.content,
-        model: 'claude-sonnet-4-6',
-        created_at: json.data.created_at,
-      }
-      setFreshResult(result)
-
-      // Refresh contact data so the parent re-renders with the new enrichment
-      queryClient.invalidateQueries({ queryKey: ['contact', contactId] })
-      toast.success(type === 'contact_profile' ? 'Profil enrichi avec succès' : 'Actualités récupérées')
-
-      // Notify if fields were auto-filled
-      const updatedFields: string[] = json.data.updated_fields ?? []
-      if (updatedFields.length > 0) {
-        const FIELD_LABELS: Record<string, string> = {
-          linkedin_url: 'LinkedIn',
-          twitter_url: 'Twitter/X',
-          email: 'Email',
-          website: 'Site web',
-        }
-        const labels = updatedFields.map((f) => FIELD_LABELS[f] ?? f)
-        toast.info(
-          `Fiche mise à jour : ${labels.join(', ')} ajouté${labels.length > 1 ? 's' : ''}`
-        )
-      }
-    } catch {
-      setError('Erreur réseau — vérifie ta connexion.')
-      toast.error('Erreur lors de l\'enrichissement IA')
-    } finally {
-      setLoading(null)
-    }
+  function handleEnrich(type: EnrichType) {
+    setCompletion('')
+    setActiveType(type)
+    setCompletionError(null)
+    complete('', { body: { contactId, type } })
   }
 
   function formatDate(iso: string) {
@@ -238,10 +213,10 @@ export function AIEnrichmentPanel({
           variant="outline"
           size="sm"
           onClick={() => handleEnrich('contact_profile')}
-          disabled={loading !== null}
+          disabled={isLoading}
           className="gap-1.5"
         >
-          {loading === 'contact_profile' ? (
+          {isLoading && activeType === 'contact_profile' ? (
             <>
               <RefreshCw className="h-3.5 w-3.5 animate-spin" />
               Analyse en cours…
@@ -261,11 +236,11 @@ export function AIEnrichmentPanel({
           variant="outline"
           size="sm"
           onClick={() => handleEnrich('company_news')}
-          disabled={loading !== null || !hasCompany}
+          disabled={isLoading || !hasCompany}
           className="gap-1.5"
           title={!hasCompany ? 'Ce contact n\'a pas d\'entreprise associée' : undefined}
         >
-          {loading === 'company_news' ? (
+          {isLoading && activeType === 'company_news' ? (
             <>
               <RefreshCw className="h-3.5 w-3.5 animate-spin" />
               Recherche en cours…
@@ -282,13 +257,13 @@ export function AIEnrichmentPanel({
         </Button>
       </div>
 
-      {/* Loading indicator */}
-      {loading && (
+      {/* Initial loading (web search in progress, no tokens yet) */}
+      {isLoading && !completion && (
         <div className="rounded-lg border bg-muted/40 p-4 space-y-2">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Sparkles className="h-4 w-4 animate-pulse text-violet-500" />
             <span>
-              {loading === 'contact_profile'
+              {activeType === 'contact_profile'
                 ? 'Analyse du profil en cours…'
                 : 'Recherche d\'actualités en cours…'}
             </span>
@@ -305,31 +280,29 @@ export function AIEnrichmentPanel({
       )}
 
       {/* Error */}
-      {error && (
+      {completionError && (
         <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
           <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
-          <span>{error}</span>
+          <span>{completionError}</span>
         </div>
       )}
 
-      {/* Fresh result (just returned, shown prominently) */}
-      {freshResult && (
+      {/* Streaming / fresh result — shown as soon as first tokens arrive */}
+      {completion && (
         <div className="rounded-lg border-2 border-violet-200 dark:border-violet-800 bg-violet-50/50 dark:bg-violet-950/20 p-4 space-y-3">
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-violet-500" />
+              <Sparkles className={`h-4 w-4 text-violet-500 ${isLoading ? 'animate-pulse' : ''}`} />
               <Badge variant="secondary" className="gap-1">
-                {freshResult.type === 'contact_profile' ? 'Profil contact' : 'Actualités société'}
+                {activeType === 'contact_profile' ? 'Profil contact' : 'Actualités société'}
               </Badge>
-              <span className="text-xs text-muted-foreground">Nouveau</span>
+              <span className="text-xs text-muted-foreground">
+                {isLoading ? 'En cours…' : 'Nouveau'}
+              </span>
             </div>
-            <span className="flex items-center gap-1 text-xs text-muted-foreground">
-              <Clock className="h-3 w-3" />
-              {formatDate(freshResult.created_at)}
-            </span>
           </div>
           <div className="prose-sm text-foreground">
-            {renderMarkdown(freshResult.content)}
+            {renderMarkdown(completion)}
           </div>
         </div>
       )}
@@ -390,7 +363,7 @@ export function AIEnrichmentPanel({
         </div>
       )}
 
-      {!loading && !freshResult && history.length === 0 && (
+      {!isLoading && !completion && history.length === 0 && (
         <div className="rounded-lg border border-dashed p-6 text-center">
           <Sparkles className="mx-auto mb-2 h-6 w-6 text-muted-foreground/50" />
           <p className="text-sm text-muted-foreground">
