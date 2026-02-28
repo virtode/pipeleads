@@ -1,51 +1,43 @@
+import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-// Chemins accessibles sans session
-const PUBLIC_PATHS = ['/login', '/callback']
+export async function proxy(request: NextRequest) {
+  let supabaseResponse = NextResponse.next({ request })
 
-// Noms des cookies de session Stytch
-const STYTCH_SESSION_COOKIE = 'stytch_session'
-const STYTCH_SESSION_JWT_COOKIE = 'stytch_session_jwt'
-
-export function proxy(request: NextRequest): NextResponse {
-  const { pathname } = request.nextUrl
-
-  // Laisse passer les routes publiques
-  if (PUBLIC_PATHS.some((p) => pathname.startsWith(p))) {
-    return NextResponse.next()
-  }
-
-  // Vérifie la présence du cookie de session Stytch
-  // Le JWT (stytch_session_jwt) est préféré car il peut être vérifié sans appel réseau.
-  // Pour une vérification cryptographique complète, installer le SDK serveur `stytch`
-  // et valider la signature via stytch.sessions.authenticate().
-  const sessionToken =
-    request.cookies.get(STYTCH_SESSION_JWT_COOKIE)?.value ||
-    request.cookies.get(STYTCH_SESSION_COOKIE)?.value
-
-  if (!sessionToken) {
-    const loginUrl = new URL('/login', request.url)
-    // Conserve l'URL de destination pour rediriger après login si besoin
-    if (pathname !== '/') {
-      loginUrl.searchParams.set('redirect', pathname)
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll()
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) =>
+            supabaseResponse.cookies.set(name, value, options)
+          )
+        },
+      },
     }
-    return NextResponse.redirect(loginUrl)
+  )
+
+  // Refresh session — must be called before any logic that reads the user
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  const isAuthRoute =
+    request.nextUrl.pathname.startsWith('/login') ||
+    request.nextUrl.pathname.startsWith('/auth')
+
+  if (!user && !isAuthRoute) {
+    return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  return NextResponse.next()
+  return supabaseResponse
 }
 
 export const config = {
-  matcher: [
-    /*
-     * Applique le middleware à toutes les routes SAUF :
-     * - _next/static  (fichiers statiques)
-     * - _next/image   (optimisation images)
-     * - favicon.ico
-     * - fichiers avec extension (images, fonts, etc.)
-     * - routes API (ont leur propre vérification)
-     */
-    '/((?!_next/static|_next/image|favicon\\.ico|api/|.*\\..*).*)',
-  ],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)'],
 }
