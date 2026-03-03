@@ -25,8 +25,8 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { label: 'Contacts', href: '/contacts', icon: Users },
-  { label: 'Leads (Kanban)', href: '/leads', icon: Kanban },
   { label: 'Pipelines', href: '/pipelines', icon: GitBranch },
+  { label: 'Leads (Kanban)', href: '/leads', icon: Kanban },
   { label: 'Rapports', href: '/reports', icon: BarChart2 },
   { label: 'Paramètres', href: '/settings', icon: Settings },
 ]
