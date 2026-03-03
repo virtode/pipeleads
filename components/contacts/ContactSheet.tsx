@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import {
-  Mail, Phone, Building2, MapPin, Globe, Linkedin, Twitter,
+  Mail, Phone, MapPin, Globe, Linkedin, Twitter,
   Tag, FileText, Pencil, Trash2, ExternalLink, Loader2, GitBranch, Plus, X,
 } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -221,9 +221,7 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
                       <a href={`tel:${p}`} className="hover:underline">{p}</a>
                     </InfoRow>
                   ))}
-                  {contact.company && (
-                    <InfoRow icon={Building2}>{contact.company}</InfoRow>
-                  )}
+
                   {(contact.city || contact.country) && (
                     <InfoRow icon={MapPin}>
                       {[contact.city, contact.country].filter(Boolean).join(', ')}
