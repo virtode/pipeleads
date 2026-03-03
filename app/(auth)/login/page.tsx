@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import { useTheme } from 'next-themes'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -14,6 +15,8 @@ const RESEND_COOLDOWN = 30
 
 export default function LoginPage() {
   const router = useRouter()
+  const { resolvedTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
   const [phase, setPhase] = useState<'email' | 'otp'>('email')
   const [email, setEmail] = useState('')
   const [code, setCode] = useState('')
@@ -23,6 +26,8 @@ export default function LoginPage() {
   const [cooldown, setCooldown] = useState(0)
   const cooldownRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const codeInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => setMounted(true), [])
 
   useEffect(() => {
     return () => {
@@ -150,7 +155,7 @@ export default function LoginPage() {
 
         <div className="flex flex-col items-center gap-2 text-center">
           <Image
-            src="/logo.png"
+            src={mounted && resolvedTheme === 'dark' ? '/logo-dark.svg' : '/logo.png'}
             alt="PipeLeads"
             width={200}
             height={50}

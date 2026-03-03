@@ -3,6 +3,8 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { useTheme } from 'next-themes'
 import {
   Users,
   Kanban,
@@ -36,6 +38,9 @@ interface SidebarProps {
 export function Sidebar({ onNavigate }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
+  const { resolvedTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
 
   async function handleLogout() {
     const supabase = createClient()
@@ -47,7 +52,13 @@ export function Sidebar({ onNavigate }: SidebarProps) {
     <div className="flex h-full flex-col">
       {/* Logo */}
       <div className="flex h-14 items-center border-b px-4">
-        <Image src="/logo.png" alt="PipeLeads" width={140} height={35} priority />
+        <Image
+          src={mounted && resolvedTheme === 'dark' ? '/logo-dark.svg' : '/logo.png'}
+          alt="PipeLeads"
+          width={140}
+          height={35}
+          priority
+        />
       </div>
 
       {/* Navigation */}
