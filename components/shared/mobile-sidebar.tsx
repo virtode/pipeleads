@@ -6,7 +6,11 @@ import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import { Sidebar } from '@/components/shared/sidebar'
 
-export function MobileSidebar() {
+interface MobileSidebarProps {
+  isAdmin?: boolean
+}
+
+export function MobileSidebar({ isAdmin = false }: MobileSidebarProps) {
   const [open, setOpen] = useState(false)
 
   return (
@@ -23,7 +27,7 @@ export function MobileSidebar() {
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent side="left" className="w-60 p-0">
           <SheetTitle className="sr-only">Navigation</SheetTitle>
-          <Sidebar onNavigate={() => setOpen(false)} />
+          <Sidebar onNavigate={() => setOpen(false)} isAdmin={isAdmin} />
         </SheetContent>
       </Sheet>
     </>

@@ -12,6 +12,7 @@ import {
   BarChart2,
   Settings,
   LogOut,
+  Shield,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -33,9 +34,10 @@ const NAV_ITEMS: NavItem[] = [
 
 interface SidebarProps {
   onNavigate?: () => void
+  isAdmin?: boolean
 }
 
-export function Sidebar({ onNavigate }: SidebarProps) {
+export function Sidebar({ onNavigate, isAdmin = false }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const { resolvedTheme } = useTheme()
@@ -87,6 +89,20 @@ export function Sidebar({ onNavigate }: SidebarProps) {
           })}
         </ul>
       </nav>
+
+      {/* Lien admin — visible uniquement pour les super admins */}
+      {isAdmin && (
+        <div className="px-2 pb-1">
+          <Link
+            href="/admin/dashboard"
+            onClick={onNavigate}
+            className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            <Shield className="h-4 w-4 shrink-0" />
+            Administration
+          </Link>
+        </div>
+      )}
 
       {/* Déconnexion */}
       <div className="border-t p-2">
