@@ -27,7 +27,8 @@
       "Bash(SUPABASE_ACCESS_TOKEN=sbp_7b1aa411cf22b221161dec6937e86ee22181fd98 supabase link:*)",
       "Bash(SUPABASE_ACCESS_TOKEN=sbp_7b1aa411cf22b221161dec6937e86ee22181fd98 supabase db:*)",
       "Bash(curl:*)",
-      "Bash(source:*)"
+      "Bash(source:*)",
+      "Bash(npx next:*)"
     ]
   }
 }
