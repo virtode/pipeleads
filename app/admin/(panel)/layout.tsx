@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { LayoutDashboard, Building2, LogOut } from 'lucide-react'
+import { LayoutDashboard, Building2, LogOut, ArrowLeft } from 'lucide-react'
 
 /**
  * Layout du backoffice admin — pipeleads.app/admin
@@ -16,6 +16,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <span className="text-sm font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
             PipeLeads <span className="text-xs font-normal text-zinc-400">Admin</span>
           </span>
+        </div>
+
+        {/* Retour à l'app */}
+        <div className="border-b border-zinc-200 p-2 dark:border-zinc-800">
+          <Link
+            href="/"
+            className="flex items-center gap-3 rounded-md px-3 py-2 text-xs text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+          >
+            <ArrowLeft className="h-3.5 w-3.5 shrink-0" />
+            Retour à l&apos;app
+          </Link>
         </div>
 
         {/* Navigation */}
