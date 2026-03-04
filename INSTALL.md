@@ -7,18 +7,33 @@ Ce guide permet de déployer une instance from scratch en ~30 minutes.
 
 ## Prérequis
 
-- Node.js 20+
-- Un compte [Supabase](https://supabase.com) (plan Free suffisant)
-- Un compte [Vercel](https://vercel.com) (plan Hobby suffisant)
-- Un compte [Anthropic](https://console.anthropic.com) (optionnel — pour l'agent IA)
-- Un compte [Notion](https://notion.so) (optionnel — pour la sync Notion)
+Avant de commencer, crée les comptes suivants :
+
+- **[GitHub](https://github.com)** — pour forker et héberger le code (gratuit)
+- **[Supabase](https://supabase.com)** — pour la base de données (plan Free suffisant)
+- **[Vercel](https://vercel.com)** — pour le déploiement (plan Hobby suffisant)
+- **[Anthropic](https://console.anthropic.com)** — optionnel, pour l'enrichissement IA
+- **[Notion](https://notion.so)** — optionnel, pour la synchronisation Notion
+- Node.js 20+ installé sur ta machine (pour le développement local uniquement)
 
 ---
 
-## Étape 1 — Cloner le dépôt
+## Étape 1 — Forker et cloner le dépôt
+
+### 1a. Forker le projet sur GitHub
+
+1. Va sur [github.com/mateyk/pipeleads](https://github.com/mateyk/pipeleads)
+2. Clique **Fork** en haut à droite
+3. Choisis ton compte GitHub comme destination
+4. Tu as maintenant ta propre copie du projet sur `github.com/TON_COMPTE/pipeleads`
+
+> Le fork est nécessaire pour que Vercel puisse détecter tes modifications
+> et redéployer automatiquement à chaque changement.
+
+### 1b. Cloner localement (optionnel — pour développement local)
 
 ```bash
-git clone https://github.com/mateyk/pipeleads.git
+git clone https://github.com/TON_COMPTE/pipeleads.git
 cd pipeleads
 npm install
 ```
@@ -263,9 +278,9 @@ Dans ton projet Supabase → **Authentication** :
 
 ### 4a. Activer le provider Email (Magic Link)
 
-1. **Authentication → Sign In / Up → Email** → vérifier que c'est activé
+1. **Authentication → Sign In / Providers → Email** → vérifier que c'est activé
 2. Désactiver **"Confirm email"** → activer **"Secure email change"** (optionnel)
-3. Dans **Authentication → Sign In / Up** : activer **"Disable sign ups"** pour empêcher
+3. Dans **Authentication → Sign In / Providers** : activer **"Disable sign ups"** pour empêcher
    toute inscription non autorisée (usage solo)
 
 ### 4b. Configurer les URLs de redirection
@@ -277,25 +292,18 @@ Dans ton projet Supabase → **Authentication** :
 | Site URL | `http://localhost:3000` | `https://ton-domaine.vercel.app` |
 | Redirect URLs | `http://localhost:3000/auth/callback` | `https://ton-domaine.vercel.app/auth/callback` |
 
+> Tu peux renseigner les deux URLs (dev et prod) dans le champ Redirect URLs — Supabase accepte plusieurs valeurs.
+
 ### 4c. Créer ton compte utilisateur
 
-Supabase Auth ne crée pas de comptes automatiquement (c'est voulu).
-Crée-toi manuellement via l'API admin avec ta **Service Role Key** :
+Supabase Auth ne crée pas de comptes automatiquement (c'est voulu — seul toi peux te connecter).
 
-```bash
-curl -X POST \
-  "https://<PROJECT_REF>.supabase.co/auth/v1/admin/users" \
-  -H "Authorization: Bearer <SUPABASE_SERVICE_ROLE_KEY>" \
-  -H "apikey: <SUPABASE_SERVICE_ROLE_KEY>" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "ton@email.com",
-    "email_confirm": true
-  }'
-```
+1. Dans ton projet Supabase → **Authentication → Users**
+2. Clique **Add user** → **Create new user**
+3. Saisis ton adresse email
+4. Clique **Send magic link** — tu recevras un email pour activer ton compte
 
-Remplace `<PROJECT_REF>` par ta ref projet (visible dans l'URL du dashboard)
-et `<SUPABASE_SERVICE_ROLE_KEY>` par ta clé (voir Étape 5).
+> Pas besoin de définir un mot de passe. Le Magic Link est le seul moyen de connexion.
 
 ---
 
@@ -337,14 +345,14 @@ de l'application et stocké chiffré en base. Il n'y a pas de variable d'environ
 Deux valeurs sont hardcodées dans le code source et pourraient être externalisées
 si tu veux les changer sans redéployer :
 
-| Valeur | Fichier | Ligne | Recommandation |
-|---|---|---|---|
-| `'claude-sonnet-4-6'` | `lib/ai/agent.ts` | `const MODEL = 'claude-sonnet-4-6'` | Ajouter `ANTHROPIC_MODEL` si tu veux utiliser un autre modèle |
-| `'claude-sonnet-4-6'` | `app/api/ai/enrich/route.ts` | `anthropic('claude-sonnet-4-6')` | Idem |
+| Valeur | Fichier | Recommandation |
+|---|---|---|
+| `'claude-sonnet-4-6'` | `lib/ai/agent.ts` | Ajouter `ANTHROPIC_MODEL` en variable d'environnement si tu veux utiliser un autre modèle |
+| `'claude-sonnet-4-6'` | `app/api/ai/enrich/route.ts` | Idem |
 
 ---
 
-### Fichier `.env.local` (développement local)
+### Fichier `.env.local` (développement local uniquement)
 
 Crée ce fichier à la racine du projet :
 
@@ -358,19 +366,22 @@ SUPABASE_SERVICE_ROLE_KEY=<service_role key>
 ANTHROPIC_API_KEY=sk-ant-...
 ```
 
+> Ce fichier ne doit **jamais** être commité sur GitHub. Il est déjà dans le `.gitignore`.
+
 ---
 
 ## Étape 6 — Déployer sur Vercel
 
 ### 6a. Importer le projet
 
-1. [vercel.com/new](https://vercel.com/new) → **Import Git Repository**
-2. Sélectionne ton fork de `pipeleads`
-3. Framework : **Next.js** (détecté automatiquement)
+1. Va sur [vercel.com/new](https://vercel.com/new) → **Import Git Repository**
+2. Connecte ton compte GitHub si ce n'est pas déjà fait
+3. Sélectionne ton fork `TON_COMPTE/pipeleads`
+4. Framework : **Next.js** (détecté automatiquement)
 
 ### 6b. Ajouter les variables d'environnement
 
-Dans Vercel → **Settings → Environment Variables**, ajoute :
+Avant de cliquer Deploy, dans la section **Environment Variables**, ajoute :
 
 | Variable | Environnements |
 |---|---|
@@ -379,25 +390,39 @@ Dans Vercel → **Settings → Environment Variables**, ajoute :
 | `SUPABASE_SERVICE_ROLE_KEY` | Production, Preview, Development |
 | `ANTHROPIC_API_KEY` | Production (et Preview si voulu) |
 
-### 6c. Mettre à jour l'URL Supabase
+### 6c. Déployer
+
+Clique **Deploy**. Le premier déploiement prend ~2 min.
+
+### 6d. Mettre à jour l'URL Supabase
 
 Une fois ton domaine Vercel connu (ex: `pipeleads-xxx.vercel.app`), retourne dans
 **Supabase → Authentication → URL Configuration** et ajoute :
 - `https://pipeleads-xxx.vercel.app/auth/callback` dans les Redirect URLs
 
-### 6d. Déployer
-
-Clique **Deploy**. Le premier déploiement prend ~2 min.
-
 ---
 
-## Étape 7 — Tester le flux complet
+## Étape 7 — Premier lancement et configuration dans l'interface
+
+### 7a. Tester le flux de connexion
 
 1. Ouvre `https://ton-domaine.vercel.app`
 2. Tu es redirigé vers `/login`
 3. Saisis ton email → **Recevoir un lien de connexion**
 4. Clique le lien dans ta boîte mail
 5. Tu es redirigé vers `/contacts` ✅
+
+### 7b. Configuration dans le menu Réglages
+
+Une fois connecté, tout le reste se configure directement dans l'interface via **Réglages** :
+
+| Réglage | Description | Obligatoire |
+|---|---|---|
+| **Intégration Notion** | Token Notion (`secret_...`) + ID de la base à synchroniser | Non |
+| **Mapping des champs Notion** | Correspondance entre les champs PipeLeads et les colonnes Notion | Non (si Notion activé) |
+| **Préférences d'affichage** | Tri, colonnes visibles, vue par défaut | Non |
+
+> Tout ce qui est dans Réglages est sauvegardé en base de données — pas besoin de redéployer.
 
 ---
 
@@ -415,17 +440,17 @@ Clique **Deploy**. Le premier déploiement prend ~2 min.
 ## Dépannage
 
 **"Adresse email non reconnue"** → Ton email n'existe pas encore dans Supabase Auth.
-Exécute la commande curl de l'Étape 4c.
+Va dans **Authentication → Users → Add user** et crée ton compte (voir Étape 4c).
 
 **Redirect loop sur `/login`** → Vérifie que `NEXT_PUBLIC_SUPABASE_URL` et
-`NEXT_PUBLIC_SUPABASE_ANON_KEY` sont correctement renseignés dans Vercel.
+`NEXT_PUBLIC_SUPABASE_ANON_KEY` sont correctement renseignés dans Vercel → Settings → Environment Variables.
 
 **Magic Link redirige vers une mauvaise URL** → Vérifie que l'URL de production est
 dans les Redirect URLs Supabase (Étape 4b).
 
-**Erreur 500 sur `/api/ai/enrich`** → Vérifie que `ANTHROPIC_API_KEY` est renseignée
-dans Vercel et que tu as du crédit Anthropic disponible.
+**Erreur 500 sur l'enrichissement IA** → Vérifie que `ANTHROPIC_API_KEY` est renseignée
+dans Vercel et que tu as du crédit Anthropic disponible sur [console.anthropic.com](https://console.anthropic.com).
 
-**Les tokens Notion sont illisibles après changement de `SUPABASE_SERVICE_ROLE_KEY`** →
-Le chiffrement AES-256-GCM est dérivé de cette clé. En cas de rotation, reconnecte
-Notion depuis **Paramètres → Intégration Notion** pour re-chiffrer avec la nouvelle clé.
+**Les tokens Notion sont illisibles** → Le chiffrement est lié à ta `SUPABASE_SERVICE_ROLE_KEY`.
+Si cette clé a changé, reconnecte Notion depuis **Réglages → Intégration Notion** pour
+re-chiffrer avec la nouvelle clé.

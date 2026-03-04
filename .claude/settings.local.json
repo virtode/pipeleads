@@ -20,7 +20,14 @@
       "Bash(gh repo:*)",
       "Bash(git remote add origin https://github.com/mateyk/pipeleads.git && git push -u origin main 2>&1)",
       "Bash(git remote set-url origin https://github.com/mateyk/pipeleads.git && git push -u origin main 2>&1)",
-      "Bash(git:*)"
+      "Bash(git:*)",
+      "Bash(npm:*)",
+      "Bash(python3:*)",
+      "Bash(supabase:*)",
+      "Bash(SUPABASE_ACCESS_TOKEN=sbp_7b1aa411cf22b221161dec6937e86ee22181fd98 supabase link:*)",
+      "Bash(SUPABASE_ACCESS_TOKEN=sbp_7b1aa411cf22b221161dec6937e86ee22181fd98 supabase db:*)",
+      "Bash(curl:*)",
+      "Bash(source:*)"
     ]
   }
 }
