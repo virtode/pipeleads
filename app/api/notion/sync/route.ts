@@ -53,7 +53,6 @@ export async function POST(
     .maybeSingle()
 
   if (configErr) {
-    console.error('[Notion Sync] Config load error:', configErr)
     return NextResponse.json({ data: null, error: 'Erreur serveur' }, { status: 500 })
   }
 
@@ -75,8 +74,7 @@ export async function POST(
   let token: string
   try {
     token = decrypt(config.encrypted_token)
-  } catch (err) {
-    console.error('[Notion Sync] Decrypt error:', err)
+  } catch {
     return NextResponse.json(
       { data: null, error: 'Impossible de déchiffrer le token Notion' },
       { status: 500 },
@@ -110,7 +108,6 @@ export async function POST(
   const { data: contacts, error: contactsErr } = await contactsQuery
 
   if (contactsErr) {
-    console.error('[Notion Sync] Contacts load error:', contactsErr)
     return NextResponse.json({ data: null, error: 'Erreur lors du chargement des contacts' }, { status: 500 })
   }
 
@@ -143,7 +140,6 @@ export async function POST(
 
     return NextResponse.json({ data: { ...report, duration_ms }, error: null })
   } catch (err) {
-    console.error('[Notion Sync] Sync error:', err)
     const message = err instanceof Error ? err.message : 'Erreur lors de la synchronisation'
     return NextResponse.json({ data: null, error: message }, { status: 500 })
   } finally {

@@ -94,8 +94,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<ApiRespon
   if (token && token.trim()) {
     try {
       encryptedToken = encrypt(token.trim())
-    } catch (err) {
-      console.error('[Notion Config] Encrypt error:', err)
+    } catch {
       return NextResponse.json(
         { data: null, error: 'Erreur lors du chiffrement du token' },
         { status: 500 },

@@ -53,7 +53,7 @@ export function useContacts({
       query = query.range(from, from + CONTACTS_PAGE_SIZE - 1)
 
       const { data, error, count } = await query
-      if (error) { console.error('[useContacts query]', error); throw error }
+      if (error) throw error
 
       return { contacts: data ?? [], total: count ?? 0 }
     },

@@ -2,6 +2,7 @@ import { generateText, generateObject } from 'ai'
 import { anthropic } from '@ai-sdk/anthropic'
 import { z } from 'zod'
 import type { Contact } from '@/types'
+import { ANTHROPIC_MODEL } from '@/lib/constants'
 
 // ---------------------------------------------------------------------------
 // Retry with exponential backoff (for 529 overloaded errors)
@@ -26,7 +27,6 @@ async function withRetry<T>(
       if (code !== 529) throw err
       if (attempt < maxAttempts - 1) {
         const delay = baseDelayMs * Math.pow(2, attempt) // 2s, 4s, 8s
-        console.warn(`[AI] Overloaded (attempt ${attempt + 1}/${maxAttempts}), retrying in ${delay}ms…`)
         await new Promise((resolve) => setTimeout(resolve, delay))
       }
     }
@@ -34,7 +34,7 @@ async function withRetry<T>(
   throw lastError
 }
 
-const MODEL = 'claude-sonnet-4-6'
+const MODEL = ANTHROPIC_MODEL
 const TODAY = () => new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })
 
 // ---------------------------------------------------------------------------

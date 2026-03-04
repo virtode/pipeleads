@@ -5,6 +5,10 @@
 
 import { createHash, createCipheriv, createDecipheriv, randomBytes } from 'crypto'
 
+if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  throw new Error('[notion/crypto] SUPABASE_SERVICE_ROLE_KEY is not set')
+}
+
 const ALGORITHM = 'aes-256-gcm'
 const IV_LEN = 12    // 96-bit nonce for GCM
 const TAG_LEN = 16   // 128-bit auth tag

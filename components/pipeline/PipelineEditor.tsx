@@ -188,7 +188,7 @@ export function PipelineEditor({ pipeline, onSuccess, onCancel }: PipelineEditor
 
   function addStage() {
     const maxPos = stages.reduce((m, s) => Math.max(m, s.position), -1)
-    const localId = `new-${Date.now()}`
+    const localId = `new-${crypto.randomUUID()}`
     setStages((prev) => [
       ...prev,
       {

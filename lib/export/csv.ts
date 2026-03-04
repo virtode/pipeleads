@@ -25,11 +25,29 @@ export const CSV_EXPORT_FIELDS: CsvExportField[] = [
 ]
 
 function escapeCsvCell(value: string): string {
-  // Always quote if contains comma, semicolon, newline, or double-quote
-  if (value.includes('"') || value.includes(',') || value.includes(';') || value.includes('\n') || value.includes('\r')) {
+  if (/[",;\n\r]/.test(value)) {
     return '"' + value.replace(/"/g, '""') + '"'
   }
   return value
+}
+
+/** Generic CSV export for arbitrary row data (used by reports). */
+export function exportToCSV(rows: Record<string, unknown>[], filename: string): void {
+  if (!rows.length) return
+  const headers = Object.keys(rows[0])
+  const lines = [
+    headers.join(','),
+    ...rows.map((row) =>
+      headers.map((h) => escapeCsvCell(String(row[h] ?? ''))).join(',')
+    ),
+  ]
+  const blob = new Blob(['\uFEFF' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(url)
 }
 
 export function exportContactsToCSV(

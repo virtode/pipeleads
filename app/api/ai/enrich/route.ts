@@ -8,6 +8,7 @@ import {
   buildCompanyNewsPrompt,
   extractFieldsFromReport,
 } from '@/lib/ai/agent'
+import { ANTHROPIC_MODEL } from '@/lib/constants'
 
 // ---------------------------------------------------------------------------
 // Rate limiter — in-memory, per contactId:type (max 1 req / 10 s)
@@ -83,7 +84,7 @@ export async function POST(request: NextRequest): Promise<Response> {
   if (enrichType === 'contact_profile') {
     prompt = buildContactProfilePrompt(contact)
   } else {
-    const company = contact.company ?? [contact.first_name, contact.last_name].filter(Boolean).join(' ')
+    const company = contact.company?.trim()
     if (!company) {
       return NextResponse.json(
         { data: null, error: 'Ce contact n\'a pas d\'entreprise associée.' },
@@ -95,7 +96,7 @@ export async function POST(request: NextRequest): Promise<Response> {
 
   // 6. Stream AI response — DB save + field extraction happen in onFinish
   const result = streamText({
-    model: anthropic('claude-sonnet-4-6'),
+    model: anthropic(ANTHROPIC_MODEL),
     maxOutputTokens: 4096,
     tools: {
       web_search: anthropic.tools.webSearch_20250305(),
@@ -111,13 +112,10 @@ export async function POST(request: NextRequest): Promise<Response> {
           contact_id: contactId,
           type: enrichType,
           content: summary,
-          model: 'claude-sonnet-4-6',
+          model: ANTHROPIC_MODEL,
         })
 
-      if (saveErr) {
-        console.error('[AI Enrich] Save error:', saveErr)
-        return
-      }
+      if (saveErr) return
 
       // Determine which fields are missing on the contact
       const fieldsToExtract: ('linkedin_url' | 'twitter_url' | 'email' | 'website')[] = []
@@ -160,7 +158,7 @@ export async function POST(request: NextRequest): Promise<Response> {
           .update({ ...contactUpdates, updated_at: new Date().toISOString() })
           .eq('id', contactId)
 
-        if (updateErr) console.error('[AI Enrich] Contact update error:', updateErr)
+        // Silent failure — contact fields will stay empty if update fails
       }
     },
   })

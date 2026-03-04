@@ -24,23 +24,8 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { CONTACTS_PAGE_SIZE } from '@/hooks/useContacts'
+import { getInitials, formatDate } from '@/lib/utils'
 import type { Contact, ContactSortField } from '@/types'
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-function getInitials(first: string, last?: string | null) {
-  return `${first.charAt(0)}${last ? last.charAt(0) : ''}`.toUpperCase()
-}
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('fr-FR', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  })
-}
 
 // ---------------------------------------------------------------------------
 // Column definitions

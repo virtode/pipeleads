@@ -5,6 +5,7 @@ import {
   Mail, Phone, MapPin, Globe, Linkedin, Twitter,
   Tag, FileText, Pencil, Trash2, ExternalLink, Loader2, GitBranch, Plus, X,
 } from 'lucide-react'
+import { getInitials } from '@/lib/utils'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -36,13 +37,6 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-function getInitials(first: string, last?: string | null) {
-  return `${first.charAt(0)}${last ? last.charAt(0) : ''}`.toUpperCase()
-}
 
 function InfoRow({
   icon: Icon,

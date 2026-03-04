@@ -52,8 +52,7 @@ export async function POST(
     if (data?.encrypted_token) {
       try {
         tokenToUse = decrypt(data.encrypted_token)
-      } catch (err) {
-        console.error('[Notion Test] Decrypt error:', err)
+      } catch {
         return NextResponse.json(
           { data: null, error: 'Impossible de déchiffrer le token stocké' },
           { status: 500 },

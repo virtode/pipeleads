@@ -75,8 +75,7 @@ export default function LoginPage() {
       setPhase('otp')
       startCooldown()
       setTimeout(() => codeInputRef.current?.focus(), 50)
-    } catch (err) {
-      console.error('[Auth] OTP send error:', err)
+    } catch {
       setError('Erreur inattendue. Réessaie.')
     } finally {
       setIsSending(false)
@@ -104,8 +103,7 @@ export default function LoginPage() {
       setCode('')
       startCooldown()
       codeInputRef.current?.focus()
-    } catch (err) {
-      console.error('[Auth] OTP resend error:', err)
+    } catch {
       setError('Erreur inattendue. Réessaie.')
     } finally {
       setIsSending(false)
@@ -133,8 +131,7 @@ export default function LoginPage() {
       }
 
       router.push('/contacts')
-    } catch (err) {
-      console.error('[Auth] OTP verify error:', err)
+    } catch {
       setError('Erreur inattendue. Réessaie.')
     } finally {
       setIsVerifying(false)

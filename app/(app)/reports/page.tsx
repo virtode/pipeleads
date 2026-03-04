@@ -35,6 +35,7 @@ import {
   useConversionFunnel,
   type ReportFilters as Filters,
 } from '@/hooks/useReports'
+import { exportToCSV } from '@/lib/export/csv'
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -47,27 +48,6 @@ function buildDefaultFilters(): Filters {
   start.setDate(start.getDate() - 29)
   start.setHours(0, 0, 0, 0)
   return { pipelineId: null, startDate: start, endDate: end }
-}
-
-function exportToCSV(rows: Record<string, unknown>[], filename: string) {
-  if (!rows.length) return
-  const headers = Object.keys(rows[0])
-  const lines = [
-    headers.join(','),
-    ...rows.map((row) =>
-      headers.map((h) => {
-        const v = String(row[h] ?? '')
-        return v.includes(',') || v.includes('"') ? `"${v.replace(/"/g, '""')}"` : v
-      }).join(',')
-    ),
-  ]
-  const blob = new Blob(['\uFEFF' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = filename
-  a.click()
-  URL.revokeObjectURL(url)
 }
 
 // ---------------------------------------------------------------------------

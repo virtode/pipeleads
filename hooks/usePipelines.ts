@@ -48,7 +48,7 @@ export function usePipelines() {
         .order('created_at', { ascending: true })
         .order('position', { referencedTable: 'pipeline_stages', ascending: true })
 
-      if (error) { console.error('[usePipelines query]', error); throw error }
+      if (error) throw error
       return (data ?? []) as PipelineWithStages[]
     },
   })
