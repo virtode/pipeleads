@@ -1,5 +1,5 @@
 /**
- * proxy.ts — Multi-tenant subdomain routing + Supabase session refresh
+ * middleware.ts — Multi-tenant subdomain routing + Supabase session refresh
  *
  * Flux complet :
  *   1. Lit le header "host" de chaque requête.
@@ -95,10 +95,10 @@ async function resolveTenant(slug: string): Promise<TenantRow | null> {
 }
 
 // ---------------------------------------------------------------------------
-// Proxy function
+// Middleware
 // ---------------------------------------------------------------------------
 
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const host = request.headers.get('host') ?? ''
   const slug = extractSlug(host)
   const pathname = request.nextUrl.pathname
@@ -118,7 +118,7 @@ export async function proxy(request: NextRequest) {
 
   if (slug) {
     if (!MASTER_URL || !MASTER_KEY) {
-      console.error('[proxy] MASTER_SUPABASE_URL ou MASTER_SUPABASE_SERVICE_KEY manquant')
+      console.error('[middleware] MASTER_SUPABASE_URL ou MASTER_SUPABASE_SERVICE_KEY manquant')
       return NextResponse.redirect(new URL('/tenant-not-found', request.url))
     }
 
