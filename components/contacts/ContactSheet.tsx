@@ -231,9 +231,7 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
 
                 {/* Réseaux */}
                 {(contact.linkedin_url || contact.twitter_url || contact.website) && (
-                  <>
-                    <Separator />
-                    <section className="space-y-2">
+                  <section className="space-y-2">
                       {contact.linkedin_url && (
                         <InfoRow icon={Linkedin}>
                           <a href={contact.linkedin_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-primary hover:underline">
@@ -255,8 +253,7 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
                           </a>
                         </InfoRow>
                       )}
-                    </section>
-                  </>
+                  </section>
                 )}
 
                 {/* Tags */}
