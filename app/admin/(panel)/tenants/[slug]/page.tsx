@@ -7,6 +7,7 @@ import { CheckCircle2, XCircle, UserPlus } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { TenantToggleButton } from '@/components/admin/TenantToggleButton'
 import { TenantInviteManagerButton } from '@/components/admin/TenantInviteManagerButton'
+import { TenantInitSchemaButton } from '@/components/admin/TenantInitSchemaButton'
 
 interface Tenant {
   id: string
@@ -99,6 +100,22 @@ export default async function TenantDetailPage({ params }: Props) {
         <InfoRow label="ID" value={t.id} mono />
         <InfoRow label="Créé le" value={new Date(t.created_at).toLocaleString('fr-FR')} />
         <InfoRow label="Supabase URL" value={t.supabase_url} mono />
+      </div>
+
+      {/* Schéma */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-base font-semibold">Schéma Supabase</h2>
+            <p className="text-sm text-zinc-500">
+              Applique ou réapplique les tables et politiques RLS PipeLeads.
+            </p>
+          </div>
+          <TenantInitSchemaButton
+            supabaseUrl={t.supabase_url}
+            serviceKey={t.supabase_service_role_key}
+          />
+        </div>
       </div>
 
       {/* Managers */}

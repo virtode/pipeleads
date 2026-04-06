@@ -5,12 +5,13 @@ import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Loader2, CheckCircle2, XCircle } from 'lucide-react'
+import { Loader2, CheckCircle2, XCircle, AlertCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Checkbox } from '@/components/ui/checkbox'
 
 // ---------------------------------------------------------------------------
 // Validation schema
@@ -65,14 +66,25 @@ function useSlugCheck(slug: string) {
 // Page
 // ---------------------------------------------------------------------------
 
+type Phase =
+  | 'form'
+  | 'creating-tenant'
+  | 'init-schema'
+  | 'schema-error'
+  | 'done'
+
 export default function NewTenantPage() {
   const router = useRouter()
-  const [submitting, setSubmitting] = useState(false)
+  const [phase, setPhase] = useState<Phase>('form')
+  const [schemaError, setSchemaError] = useState<string | null>(null)
+  const [createdSlug, setCreatedSlug] = useState<string | null>(null)
+  const [initSchema, setInitSchema] = useState(true)
 
   const {
     register,
     handleSubmit,
     watch,
+    getValues,
     formState: { errors },
   } = useForm<NewTenantForm>({
     resolver: zodResolver(NewTenantSchema),
@@ -82,8 +94,31 @@ export default function NewTenantPage() {
   const slug = watch('slug') ?? ''
   const slugStatus = useSlugCheck(slug)
 
+  async function runInitSchema(supabaseUrl: string, supabaseServiceRoleKey: string) {
+    setPhase('init-schema')
+    try {
+      const res = await fetch('/api/admin/tenants/init-schema', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ supabaseUrl, supabaseServiceRoleKey }),
+      })
+      const json = await res.json()
+
+      if (!res.ok || json.error) {
+        setSchemaError(json.error ?? 'Erreur lors de l\'initialisation du schéma')
+        setPhase('schema-error')
+        return
+      }
+
+      setPhase('done')
+    } catch {
+      setSchemaError('Erreur réseau lors de l\'initialisation du schéma')
+      setPhase('schema-error')
+    }
+  }
+
   async function onSubmit(data: NewTenantForm) {
-    setSubmitting(true)
+    setPhase('creating-tenant')
     try {
       const res = await fetch('/api/admin/tenants', {
         method: 'POST',
@@ -94,17 +129,93 @@ export default function NewTenantPage() {
 
       if (!res.ok || json.error) {
         toast.error(json.error ?? 'Erreur lors de la création')
+        setPhase('form')
         return
       }
 
-      toast.success('Tenant créé avec succès')
-      router.push(`/admin/tenants/${data.slug}`)
+      setCreatedSlug(data.slug)
+
+      if (initSchema) {
+        await runInitSchema(data.supabaseUrl, data.supabaseServiceRoleKey)
+      } else {
+        setPhase('done')
+      }
     } catch {
       toast.error('Erreur réseau')
-    } finally {
-      setSubmitting(false)
+      setPhase('form')
     }
   }
+
+  // After done, auto-navigate
+  useEffect(() => {
+    if (phase === 'done' && createdSlug) {
+      toast.success('Tenant créé avec succès')
+      router.push(`/admin/tenants/${createdSlug}`)
+    }
+  }, [phase, createdSlug, router])
+
+  // ---------------------------------------------------------------------------
+  // Post-submit status screen
+  // ---------------------------------------------------------------------------
+
+  if (phase === 'creating-tenant') {
+    return (
+      <div className="mx-auto max-w-2xl">
+        <StatusCard
+          icon={<Loader2 className="h-6 w-6 animate-spin text-primary" />}
+          title="Création du tenant..."
+          description="Enregistrement dans le registre master."
+        />
+      </div>
+    )
+  }
+
+  if (phase === 'init-schema') {
+    return (
+      <div className="mx-auto max-w-2xl">
+        <StatusCard
+          icon={<Loader2 className="h-6 w-6 animate-spin text-primary" />}
+          title="Initialisation du schéma en cours..."
+          description="Application des tables, index et politiques RLS sur le projet Supabase du tenant."
+        />
+      </div>
+    )
+  }
+
+  if (phase === 'schema-error') {
+    return (
+      <div className="mx-auto max-w-2xl space-y-4">
+        <StatusCard
+          icon={<AlertCircle className="h-6 w-6 text-destructive" />}
+          title="Tenant créé — échec de l'initialisation du schéma"
+          description={schemaError ?? 'Erreur inconnue'}
+          variant="error"
+        />
+        <div className="flex gap-3">
+          <Button
+            onClick={() => {
+              const { supabaseUrl, supabaseServiceRoleKey } = getValues()
+              runInitSchema(supabaseUrl, supabaseServiceRoleKey)
+            }}
+            className="gap-2"
+          >
+            <Loader2 className="h-4 w-4" />
+            Réessayer l'initialisation
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => router.push(`/admin/tenants/${createdSlug}`)}
+          >
+            Ignorer et aller au tenant
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  // ---------------------------------------------------------------------------
+  // Form
+  // ---------------------------------------------------------------------------
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
@@ -243,9 +354,31 @@ export default function NewTenantPage() {
           </CardContent>
         </Card>
 
+        {/* Schema init */}
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-start gap-3">
+              <Checkbox
+                id="initSchema"
+                checked={initSchema}
+                onCheckedChange={(checked) => setInitSchema(checked === true)}
+              />
+              <div className="space-y-1">
+                <Label htmlFor="initSchema" className="cursor-pointer font-medium">
+                  Initialiser le schéma automatiquement
+                </Label>
+                <p className="text-xs text-zinc-500">
+                  Crée les tables, index et politiques RLS PipeLeads sur le projet Supabase du
+                  tenant via la Management API. Nécessite{' '}
+                  <span className="font-mono">SUPABASE_MANAGEMENT_API_KEY</span>.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         <div className="flex gap-3">
-          <Button type="submit" disabled={submitting || slugStatus === 'taken'} className="gap-2">
-            {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+          <Button type="submit" disabled={phase !== 'form' || slugStatus === 'taken'} className="gap-2">
             Créer le tenant
           </Button>
           <Button type="button" variant="outline" onClick={() => router.back()}>
@@ -253,6 +386,36 @@ export default function NewTenantPage() {
           </Button>
         </div>
       </form>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// StatusCard helper
+// ---------------------------------------------------------------------------
+
+function StatusCard({
+  icon,
+  title,
+  description,
+  variant = 'default',
+}: {
+  icon: React.ReactNode
+  title: string
+  description: string
+  variant?: 'default' | 'error'
+}) {
+  return (
+    <div
+      className={`rounded-lg border p-6 flex items-start gap-4 ${
+        variant === 'error' ? 'border-destructive/40 bg-destructive/5' : 'bg-muted/40'
+      }`}
+    >
+      <div className="mt-0.5 shrink-0">{icon}</div>
+      <div>
+        <p className="font-medium text-sm">{title}</p>
+        <p className="mt-1 text-sm text-zinc-500">{description}</p>
+      </div>
     </div>
   )
 }
