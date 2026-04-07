@@ -30,6 +30,7 @@ export function createMasterAdminClient() {
  */
 export async function requireAdminAuth(): Promise<{ email: string; id: string }> {
   const cookieStore = await cookies()
+  console.log('[AUTH] Cookies disponibles:', cookieStore.getAll().map(c => c.name))
   const masterUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const masterAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   const masterServiceKey = process.env.MASTER_SUPABASE_SERVICE_KEY
@@ -60,6 +61,7 @@ export async function requireAdminAuth(): Promise<{ email: string; id: string }>
   const {
     data: { user },
   } = await supabase.auth.getUser()
+  console.log('[AUTH] User from session:', user?.email ?? 'null')
 
   if (!user?.email) {
     redirect('/admin/login')
