@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { createServerClient } from '@supabase/ssr'
 import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
 
@@ -20,67 +21,57 @@ export function createMasterAdminClient() {
 }
 
 /**
- * Crée un client Supabase Master avec la session de l'utilisateur courant
- * (pour les appels authentifiés depuis le browser via l'admin UI).
- */
-export function createMasterClient() {
-  const url = process.env.MASTER_SUPABASE_URL
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY // Le master peut réutiliser une anon key dédiée
-
-  if (!url || !anonKey) {
-    throw new Error('Configuration master manquante')
-  }
-
-  return createClient(url, anonKey)
-}
-
-/**
  * Vérifie que l'utilisateur connecté est dans la table admin_users du master.
  * Redirige vers /admin/login si non autorisé.
  * À appeler dans les Server Components de l'admin.
+ *
+ * Utilise @supabase/ssr createServerClient pour lire la session depuis les cookies
+ * posés par createBrowserClient côté login — les noms de cookies sont cohérents.
  */
 export async function requireAdminAuth(): Promise<{ email: string; id: string }> {
   const cookieStore = await cookies()
-  const masterUrl = process.env.MASTER_SUPABASE_URL
-  const masterKey = process.env.MASTER_SUPABASE_SERVICE_KEY
+  const masterUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const masterAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  const masterServiceKey = process.env.MASTER_SUPABASE_SERVICE_KEY
 
-  if (!masterUrl || !masterKey) {
+  if (!masterUrl || !masterAnonKey || !masterServiceKey) {
     redirect('/admin/login')
   }
 
-  // Supabase JS v2 stocke le token dans sb-[PROJECT_REF]-auth-token
-  // On cherche tous les cookies qui commencent par 'sb-' et finissent par '-auth-token'
-  const allCookies = cookieStore.getAll()
-  const authCookie = allCookies.find(c => c.name.startsWith('sb-') && c.name.endsWith('-auth-token'))
-  const sessionStr = authCookie?.value
+  // @supabase/ssr gère automatiquement le nom du cookie (sb-[ref]-auth-token)
+  // et le décodage — cohérent avec createBrowserClient utilisé dans login/page.tsx
+  const supabase = createServerClient(masterUrl, masterAnonKey, {
+    cookies: {
+      getAll() {
+        return cookieStore.getAll()
+      },
+      setAll(cookiesToSet) {
+        try {
+          cookiesToSet.forEach(({ name, value, options }) =>
+            cookieStore.set(name, value, options)
+          )
+        } catch {
+          // setAll peut échouer dans un Server Component en lecture seule
+        }
+      },
+    },
+  })
 
-  if (!sessionStr) {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user?.email) {
     redirect('/admin/login')
   }
 
-  // Décoder le cookie base64
-  let accessToken: string | undefined
-  try {
-    const decoded = Buffer.from(decodeURIComponent(sessionStr), 'base64').toString('utf-8')
-    const session = JSON.parse(decoded)
-    accessToken = session?.access_token
-  } catch {
-    redirect('/admin/login')
-  }
+  // Vérifier que l'email est dans admin_users (via service role)
+  const adminClient = createClient(
+    process.env.MASTER_SUPABASE_URL!,
+    masterServiceKey,
+    { auth: { persistSession: false } }
+  )
 
-  if (!accessToken) {
-    redirect('/admin/login')
-  }
-
-  // Vérifier le token via le master
-  const adminClient = createMasterAdminClient()
-  const { data: { user }, error } = await adminClient.auth.getUser(accessToken)
-
-  if (error || !user?.email) {
-    redirect('/admin/login')
-  }
-
-  // Vérifier que l'email est dans admin_users
   const { data: adminUser, error: adminError } = await adminClient
     .from('admin_users')
     .select('id, email')

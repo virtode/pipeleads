@@ -6,7 +6,7 @@ import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { createClient } from '@supabase/supabase-js'
+import { createBrowserClient } from '@supabase/ssr'
 
 export default function AdminLoginPage() {
   const router = useRouter()
@@ -21,9 +21,10 @@ export default function AdminLoginPage() {
     setLoading(true)
 
     try {
-      const masterUrl = process.env.NEXT_PUBLIC_SUPABASE_URL! // Le master réutilise les env publiques si dédié
-      const masterAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      const supabase = createClient(masterUrl, masterAnonKey)
+      const supabase = createBrowserClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      )
 
       const { error: signInError } = await supabase.auth.signInWithPassword({
         email,
@@ -35,6 +36,7 @@ export default function AdminLoginPage() {
         return
       }
 
+      router.refresh()
       router.push('/admin/dashboard')
     } catch {
       setError('Erreur réseau')

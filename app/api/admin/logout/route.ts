@@ -1,22 +1,35 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
+import { createServerClient } from '@supabase/ssr'
 
 /**
  * POST /api/admin/logout
- * Déconnecte l'admin en supprimant les cookies de session Supabase master.
+ * Déconnecte l'admin via supabase.auth.signOut() — @supabase/ssr gère
+ * la suppression des cookies automatiquement.
  */
-export async function POST() {
+export async function POST(req: NextRequest) {
   const cookieStore = await cookies()
 
-  // Supprimer les cookies de session Supabase (préfixe sb-)
-  const allCookies = cookieStore.getAll()
-  const response = NextResponse.redirect(new URL('/admin/login', process.env.NEXT_PUBLIC_ROOT_DOMAIN ? `https://${process.env.NEXT_PUBLIC_ROOT_DOMAIN}` : 'http://localhost:3000'))
+  const response = NextResponse.redirect(new URL('/admin/login', req.url))
 
-  for (const cookie of allCookies) {
-    if (cookie.name.startsWith('sb-')) {
-      response.cookies.delete(cookie.name)
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll()
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            response.cookies.set(name, value, options)
+          })
+        },
+      },
     }
-  }
+  )
+
+  await supabase.auth.signOut()
 
   return response
 }

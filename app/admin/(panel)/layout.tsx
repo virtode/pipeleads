@@ -1,12 +1,14 @@
 import Link from 'next/link'
 import { LayoutDashboard, Building2, LogOut, ArrowLeft } from 'lucide-react'
+import { requireAdminAuth } from '@/lib/admin/auth'
 
 /**
  * Layout du backoffice admin — pipeleads.app/admin
  * Style sobre, distinct de l'UI client.
- * La vérification auth est faite dans chaque page (Server Component).
+ * Vérifie l'auth admin pour toutes les pages du panel.
  */
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+export default async function AdminLayout({ children }: { children: React.ReactNode }) {
+  await requireAdminAuth()
   return (
     <div className="flex h-screen bg-zinc-50 dark:bg-zinc-950">
       {/* Sidebar admin */}

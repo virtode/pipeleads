@@ -104,7 +104,8 @@ export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname
 
   // ── Routes admin : ne pas résoudre de tenant ──────────────────────────────
-  const isAdminRoute = pathname.startsWith('/admin')
+  const isAdminRoute =
+    pathname.startsWith('/admin') || pathname.startsWith('/api/admin')
   const isTenantNotFound = pathname.startsWith('/tenant-not-found')
 
   if (isTenantNotFound || isAdminRoute) {
