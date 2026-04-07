@@ -48,9 +48,25 @@ export async function requireAdminAuth(): Promise<{ email: string; id: string }>
     redirect('/admin/login')
   }
 
-  // Lire le token depuis le cookie de session Supabase master
-  // Le cookie est nommé selon le projet Supabase master
-  const accessToken = cookieStore.get('sb-access-token')?.value
+  // Supabase JS v2 stocke le token dans sb-[PROJECT_REF]-auth-token
+  // On cherche tous les cookies qui commencent par 'sb-' et finissent par '-auth-token'
+  const allCookies = cookieStore.getAll()
+  const authCookie = allCookies.find(c => c.name.startsWith('sb-') && c.name.endsWith('-auth-token'))
+  const sessionStr = authCookie?.value
+
+  if (!sessionStr) {
+    redirect('/admin/login')
+  }
+
+  // Décoder le cookie base64
+  let accessToken: string | undefined
+  try {
+    const decoded = Buffer.from(decodeURIComponent(sessionStr), 'base64').toString('utf-8')
+    const session = JSON.parse(decoded)
+    accessToken = session?.access_token
+  } catch {
+    redirect('/admin/login')
+  }
 
   if (!accessToken) {
     redirect('/admin/login')
