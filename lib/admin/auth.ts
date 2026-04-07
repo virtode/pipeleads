@@ -74,11 +74,15 @@ export async function requireAdminAuth(): Promise<{ email: string; id: string }>
     { auth: { persistSession: false } }
   )
 
+  console.log('[AUTH] adminClient URL:', process.env.MASTER_SUPABASE_URL ?? 'undefined')
+
   const { data: adminUser, error: adminError } = await adminClient
     .from('admin_users')
     .select('id, email')
     .eq('email', user.email)
     .single()
+
+  console.log('[AUTH] adminUser:', adminUser, '| error:', adminError?.message ?? null)
 
   if (adminError || !adminUser) {
     redirect('/admin/login')
