@@ -59,7 +59,10 @@ export default function LoginPage() {
       const supabase = createClient()
       const { error: otpError } = await supabase.auth.signInWithOtp({
         email: email.trim(),
-        options: { shouldCreateUser: false },
+        options: {
+          shouldCreateUser: false,
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
       })
 
       if (otpError) {
@@ -92,7 +95,10 @@ export default function LoginPage() {
       const supabase = createClient()
       const { error: otpError } = await supabase.auth.signInWithOtp({
         email: email.trim(),
-        options: { shouldCreateUser: false },
+        options: {
+          shouldCreateUser: false,
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
       })
 
       if (otpError) {
