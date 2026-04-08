@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <title>Connexion à PipeLeads</title>
+  <title>Confirmez votre email — PipeLeads</title>
 </head>
 <body style="margin:0;padding:0;background-color:#F4F6FB;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
 
@@ -49,24 +49,24 @@
                     <table cellpadding="0" cellspacing="0" border="0" style="margin-bottom:24px;">
                       <tr>
                         <td align="center" style="background-color:#EFF6FF;border-radius:12px;width:52px;height:52px;text-align:center;vertical-align:middle;">
-                          <span style="font-size:24px;line-height:52px;display:block;">🔑</span>
+                          <span style="font-size:24px;line-height:52px;display:block;">✉️</span>
                         </td>
                       </tr>
                     </table>
 
                     <!-- Heading -->
-                    <h1 style="margin:0 0 8px;font-size:24px;font-weight:700;color:#0F1F5C;letter-spacing:-0.5px;">Connexion à PipeLeads</h1>
+                    <h1 style="margin:0 0 8px;font-size:24px;font-weight:700;color:#0F1F5C;letter-spacing:-0.5px;">Confirmez votre adresse email</h1>
                     <p style="margin:0 0 32px;font-size:16px;color:#64748B;line-height:1.6;">
-                      Cliquez sur le bouton ci-dessous pour vous connecter à votre espace. Ce lien est valable <strong style="color:#0F1F5C;">60 minutes</strong>.
+                      Bienvenue sur PipeLeads ! Cliquez sur le bouton ci-dessous pour activer votre compte et commencer à gérer vos contacts.
                     </p>
 
                     <!-- CTA Button -->
                     <table cellpadding="0" cellspacing="0" border="0" style="margin-bottom:32px;">
                       <tr>
-                        <td align="center" style="background-color:#0EA5E9;border-radius:10px;">
-                          <a href="{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=magiclink"
+                        <td align="center" style="background-color:#0F1F5C;border-radius:10px;">
+                          <a href="{{ .ConfirmationURL }}"
                              style="display:inline-block;padding:14px 32px;font-size:16px;font-weight:600;color:#ffffff;text-decoration:none;letter-spacing:0.1px;">
-                            Se connecter &rarr;
+                            Confirmer mon email &rarr;
                           </a>
                         </td>
                       </tr>
@@ -80,7 +80,7 @@
                     </table>
 
                     <!-- OTP -->
-                    <p style="margin:0 0 12px;font-size:14px;color:#64748B;">Ou utilisez ce code à usage unique :</p>
+                    <p style="margin:0 0 12px;font-size:14px;color:#64748B;">Ou entrez ce code de confirmation :</p>
                     <table cellpadding="0" cellspacing="0" border="0">
                       <tr>
                         <td style="background-color:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:14px 28px;">
@@ -92,9 +92,9 @@
                     <!-- Link fallback -->
                     <p style="margin:24px 0 0;font-size:13px;color:#94A3B8;line-height:1.5;">
                       Si le bouton ne fonctionne pas, copiez ce lien dans votre navigateur :<br>
-                      <a href="{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=magiclink"
+                      <a href="{{ .ConfirmationURL }}"
                          style="color:#0EA5E9;text-decoration:underline;word-break:break-all;">
-                        {{ .RedirectTo }}?token_hash={{ .TokenHash }}&amp;type=magiclink
+                        {{ .ConfirmationURL }}
                       </a>
                     </p>
 
@@ -112,8 +112,8 @@
                 <tr>
                   <td align="center">
                     <p style="margin:0 0 8px;font-size:13px;color:#94A3B8;line-height:1.5;">
-                      Si vous n'avez pas demandé cette connexion, ignorez cet email.<br>
-                      Votre compte reste sécurisé.
+                      Si vous n'avez pas créé de compte sur PipeLeads, ignorez cet email.<br>
+                      Votre adresse ne sera pas utilisée.
                     </p>
                     <p style="margin:0;font-size:12px;color:#CBD5E1;">
                       &copy; 2026 PipeLeads &mdash; Envoyé de façon sécurisée
