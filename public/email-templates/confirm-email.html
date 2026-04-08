@@ -4,68 +4,64 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <title>Confirmez votre email — PipeLeads</title>
+  <title>Confirmez votre adresse email — PipeLeads</title>
 </head>
 <body style="margin:0;padding:0;background-color:#F4F6FB;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
 
-  <!-- Wrapper -->
-  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#F4F6FB;min-height:100vh;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#F4F6FB;">
     <tr>
       <td align="center" style="padding:48px 16px;">
-
-        <!-- Card -->
-        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;">
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;">
 
           <!-- Logo -->
           <tr>
             <td align="center" style="padding-bottom:32px;">
               <table cellpadding="0" cellspacing="0" border="0">
                 <tr>
-                  <td style="background-color:#0F1F5C;border-radius:10px;padding:10px 20px;">
-                    <span style="color:#ffffff;font-size:20px;font-weight:700;letter-spacing:-0.5px;">Pipe<span style="color:#0EA5E9;">Leads</span></span>
+                  <td style="background-color:#0F1F5C;border-radius:10px;padding:10px 22px;">
+                    <span style="color:#ffffff;font-size:20px;font-weight:700;letter-spacing:-0.5px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">Pipe<span style="color:#0EA5E9;">Leads</span></span>
                   </td>
                 </tr>
               </table>
             </td>
           </tr>
 
-          <!-- Main card -->
+          <!-- Card -->
           <tr>
-            <td style="background-color:#ffffff;border-radius:16px;border:1px solid #E2E8F0;overflow:hidden;">
+            <td style="background-color:#ffffff;border-radius:16px;border:1px solid #E2E8F0;">
 
-              <!-- Top accent bar -->
+              <!-- Accent bar -->
               <table width="100%" cellpadding="0" cellspacing="0" border="0">
                 <tr>
-                  <td style="background:linear-gradient(90deg,#0F1F5C 0%,#0EA5E9 100%);height:4px;line-height:4px;font-size:0;">&nbsp;</td>
+                  <td style="background-color:#0F1F5C;height:4px;border-radius:16px 16px 0 0;line-height:4px;font-size:0;">&nbsp;</td>
                 </tr>
               </table>
 
-              <!-- Card body -->
+              <!-- Body -->
               <table width="100%" cellpadding="0" cellspacing="0" border="0">
                 <tr>
-                  <td style="padding:48px 48px 40px;">
+                  <td style="padding:44px 48px 40px;">
 
-                    <!-- Icon -->
+                    <!-- Icon badge -->
                     <table cellpadding="0" cellspacing="0" border="0" style="margin-bottom:24px;">
                       <tr>
-                        <td align="center" style="background-color:#EFF6FF;border-radius:12px;width:52px;height:52px;text-align:center;vertical-align:middle;">
-                          <span style="font-size:24px;line-height:52px;display:block;">✉️</span>
+                        <td style="background-color:#EFF6FF;border-radius:12px;width:52px;height:52px;text-align:center;vertical-align:middle;padding:0 14px;">
+                          <span style="font-size:22px;line-height:52px;">&#9993;</span>
                         </td>
                       </tr>
                     </table>
 
-                    <!-- Heading -->
-                    <h1 style="margin:0 0 8px;font-size:24px;font-weight:700;color:#0F1F5C;letter-spacing:-0.5px;">Confirmez votre adresse email</h1>
-                    <p style="margin:0 0 32px;font-size:16px;color:#64748B;line-height:1.6;">
-                      Bienvenue sur PipeLeads ! Cliquez sur le bouton ci-dessous pour activer votre compte et commencer à gérer vos contacts.
+                    <h1 style="margin:0 0 10px;font-size:22px;font-weight:700;color:#0F1F5C;letter-spacing:-0.3px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">Confirmez votre adresse email</h1>
+                    <p style="margin:0 0 30px;font-size:15px;color:#64748B;line-height:1.65;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                      Bienvenue sur PipeLeads ! Confirmez votre adresse email pour activer votre compte et commencer à gérer vos contacts et pipelines.
                     </p>
 
-                    <!-- CTA Button -->
+                    <!-- CTA -->
                     <table cellpadding="0" cellspacing="0" border="0" style="margin-bottom:32px;">
                       <tr>
-                        <td align="center" style="background-color:#0F1F5C;border-radius:10px;">
-                          <a href="{{ .ConfirmationURL }}"
-                             style="display:inline-block;padding:14px 32px;font-size:16px;font-weight:600;color:#ffffff;text-decoration:none;letter-spacing:0.1px;">
+                        <td style="background-color:#0EA5E9;border-radius:10px;">
+                          <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=signup"
+                             style="display:inline-block;padding:14px 36px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;letter-spacing:0.1px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
                             Confirmer mon email &rarr;
                           </a>
                         </td>
@@ -75,52 +71,41 @@
                     <!-- Divider -->
                     <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:24px;">
                       <tr>
-                        <td style="border-top:1px solid #E2E8F0;"></td>
+                        <td style="border-top:1px solid #F1F5F9;"></td>
                       </tr>
                     </table>
 
                     <!-- OTP -->
-                    <p style="margin:0 0 12px;font-size:14px;color:#64748B;">Ou entrez ce code de confirmation :</p>
-                    <table cellpadding="0" cellspacing="0" border="0">
+                    <p style="margin:0 0 10px;font-size:13px;font-weight:600;color:#94A3B8;text-transform:uppercase;letter-spacing:0.8px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">Code alternatif</p>
+                    <table cellpadding="0" cellspacing="0" border="0" style="margin-bottom:28px;">
                       <tr>
-                        <td style="background-color:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:14px 28px;">
-                          <span style="font-size:28px;font-weight:700;color:#0F1F5C;letter-spacing:8px;font-family:'Courier New',Courier,monospace;">{{ .Token }}</span>
+                        <td style="background-color:#F8FAFC;border:1px dashed #CBD5E1;border-radius:10px;padding:14px 24px;">
+                          <span style="font-size:26px;font-weight:700;color:#0F1F5C;letter-spacing:10px;font-family:'Courier New',Courier,monospace;">{{ .Token }}</span>
                         </td>
                       </tr>
                     </table>
 
-                    <!-- Link fallback -->
-                    <p style="margin:24px 0 0;font-size:13px;color:#94A3B8;line-height:1.5;">
-                      Si le bouton ne fonctionne pas, copiez ce lien dans votre navigateur :<br>
-                      <a href="{{ .ConfirmationURL }}"
+                    <!-- Fallback link -->
+                    <p style="margin:0;font-size:12px;color:#94A3B8;line-height:1.6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                      Bouton inaccessible ? Copiez ce lien dans votre navigateur :<br>
+                      <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=signup"
                          style="color:#0EA5E9;text-decoration:underline;word-break:break-all;">
-                        {{ .ConfirmationURL }}
+                        {{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&amp;type=signup
                       </a>
                     </p>
 
                   </td>
                 </tr>
               </table>
-
             </td>
           </tr>
 
           <!-- Footer -->
           <tr>
-            <td style="padding:28px 16px 0;">
-              <table width="100%" cellpadding="0" cellspacing="0" border="0">
-                <tr>
-                  <td align="center">
-                    <p style="margin:0 0 8px;font-size:13px;color:#94A3B8;line-height:1.5;">
-                      Si vous n'avez pas créé de compte sur PipeLeads, ignorez cet email.<br>
-                      Votre adresse ne sera pas utilisée.
-                    </p>
-                    <p style="margin:0;font-size:12px;color:#CBD5E1;">
-                      &copy; 2026 PipeLeads &mdash; Envoyé de façon sécurisée
-                    </p>
-                  </td>
-                </tr>
-              </table>
+            <td align="center" style="padding:28px 16px 0;">
+              <p style="margin:0;font-size:12px;color:#CBD5E1;line-height:1.6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                &copy; 2026 PipeLeads &nbsp;&mdash;&nbsp; Si vous n'avez pas demandé ceci, ignorez cet email.
+              </p>
             </td>
           </tr>
 

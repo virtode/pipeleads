@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <title>Votre lien de connexion PipeLeads</title>
+  <title>Réinitialisez votre mot de passe — PipeLeads</title>
 </head>
 <body style="margin:0;padding:0;background-color:#F4F6FB;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
 
@@ -30,10 +30,10 @@
           <tr>
             <td style="background-color:#ffffff;border-radius:16px;border:1px solid #E2E8F0;">
 
-              <!-- Accent bar -->
+              <!-- Accent bar — orange/warning tone for recovery -->
               <table width="100%" cellpadding="0" cellspacing="0" border="0">
                 <tr>
-                  <td style="background-color:#0EA5E9;height:4px;border-radius:16px 16px 0 0;line-height:4px;font-size:0;">&nbsp;</td>
+                  <td style="background-color:#F59E0B;height:4px;border-radius:16px 16px 0 0;line-height:4px;font-size:0;">&nbsp;</td>
                 </tr>
               </table>
 
@@ -45,24 +45,25 @@
                     <!-- Icon badge -->
                     <table cellpadding="0" cellspacing="0" border="0" style="margin-bottom:24px;">
                       <tr>
-                        <td style="background-color:#EFF6FF;border-radius:12px;width:52px;height:52px;text-align:center;vertical-align:middle;padding:0 14px;">
-                          <span style="font-size:22px;line-height:52px;">&#128273;</span>
+                        <td style="background-color:#FFFBEB;border-radius:12px;width:52px;height:52px;text-align:center;vertical-align:middle;padding:0 14px;">
+                          <span style="font-size:22px;line-height:52px;">&#128274;</span>
                         </td>
                       </tr>
                     </table>
 
-                    <h1 style="margin:0 0 10px;font-size:22px;font-weight:700;color:#0F1F5C;letter-spacing:-0.3px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">Votre lien de connexion</h1>
+                    <h1 style="margin:0 0 10px;font-size:22px;font-weight:700;color:#0F1F5C;letter-spacing:-0.3px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">Réinitialisez votre mot de passe</h1>
                     <p style="margin:0 0 30px;font-size:15px;color:#64748B;line-height:1.65;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-                      Cliquez sur le bouton ci-dessous pour vous connecter à PipeLeads.<br>Ce lien est valable <strong style="color:#0F1F5C;">60 minutes</strong> et ne peut être utilisé qu'une seule fois.
+                      Vous avez demandé la réinitialisation de votre mot de passe. Cliquez sur le bouton ci-dessous pour en définir un nouveau.<br>
+                      Ce lien est valable <strong style="color:#0F1F5C;">60 minutes</strong>.
                     </p>
 
                     <!-- CTA -->
                     <table cellpadding="0" cellspacing="0" border="0" style="margin-bottom:32px;">
                       <tr>
                         <td style="background-color:#0EA5E9;border-radius:10px;">
-                          <a href="{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=magiclink"
+                          <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery"
                              style="display:inline-block;padding:14px 36px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;letter-spacing:0.1px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-                            Se connecter &rarr;
+                            Réinitialiser mon mot de passe &rarr;
                           </a>
                         </td>
                       </tr>
@@ -88,9 +89,9 @@
                     <!-- Fallback link -->
                     <p style="margin:0;font-size:12px;color:#94A3B8;line-height:1.6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
                       Bouton inaccessible ? Copiez ce lien dans votre navigateur :<br>
-                      <a href="{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=magiclink"
+                      <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery"
                          style="color:#0EA5E9;text-decoration:underline;word-break:break-all;">
-                        {{ .RedirectTo }}?token_hash={{ .TokenHash }}&amp;type=magiclink
+                        {{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&amp;type=recovery
                       </a>
                     </p>
 
@@ -104,7 +105,7 @@
           <tr>
             <td align="center" style="padding:28px 16px 0;">
               <p style="margin:0;font-size:12px;color:#CBD5E1;line-height:1.6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-                &copy; 2026 PipeLeads &nbsp;&mdash;&nbsp; Si vous n'avez pas demandé ceci, ignorez cet email.
+                &copy; 2026 PipeLeads &nbsp;&mdash;&nbsp; Si vous n'avez pas demandé ceci, ignorez cet email. Votre mot de passe reste inchangé.
               </p>
             </td>
           </tr>
