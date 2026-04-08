@@ -103,14 +103,6 @@ export default async function TenantDetailPage({ params }: Props) {
         <InfoRow label="Supabase URL" value={t.supabase_url} mono />
       </div>
 
-      {/* Schéma */}
-      <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-700 dark:bg-zinc-800/50">
-        <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Schéma Supabase</h2>
-        <p className="mt-1 text-sm text-zinc-500">
-          Le schéma est géré manuellement via les migrations SQL.
-        </p>
-      </div>
-
       {/* Managers */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
