@@ -7,7 +7,7 @@ import { CheckCircle2, XCircle, UserPlus } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { TenantToggleButton } from '@/components/admin/TenantToggleButton'
 import { TenantInviteManagerButton } from '@/components/admin/TenantInviteManagerButton'
-import { TenantInitSchemaButton } from '@/components/admin/TenantInitSchemaButton'
+import { TenantDeleteButton } from '@/components/admin/TenantDeleteButton'
 
 interface Tenant {
   id: string
@@ -92,6 +92,7 @@ export default async function TenantDetailPage({ params }: Props) {
             {t.is_active ? 'Actif' : 'Inactif'}
           </Badge>
           <TenantToggleButton slug={t.slug} isActive={t.is_active} />
+          <TenantDeleteButton slug={t.slug} name={t.name} />
         </div>
       </div>
 
@@ -103,19 +104,11 @@ export default async function TenantDetailPage({ params }: Props) {
       </div>
 
       {/* Schéma */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-base font-semibold">Schéma Supabase</h2>
-            <p className="text-sm text-zinc-500">
-              Applique ou réapplique les tables et politiques RLS PipeLeads.
-            </p>
-          </div>
-          <TenantInitSchemaButton
-            supabaseUrl={t.supabase_url}
-            serviceKey={t.supabase_service_role_key}
-          />
-        </div>
+      <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-700 dark:bg-zinc-800/50">
+        <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Schéma Supabase</h2>
+        <p className="mt-1 text-sm text-zinc-500">
+          Le schéma est géré manuellement via les migrations SQL.
+        </p>
       </div>
 
       {/* Managers */}
