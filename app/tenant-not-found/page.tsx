@@ -1,5 +1,3 @@
-import Link from 'next/link'
-
 export default function TenantNotFoundPage() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-4 text-center">
@@ -8,9 +6,9 @@ export default function TenantNotFoundPage() {
       <p className="text-sm text-muted-foreground">
         Vérifiez l'URL ou contactez votre administrateur.
       </p>
-      <Link href="/" className="text-sm text-primary underline">
+      <a href="/" className="text-sm text-primary underline">
         Retour à l'accueil
-      </Link>
+      </a>
     </div>
   )
 }
