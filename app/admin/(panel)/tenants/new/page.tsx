@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Loader2, CheckCircle2, XCircle, AlertCircle } from 'lucide-react'
+import { Loader2, CheckCircle2, XCircle, AlertCircle, Copy, Check } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -71,6 +71,7 @@ type Phase =
   | 'creating-tenant'
   | 'init-schema'
   | 'schema-error'
+  | 'invite'
   | 'done'
 
 export default function NewTenantPage() {
@@ -78,6 +79,9 @@ export default function NewTenantPage() {
   const [phase, setPhase] = useState<Phase>('form')
   const [schemaError, setSchemaError] = useState<string | null>(null)
   const [createdSlug, setCreatedSlug] = useState<string | null>(null)
+  const [inviteLink, setInviteLink] = useState<string | null>(null)
+  const [inviteEmail, setInviteEmail] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
   const [initSchema, setInitSchema] = useState(true)
 
   const {
@@ -110,7 +114,8 @@ export default function NewTenantPage() {
         return
       }
 
-      setPhase('done')
+      // Si un lien d'invitation a été généré, afficher l'écran invite avant de naviguer
+      setPhase(inviteLink ? 'invite' : 'done')
     } catch {
       setSchemaError('Erreur réseau lors de l\'initialisation du schéma')
       setPhase('schema-error')
@@ -135,10 +140,16 @@ export default function NewTenantPage() {
 
       setCreatedSlug(data.slug)
 
+      // Capturer le lien d'invitation si généré
+      if (json.data?.inviteLink) {
+        setInviteLink(json.data.inviteLink)
+        setInviteEmail(data.managerEmail ?? null)
+      }
+
       if (initSchema) {
         await runInitSchema(data.supabaseUrl, data.supabaseServiceRoleKey)
       } else {
-        setPhase('done')
+        setPhase(json.data?.inviteLink ? 'invite' : 'done')
       }
     } catch {
       toast.error('Erreur réseau')
@@ -146,13 +157,20 @@ export default function NewTenantPage() {
     }
   }
 
-  // After done, auto-navigate
+  // Auto-navigate once on 'done' (no invite link)
   useEffect(() => {
     if (phase === 'done' && createdSlug) {
       toast.success('Tenant créé avec succès')
       router.push(`/admin/tenants/${createdSlug}`)
     }
   }, [phase, createdSlug, router])
+
+  function handleCopyLink() {
+    if (!inviteLink) return
+    navigator.clipboard.writeText(inviteLink)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
 
   // ---------------------------------------------------------------------------
   // Post-submit status screen
@@ -209,6 +227,46 @@ export default function NewTenantPage() {
             Ignorer et aller au tenant
           </Button>
         </div>
+      </div>
+    )
+  }
+
+  if (phase === 'invite') {
+    return (
+      <div className="mx-auto max-w-2xl space-y-4">
+        <StatusCard
+          icon={<CheckCircle2 className="h-6 w-6 text-green-500" />}
+          title="Tenant créé avec succès"
+          description="Le compte manager a été créé. Envoyez le lien d'invitation ci-dessous."
+        />
+
+        <div className="rounded-lg border bg-muted/40 p-4 space-y-2">
+          <p className="text-sm font-medium">Lien d&apos;invitation manager</p>
+          <div className="flex items-center gap-2">
+            <code className="flex-1 rounded bg-zinc-100 dark:bg-zinc-800 px-3 py-2 text-xs break-all font-mono">
+              {inviteLink}
+            </code>
+            <Button
+              size="sm"
+              variant="outline"
+              className="shrink-0 gap-1.5"
+              onClick={handleCopyLink}
+            >
+              {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+              {copied ? 'Copié' : 'Copier'}
+            </Button>
+          </div>
+          {inviteEmail && (
+            <p className="text-xs text-zinc-500">
+              À envoyer manuellement à{' '}
+              <span className="font-medium">{inviteEmail}</span>
+            </p>
+          )}
+        </div>
+
+        <Button onClick={() => router.push(`/admin/tenants/${createdSlug}`)}>
+          Aller au tenant
+        </Button>
       </div>
     )
   }

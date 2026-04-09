@@ -7,7 +7,7 @@ const InitSchemaSchema = z.object({
 })
 
 // ─────────────────────────────────────────────────────────────
-// Migrations tenant — ordre : 001 → 003 → 005 → 007
+// Migrations tenant — ordre : 001 → 003 → 005 → 007 → 008 → 009 → 010
 //
 // 002 (Stytch) et 004 (RLS open) sont volontairement exclus :
 //   ils ont été remplacés par 005 (Supabase Auth natif).
@@ -332,6 +332,242 @@ create policy "Users can delete files of their contacts"
   );
 `
 
+const MIGRATION_009 = /* sql */ `
+-- ════════════════════════════════════════════════════════════
+-- 009 — Isolation mono-instance par tenant_id (idempotent)
+-- ════════════════════════════════════════════════════════════
+
+ALTER TABLE contacts ADD COLUMN IF NOT EXISTS
+  tenant_id uuid REFERENCES tenants(id) ON DELETE CASCADE;
+
+ALTER TABLE pipelines ADD COLUMN IF NOT EXISTS
+  tenant_id uuid REFERENCES tenants(id) ON DELETE CASCADE;
+
+ALTER TABLE pipeline_stages ADD COLUMN IF NOT EXISTS
+  tenant_id uuid REFERENCES tenants(id) ON DELETE CASCADE;
+
+ALTER TABLE contact_pipeline ADD COLUMN IF NOT EXISTS
+  tenant_id uuid REFERENCES tenants(id) ON DELETE CASCADE;
+
+ALTER TABLE pipeline_history ADD COLUMN IF NOT EXISTS
+  tenant_id uuid REFERENCES tenants(id) ON DELETE CASCADE;
+
+ALTER TABLE ai_enrichments ADD COLUMN IF NOT EXISTS
+  tenant_id uuid REFERENCES tenants(id) ON DELETE CASCADE;
+
+ALTER TABLE contact_files ADD COLUMN IF NOT EXISTS
+  tenant_id uuid REFERENCES tenants(id) ON DELETE CASCADE;
+
+CREATE INDEX IF NOT EXISTS idx_contacts_tenant_id       ON contacts(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_pipelines_tenant_id      ON pipelines(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_pipeline_stages_tenant_id ON pipeline_stages(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_contact_pipeline_tenant_id ON contact_pipeline(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_pipeline_history_tenant_id ON pipeline_history(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_ai_enrichments_tenant_id  ON ai_enrichments(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_contact_files_tenant_id   ON contact_files(tenant_id);
+
+CREATE OR REPLACE FUNCTION current_tenant_id()
+RETURNS uuid AS $$
+  SELECT NULLIF(current_setting('app.tenant_id', true), '')::uuid
+$$ LANGUAGE sql STABLE;
+
+DROP POLICY IF EXISTS "own data" ON contacts;
+CREATE POLICY "own data" ON contacts FOR ALL USING (
+  auth.uid()::text = user_id
+  AND tenant_id IS NOT DISTINCT FROM current_tenant_id()
+);
+
+DROP POLICY IF EXISTS "own data" ON pipelines;
+CREATE POLICY "own data" ON pipelines FOR ALL USING (
+  auth.uid()::text = user_id
+  AND tenant_id IS NOT DISTINCT FROM current_tenant_id()
+);
+
+DROP POLICY IF EXISTS "own stages" ON pipeline_stages;
+CREATE POLICY "own stages" ON pipeline_stages FOR ALL USING (
+  pipeline_id IN (
+    SELECT id FROM pipelines
+    WHERE user_id = auth.uid()::text
+      AND tenant_id IS NOT DISTINCT FROM current_tenant_id()
+  )
+  AND tenant_id IS NOT DISTINCT FROM current_tenant_id()
+);
+
+DROP POLICY IF EXISTS "own data" ON contact_pipeline;
+CREATE POLICY "own data" ON contact_pipeline FOR ALL USING (
+  contact_id IN (
+    SELECT id FROM contacts
+    WHERE user_id = auth.uid()::text
+      AND tenant_id IS NOT DISTINCT FROM current_tenant_id()
+  )
+  AND tenant_id IS NOT DISTINCT FROM current_tenant_id()
+);
+
+DROP POLICY IF EXISTS "own data" ON pipeline_history;
+CREATE POLICY "own data" ON pipeline_history FOR ALL USING (
+  contact_id IN (
+    SELECT id FROM contacts
+    WHERE user_id = auth.uid()::text
+      AND tenant_id IS NOT DISTINCT FROM current_tenant_id()
+  )
+  AND tenant_id IS NOT DISTINCT FROM current_tenant_id()
+);
+
+DROP POLICY IF EXISTS "own data" ON ai_enrichments;
+CREATE POLICY "own data" ON ai_enrichments FOR ALL USING (
+  contact_id IN (
+    SELECT id FROM contacts
+    WHERE user_id = auth.uid()::text
+      AND tenant_id IS NOT DISTINCT FROM current_tenant_id()
+  )
+  AND tenant_id IS NOT DISTINCT FROM current_tenant_id()
+);
+
+DROP POLICY IF EXISTS "own contact files select" ON contact_files;
+DROP POLICY IF EXISTS "own contact files insert" ON contact_files;
+DROP POLICY IF EXISTS "own contact files delete" ON contact_files;
+
+CREATE POLICY "own contact files select" ON contact_files FOR SELECT USING (
+  contact_id IN (
+    SELECT id FROM contacts
+    WHERE user_id = auth.uid()::text
+      AND tenant_id IS NOT DISTINCT FROM current_tenant_id()
+  )
+  AND tenant_id IS NOT DISTINCT FROM current_tenant_id()
+);
+CREATE POLICY "own contact files insert" ON contact_files FOR INSERT WITH CHECK (
+  contact_id IN (
+    SELECT id FROM contacts
+    WHERE user_id = auth.uid()::text
+      AND tenant_id IS NOT DISTINCT FROM current_tenant_id()
+  )
+  AND tenant_id IS NOT DISTINCT FROM current_tenant_id()
+);
+CREATE POLICY "own contact files delete" ON contact_files FOR DELETE USING (
+  contact_id IN (
+    SELECT id FROM contacts
+    WHERE user_id = auth.uid()::text
+      AND tenant_id IS NOT DISTINCT FROM current_tenant_id()
+  )
+  AND tenant_id IS NOT DISTINCT FROM current_tenant_id()
+);
+`
+
+const MIGRATION_010 = /* sql */ `
+-- ════════════════════════════════════════════════════════════
+-- 010 — Isolation tenant via JWT claims (custom_access_token_hook)
+-- ════════════════════════════════════════════════════════════
+
+CREATE OR REPLACE FUNCTION public.custom_access_token_hook(event jsonb)
+RETURNS jsonb AS $$
+DECLARE
+  claims jsonb;
+  tenant_rec record;
+  v_user_id uuid;
+BEGIN
+  v_user_id := (event->>'user_id')::uuid;
+  claims := event->'claims';
+
+  SELECT tu.tenant_id INTO tenant_rec
+  FROM public.tenant_users tu
+  WHERE tu.user_id = v_user_id
+  LIMIT 1;
+
+  IF tenant_rec.tenant_id IS NOT NULL THEN
+    claims := jsonb_set(
+      claims,
+      '{tenant_id}',
+      to_jsonb(tenant_rec.tenant_id::text)
+    );
+  END IF;
+
+  RETURN jsonb_set(event, '{claims}', claims);
+END;
+$$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
+
+GRANT EXECUTE ON FUNCTION public.custom_access_token_hook TO supabase_auth_admin;
+REVOKE EXECUTE ON FUNCTION public.custom_access_token_hook FROM authenticated, anon, public;
+
+CREATE OR REPLACE FUNCTION public.current_tenant_id()
+RETURNS uuid AS $$
+  SELECT NULLIF(auth.jwt()->>'tenant_id', '')::uuid
+$$ LANGUAGE sql STABLE;
+
+DROP POLICY IF EXISTS "own data" ON contacts;
+CREATE POLICY "own data" ON contacts FOR ALL
+  USING (auth.uid()::text = user_id AND tenant_id IS NOT DISTINCT FROM current_tenant_id())
+  WITH CHECK (auth.uid()::text = user_id AND tenant_id IS NOT DISTINCT FROM current_tenant_id());
+
+DROP POLICY IF EXISTS "own data" ON pipelines;
+CREATE POLICY "own data" ON pipelines FOR ALL
+  USING (auth.uid()::text = user_id AND tenant_id IS NOT DISTINCT FROM current_tenant_id())
+  WITH CHECK (auth.uid()::text = user_id AND tenant_id IS NOT DISTINCT FROM current_tenant_id());
+
+DROP POLICY IF EXISTS "own stages" ON pipeline_stages;
+CREATE POLICY "own stages" ON pipeline_stages FOR ALL
+  USING (
+    pipeline_id IN (SELECT id FROM pipelines WHERE user_id = auth.uid()::text AND tenant_id IS NOT DISTINCT FROM current_tenant_id())
+    AND tenant_id IS NOT DISTINCT FROM current_tenant_id()
+  )
+  WITH CHECK (
+    pipeline_id IN (SELECT id FROM pipelines WHERE user_id = auth.uid()::text AND tenant_id IS NOT DISTINCT FROM current_tenant_id())
+    AND tenant_id IS NOT DISTINCT FROM current_tenant_id()
+  );
+
+DROP POLICY IF EXISTS "own data" ON contact_pipeline;
+CREATE POLICY "own data" ON contact_pipeline FOR ALL
+  USING (
+    contact_id IN (SELECT id FROM contacts WHERE user_id = auth.uid()::text AND tenant_id IS NOT DISTINCT FROM current_tenant_id())
+    AND tenant_id IS NOT DISTINCT FROM current_tenant_id()
+  )
+  WITH CHECK (
+    contact_id IN (SELECT id FROM contacts WHERE user_id = auth.uid()::text AND tenant_id IS NOT DISTINCT FROM current_tenant_id())
+    AND tenant_id IS NOT DISTINCT FROM current_tenant_id()
+  );
+
+DROP POLICY IF EXISTS "own data" ON pipeline_history;
+CREATE POLICY "own data" ON pipeline_history FOR ALL
+  USING (
+    contact_id IN (SELECT id FROM contacts WHERE user_id = auth.uid()::text AND tenant_id IS NOT DISTINCT FROM current_tenant_id())
+    AND tenant_id IS NOT DISTINCT FROM current_tenant_id()
+  )
+  WITH CHECK (
+    contact_id IN (SELECT id FROM contacts WHERE user_id = auth.uid()::text AND tenant_id IS NOT DISTINCT FROM current_tenant_id())
+    AND tenant_id IS NOT DISTINCT FROM current_tenant_id()
+  );
+
+DROP POLICY IF EXISTS "own data" ON ai_enrichments;
+CREATE POLICY "own data" ON ai_enrichments FOR ALL
+  USING (
+    contact_id IN (SELECT id FROM contacts WHERE user_id = auth.uid()::text AND tenant_id IS NOT DISTINCT FROM current_tenant_id())
+    AND tenant_id IS NOT DISTINCT FROM current_tenant_id()
+  )
+  WITH CHECK (
+    contact_id IN (SELECT id FROM contacts WHERE user_id = auth.uid()::text AND tenant_id IS NOT DISTINCT FROM current_tenant_id())
+    AND tenant_id IS NOT DISTINCT FROM current_tenant_id()
+  );
+
+DROP POLICY IF EXISTS "own contact files select" ON contact_files;
+DROP POLICY IF EXISTS "own contact files insert" ON contact_files;
+DROP POLICY IF EXISTS "own contact files delete" ON contact_files;
+
+CREATE POLICY "own contact files select" ON contact_files FOR SELECT
+  USING (
+    contact_id IN (SELECT id FROM contacts WHERE user_id = auth.uid()::text AND tenant_id IS NOT DISTINCT FROM current_tenant_id())
+    AND tenant_id IS NOT DISTINCT FROM current_tenant_id()
+  );
+CREATE POLICY "own contact files insert" ON contact_files FOR INSERT
+  WITH CHECK (
+    contact_id IN (SELECT id FROM contacts WHERE user_id = auth.uid()::text AND tenant_id IS NOT DISTINCT FROM current_tenant_id())
+    AND tenant_id IS NOT DISTINCT FROM current_tenant_id()
+  );
+CREATE POLICY "own contact files delete" ON contact_files FOR DELETE
+  USING (
+    contact_id IN (SELECT id FROM contacts WHERE user_id = auth.uid()::text AND tenant_id IS NOT DISTINCT FROM current_tenant_id())
+    AND tenant_id IS NOT DISTINCT FROM current_tenant_id()
+  );
+`
+
 interface MigrationResult {
   name: string
   status: 'ok' | 'error'
@@ -401,11 +637,13 @@ export async function POST(req: NextRequest) {
   const { supabase_url, service_role_key } = parsed.data
 
   const migrations: Array<{ name: string; sql: string }> = [
-    { name: '001_initial_schema',  sql: MIGRATION_001 },
-    { name: '003_notion_token',    sql: MIGRATION_003 },
-    { name: '005_supabase_auth',   sql: MIGRATION_005 },
-    { name: '007_tenant_users',    sql: MIGRATION_007 },
-    { name: '008_contact_files',   sql: MIGRATION_008 },
+    { name: '001_initial_schema',         sql: MIGRATION_001 },
+    { name: '003_notion_token',           sql: MIGRATION_003 },
+    { name: '005_supabase_auth',          sql: MIGRATION_005 },
+    { name: '007_tenant_users',           sql: MIGRATION_007 },
+    { name: '008_contact_files',          sql: MIGRATION_008 },
+    { name: '009_tenant_isolation',       sql: MIGRATION_009 },
+    { name: '010_tenant_jwt_hook',        sql: MIGRATION_010 },
   ]
 
   const results: MigrationResult[] = []

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createMasterAdminClient } from '@/lib/admin/auth'
-import { createClient as createSupabaseAdmin } from '@supabase/supabase-js'
 import { z } from 'zod'
 
 const CreateTenantSchema = z.object({
@@ -64,28 +63,68 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Erreur lors de la création du tenant' }, { status: 500 })
   }
 
-  // Inviter le manager si email fourni
+  // Associer le manager si email fourni
+  let inviteLink: string | null = null
+
   if (managerEmail) {
     try {
-      const tenantAdmin = createSupabaseAdmin(supabaseUrl, supabaseServiceRoleKey)
+      // Cherche l'utilisateur dans auth.users du master
+      const { data: usersData } = await master.auth.admin.listUsers()
+      const existingManager = usersData?.users.find((u) => u.email === managerEmail)
 
-      const { data: invited, error: inviteError } = await tenantAdmin.auth.admin.inviteUserByEmail(
-        managerEmail
-      )
-
-      if (inviteError) {
-        console.error('[admin/tenants] invite manager error:', inviteError)
+      if (existingManager) {
+        // Utilisateur déjà existant → upsert dans tenant_users avec le tenant_id
+        const { error: upsertError } = await master.from('tenant_users').upsert(
+          {
+            user_id: existingManager.id,
+            tenant_id: tenant.id,
+            role: 'manager',
+          },
+          { onConflict: 'user_id,tenant_id' }
+        )
+        if (upsertError) {
+          console.error('[admin/tenants] upsert tenant_users error:', upsertError)
+        }
       } else {
-        await tenantAdmin.from('tenant_users').insert({
-          user_id: invited.user.id,
-          role: 'manager',
+        // Utilisateur inexistant → créer le compte et insérer dans tenant_users
+        const { data: newUser, error: createError } = await master.auth.admin.createUser({
+          email: managerEmail,
+          email_confirm: true,
         })
+
+        if (createError || !newUser?.user) {
+          console.error('[admin/tenants] create manager error:', createError)
+        } else {
+          const { error: insertError } = await master.from('tenant_users').insert({
+            user_id: newUser.user.id,
+            tenant_id: tenant.id,
+            role: 'manager',
+          })
+          if (insertError) {
+            console.error('[admin/tenants] insert tenant_users error:', insertError)
+          }
+
+          // Générer un magic link d'invitation
+          const { data: linkData, error: linkError } =
+            await master.auth.admin.generateLink({
+              type: 'magiclink',
+              email: managerEmail,
+              options: { redirectTo: `https://${slug}.pipeleads.app` },
+            })
+
+          if (linkError) {
+            console.error('[admin/tenants] generate link error:', linkError)
+          } else {
+            inviteLink = linkData?.properties?.action_link ?? null
+            console.log('[admin/tenants] invite link generated:', inviteLink)
+          }
+        }
       }
     } catch (err) {
-      console.error('[admin/tenants] manager invite failed:', err)
+      console.error('[admin/tenants] manager setup failed:', err)
       // Non-bloquant — le tenant est créé, le manager peut être invité plus tard
     }
   }
 
-  return NextResponse.json({ data: { id: tenant.id, slug } })
+  return NextResponse.json({ data: { id: tenant.id, slug, inviteLink } })
 }
