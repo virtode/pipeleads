@@ -284,6 +284,52 @@ export interface Database {
           }
         ]
       }
+      contact_files: {
+        Row: {
+          id: string
+          contact_id: string
+          name: string
+          file_name: string
+          file_path: string
+          file_size: number | null
+          mime_type: string | null
+          description: string | null
+          uploaded_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          contact_id: string
+          name: string
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          mime_type?: string | null
+          description?: string | null
+          uploaded_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          contact_id?: string
+          name?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          mime_type?: string | null
+          description?: string | null
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'contact_files_contact_id_fkey'
+            columns: ['contact_id']
+            isOneToOne: false
+            referencedRelation: 'contacts'
+            referencedColumns: ['id']
+          }
+        ]
+      }
       notion_config: {
         Row: {
           id: string

@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import {
   Mail, Phone, MapPin, Globe, Linkedin, Twitter,
-  Tag, FileText, Pencil, Trash2, ExternalLink, Loader2, GitBranch, Plus, X,
+  Tag, FileText, Pencil, Trash2, ExternalLink, Loader2, GitBranch, Plus, X, Paperclip,
 } from 'lucide-react'
 import { getInitials } from '@/lib/utils'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -26,6 +26,8 @@ import {
 } from '@/components/ui/alert-dialog'
 import { ContactForm, type ContactFormHandle } from './ContactForm'
 import { AIEnrichmentPanel } from './AIEnrichmentPanel'
+import { ContactFiles } from './ContactFiles'
+import { useQuery } from '@tanstack/react-query'
 import { useContact, useDeleteContact } from '@/hooks/useContacts'
 import { useSwipeToClose } from '@/hooks/useSwipeToClose'
 import { usePipelines, useAssignContactToPipeline, useRemoveContactFromPipeline } from '@/hooks/usePipelines'
@@ -85,6 +87,19 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
   const contactPipelines = ('contact_pipeline' in (contact ?? {}) && Array.isArray((contact as { contact_pipeline?: unknown[] }).contact_pipeline))
     ? (contact as { contact_pipeline: { pipeline: { id: string; name: string } | null; stage: { id: string; name: string; color: string } | null }[] }).contact_pipeline
     : []
+
+  const { data: contactFiles } = useQuery<{ id: string }[]>({
+    queryKey: ['contact-files', contactId],
+    queryFn: async () => {
+      if (!contactId) return []
+      const res = await fetch(`/api/contacts/${contactId}/files`)
+      if (!res.ok) return []
+      const json = await res.json() as { data: { id: string }[] }
+      return json.data
+    },
+    enabled: !!contactId && isOpen,
+  })
+  const fileCount = contactFiles?.length ?? 0
 
   const assignedPipelineIds = contactPipelines.map((cp) => cp.pipeline?.id).filter(Boolean) as string[]
   const availablePipelines = (allPipelines ?? []).filter((p) => !assignedPipelineIds.includes(p.id))
@@ -197,6 +212,10 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
                       <span className="absolute -top-0.5 -right-2.5 h-1.5 w-1.5 rounded-full bg-primary" />
                     )}
                   </span>
+                </TabsTrigger>
+                <TabsTrigger value="documents" className="rounded-none pb-3 pt-2.5 px-0 h-auto">
+                  <Paperclip className="mr-1 h-3.5 w-3.5" />
+                  Documents{fileCount > 0 && ` (${fileCount})`}
                 </TabsTrigger>
               </TabsList>
 
@@ -464,6 +483,11 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
                     <p className="text-sm text-muted-foreground">Aucune note</p>
                   </div>
                 )}
+              </TabsContent>
+
+              {/* Documents */}
+              <TabsContent value="documents" className="overflow-y-auto px-6 py-5">
+                <ContactFiles contactId={contact.id} />
               </TabsContent>
             </Tabs>}
 
