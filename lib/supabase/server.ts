@@ -1,24 +1,18 @@
 import { createServerClient } from '@supabase/ssr'
-import { cookies, headers } from 'next/headers'
+import { cookies } from 'next/headers'
 import type { Database } from './types'
 
 /**
  * Crée un client Supabase côté serveur.
  *
- * Architecture mono-instance : tous les tenants utilisent le même
- * Supabase (NEXT_PUBLIC_SUPABASE_URL / ANON_KEY).
- * L'isolation par tenant est assurée par RLS via app.tenant_id.
- *
- * Si x-tenant-id est présent dans les headers (injecté par le middleware),
- * on configure la session PostgreSQL avec set_config('app.tenant_id', …)
- * afin que les policies RLS puissent filtrer par tenant.
+ * L'isolation par tenant est assurée par RLS via auth.jwt()->>'tenant_id'.
+ * Le tenant_id est injecté dans le JWT au login par custom_access_token_hook
+ * (migration 010) — aucune configuration de session nécessaire.
  */
 export async function createClient() {
   const cookieStore = await cookies()
-  const headerStore = await headers()
-  const tenantId = headerStore.get('x-tenant-id')
 
-  const supabase = createServerClient<Database>(
+  return createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
@@ -38,14 +32,4 @@ export async function createClient() {
       },
     }
   )
-
-  if (tenantId) {
-    await supabase.rpc('set_config', {
-      setting: 'app.tenant_id',
-      value: tenantId,
-      is_local: true,
-    })
-  }
-
-  return supabase
 }
