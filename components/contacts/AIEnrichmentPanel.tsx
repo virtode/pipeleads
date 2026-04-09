@@ -14,7 +14,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 import { useQueryClient, useMutation } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { createClient } from '@/lib/supabase/client'
+import { useSupabaseClient } from '@/lib/supabase/context'
 import { formatDateTime } from '@/lib/utils'
 import { renderMarkdown } from '@/lib/utils/markdown'
 
@@ -50,6 +50,7 @@ export function AIEnrichmentPanel({
   enrichments,
   compact = false,
 }: AIEnrichmentPanelProps) {
+  const supabase = useSupabaseClient()
   const queryClient = useQueryClient()
   const [activeType, setActiveType] = useState<EnrichType | null>(null)
   const [completionError, setCompletionError] = useState<string | null>(null)
@@ -78,7 +79,6 @@ export function AIEnrichmentPanel({
 
   const deleteEnrichment = useMutation({
     mutationFn: async (id: string) => {
-      const supabase = createClient()
       const { error } = await supabase.from('ai_enrichments').delete().eq('id', id)
       if (error) throw error
     },

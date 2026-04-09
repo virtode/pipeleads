@@ -9,11 +9,12 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import Image from 'next/image'
 import { Loader2, Mail, KeyRound } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
+import { useSupabaseClient } from '@/lib/supabase/context'
 
 const RESEND_COOLDOWN = 30
 
 export default function LoginPage() {
+  const supabase = useSupabaseClient()
   const router = useRouter()
   const { resolvedTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
@@ -56,7 +57,6 @@ export default function LoginPage() {
     setError(null)
 
     try {
-      const supabase = createClient()
       const { error: otpError } = await supabase.auth.signInWithOtp({
         email: email.trim(),
         options: {
@@ -92,7 +92,6 @@ export default function LoginPage() {
     setError(null)
 
     try {
-      const supabase = createClient()
       const { error: otpError } = await supabase.auth.signInWithOtp({
         email: email.trim(),
         options: {
@@ -124,7 +123,6 @@ export default function LoginPage() {
     setError(null)
 
     try {
-      const supabase = createClient()
       const { error: verifyError } = await supabase.auth.verifyOtp({
         email: email.trim(),
         token: code,

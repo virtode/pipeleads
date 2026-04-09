@@ -7,7 +7,7 @@ import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Loader2, LogIn, ShieldCheck, AlertCircle } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
+import { useSupabaseClient } from '@/lib/supabase/context'
 
 type PageState = 'ready' | 'verifying' | 'success' | 'error' | 'no-token'
 
@@ -28,6 +28,7 @@ type PageState = 'ready' | 'verifying' | 'success' | 'error' | 'no-token'
  *   </a>
  */
 export default function AuthConfirmPage() {
+  const supabase = useSupabaseClient()
   const router = useRouter()
   const { resolvedTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
@@ -55,7 +56,6 @@ export default function AuthConfirmPage() {
     setState('verifying')
 
     try {
-      const supabase = createClient()
       const { error } = await supabase.auth.verifyOtp({
         token_hash: tokenHash,
         type: otpType as 'magiclink' | 'email' | 'recovery' | 'invite',

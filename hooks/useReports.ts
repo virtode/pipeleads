@@ -1,7 +1,7 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
-import { createClient } from '@/lib/supabase/client'
+import { useSupabaseClient } from '@/lib/supabase/context'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -58,11 +58,11 @@ export interface KpiData {
 // ---------------------------------------------------------------------------
 
 export function useKpis() {
+  const supabase = useSupabaseClient()
+
   return useQuery({
     queryKey: ['reports-kpis'],
     queryFn: async (): Promise<KpiData> => {
-      const supabase = createClient()
-
       const now = new Date()
       const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
 
@@ -70,7 +70,6 @@ export function useKpis() {
         supabase.from('contacts').select('id', { count: 'exact', head: true }),
         supabase.from('contacts').select('id', { count: 'exact', head: true }).gte('created_at', firstOfMonth),
         supabase.from('pipelines').select('id', { count: 'exact', head: true }),
-        // contacts in a pipeline but with null stage
         supabase.from('contact_pipeline').select('id', { count: 'exact', head: true }).is('stage_id', null),
       ])
 
@@ -90,11 +89,12 @@ export function useKpis() {
 // ---------------------------------------------------------------------------
 
 export function useStageDistribution(filters: ReportFilters) {
+  const supabase = useSupabaseClient()
+
   return useQuery({
     queryKey: ['reports-distribution', filters.pipelineId],
     queryFn: async (): Promise<StageDistributionItem[]> => {
       if (!filters.pipelineId) return []
-      const supabase = createClient()
 
       // Fetch stages for this pipeline
       const { data: stages, error: stagesErr } = await supabase
@@ -149,11 +149,11 @@ export function useStageDistribution(filters: ReportFilters) {
 // ---------------------------------------------------------------------------
 
 export function useTimeline(filters: ReportFilters) {
+  const supabase = useSupabaseClient()
+
   return useQuery({
     queryKey: ['reports-timeline', filters.pipelineId, filters.startDate.toISOString().slice(0, 10), filters.endDate.toISOString().slice(0, 10)],
     queryFn: async (): Promise<TimelinePoint[]> => {
-      const supabase = createClient()
-
       let query = supabase
         .from('pipeline_history')
         .select('changed_at')
@@ -198,10 +198,11 @@ export function useTimeline(filters: ReportFilters) {
 // ---------------------------------------------------------------------------
 
 export function useTagsDistribution() {
+  const supabase = useSupabaseClient()
+
   return useQuery({
     queryKey: ['reports-tags'],
     queryFn: async (): Promise<TagCount[]> => {
-      const supabase = createClient()
       const { data, error } = await supabase
         .from('contacts')
         .select('tags')
@@ -230,14 +231,14 @@ export function useTagsDistribution() {
 // ---------------------------------------------------------------------------
 
 export function useInactiveContacts(days: number, pipelineId: string | null) {
+  const supabase = useSupabaseClient()
+
   return useQuery({
     queryKey: ['reports-inactive', days, pipelineId],
     queryFn: async (): Promise<InactiveContact[]> => {
-      const supabase = createClient()
       const threshold = new Date()
       threshold.setDate(threshold.getDate() - days)
 
-      // Get contact_pipeline rows with last update
       let query = supabase
         .from('contact_pipeline')
         .select('contact_id, updated_at, contacts(id, first_name, last_name, company)')
@@ -277,11 +278,12 @@ export function useInactiveContacts(days: number, pipelineId: string | null) {
 // ---------------------------------------------------------------------------
 
 export function useConversionFunnel(pipelineId: string | null, filters: ReportFilters) {
+  const supabase = useSupabaseClient()
+
   return useQuery({
     queryKey: ['reports-funnel', pipelineId, filters.startDate.toISOString().slice(0, 10), filters.endDate.toISOString().slice(0, 10)],
     queryFn: async (): Promise<ConversionStep[]> => {
       if (!pipelineId) return []
-      const supabase = createClient()
 
       // Fetch stages ordered
       const { data: stages, error: stagesErr } = await supabase
@@ -293,8 +295,6 @@ export function useConversionFunnel(pipelineId: string | null, filters: ReportFi
       if (stagesErr) throw stagesErr
       if (!stages || stages.length === 0) return []
 
-      // For each stage, count contacts that EVER reached it (appear in history as to_stage_id)
-      // within the period — or currently sit there
       const { data: history, error: histErr } = await supabase
         .from('pipeline_history')
         .select('to_stage_id')
@@ -305,7 +305,6 @@ export function useConversionFunnel(pipelineId: string | null, filters: ReportFi
 
       if (histErr) throw histErr
 
-      // Count unique contacts per stage that appeared as destination
       const stageCounts = new Map<string, number>()
       for (const row of history ?? []) {
         if (row.to_stage_id) {
@@ -313,7 +312,6 @@ export function useConversionFunnel(pipelineId: string | null, filters: ReportFi
         }
       }
 
-      // Also count current positions
       const { data: current, error: currentErr } = await supabase
         .from('contact_pipeline')
         .select('stage_id')
@@ -322,7 +320,6 @@ export function useConversionFunnel(pipelineId: string | null, filters: ReportFi
 
       if (currentErr) throw currentErr
 
-      // Merge current into counts (use max — contact was in stage if it currently is or was moved there)
       const allCounts = new Map<string, number>(stageCounts)
       for (const row of current ?? []) {
         if (row.stage_id) {

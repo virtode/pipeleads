@@ -23,6 +23,10 @@ export async function createClient() {
     headerStore.get('x-tenant-anon-key') ??
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[supabase/server] URL utilisée :', url)
+  }
+
   return createServerClient<Database>(url, anonKey, {
     cookies: {
       getAll() {

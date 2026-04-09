@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { createClient } from '@/lib/supabase/client'
+import { useSupabaseClient } from '@/lib/supabase/context'
 import type { InsertDto, UpdateDto } from '@/lib/supabase/types'
 import type { Contact, Pipeline, PipelineStage } from '@/types'
 
@@ -38,10 +38,11 @@ export interface KanbanData {
 // ---------------------------------------------------------------------------
 
 export function usePipelines() {
+  const supabase = useSupabaseClient()
+
   return useQuery({
     queryKey: ['pipelines'],
     queryFn: async () => {
-      const supabase = createClient()
       const { data, error } = await supabase
         .from('pipelines')
         .select('*, pipeline_stages(*)')
@@ -55,11 +56,12 @@ export function usePipelines() {
 }
 
 export function usePipeline(id: string | null) {
+  const supabase = useSupabaseClient()
+
   return useQuery({
     queryKey: ['pipeline', id],
     queryFn: async () => {
       if (!id) return null
-      const supabase = createClient()
       const { data, error } = await supabase
         .from('pipelines')
         .select('*, pipeline_stages(*)')
@@ -75,11 +77,12 @@ export function usePipeline(id: string | null) {
 }
 
 export function useKanban(pipelineId: string | null) {
+  const supabase = useSupabaseClient()
+
   return useQuery({
     queryKey: ['kanban', pipelineId],
     queryFn: async () => {
       if (!pipelineId) return null
-      const supabase = createClient()
 
       // Fetch pipeline + stages
       const { data: pipeline, error: pipelineErr } = await supabase
@@ -138,11 +141,11 @@ export function useKanban(pipelineId: string | null) {
 // ---------------------------------------------------------------------------
 
 export function useCreatePipeline() {
+  const supabase = useSupabaseClient()
   const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: async (input: Omit<InsertDto<'pipelines'>, 'user_id'>) => {
-      const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
       const { data, error } = await supabase
         .from('pipelines')
@@ -165,11 +168,11 @@ export function useCreatePipeline() {
 }
 
 export function useUpdatePipeline() {
+  const supabase = useSupabaseClient()
   const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: UpdateDto<'pipelines'> }) => {
-      const supabase = createClient()
       const { data: pipeline, error } = await supabase
         .from('pipelines')
         .update(data)
@@ -193,11 +196,11 @@ export function useUpdatePipeline() {
 }
 
 export function useDeletePipeline() {
+  const supabase = useSupabaseClient()
   const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const supabase = createClient()
       const { error } = await supabase.from('pipelines').delete().eq('id', id)
       if (error) throw error
     },
@@ -219,11 +222,11 @@ export function useDeletePipeline() {
 // ---------------------------------------------------------------------------
 
 export function useCreateStage() {
+  const supabase = useSupabaseClient()
   const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: async (input: InsertDto<'pipeline_stages'>) => {
-      const supabase = createClient()
       const { data, error } = await supabase
         .from('pipeline_stages')
         .insert(input)
@@ -240,11 +243,11 @@ export function useCreateStage() {
 }
 
 export function useUpdateStage() {
+  const supabase = useSupabaseClient()
   const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; pipelineId: string; data: UpdateDto<'pipeline_stages'> }) => {
-      const supabase = createClient()
       const { data: stage, error } = await supabase
         .from('pipeline_stages')
         .update(data)
@@ -263,11 +266,11 @@ export function useUpdateStage() {
 }
 
 export function useDeleteStage() {
+  const supabase = useSupabaseClient()
   const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: async ({ id, pipelineId }: { id: string; pipelineId: string }) => {
-      const supabase = createClient()
       const { error } = await supabase.from('pipeline_stages').delete().eq('id', id)
       if (error) throw error
       return { pipelineId }
@@ -281,19 +284,11 @@ export function useDeleteStage() {
 }
 
 export function useReorderStages() {
+  const supabase = useSupabaseClient()
   const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: async ({ pipelineId, stages }: { pipelineId: string; stages: { id: string; position: number }[] }) => {
-      const supabase = createClient()
-      // Upsert all at once
-      const updates = stages.map(({ id, position }) => ({
-        id,
-        pipeline_id: pipelineId,
-        position,
-        name: '', // required by upsert — will be filled by existing row
-      }))
-      // Use individual updates to preserve name/color
       await Promise.all(
         stages.map(({ id, position }) =>
           supabase.from('pipeline_stages').update({ position }).eq('id', id)
@@ -313,6 +308,7 @@ export function useReorderStages() {
 // ---------------------------------------------------------------------------
 
 export function useAssignContactToPipeline() {
+  const supabase = useSupabaseClient()
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -325,7 +321,6 @@ export function useAssignContactToPipeline() {
       pipelineId: string
       stageId: string | null
     }) => {
-      const supabase = createClient()
       const { data, error } = await supabase
         .from('contact_pipeline')
         .upsert(
@@ -348,6 +343,7 @@ export function useAssignContactToPipeline() {
 }
 
 export function useMoveContactStage() {
+  const supabase = useSupabaseClient()
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -364,8 +360,6 @@ export function useMoveContactStage() {
       fromStageId: string | null
       toStageId: string | null
     }) => {
-      const supabase = createClient()
-
       // Update current stage
       const { error: updateErr } = await supabase
         .from('contact_pipeline')
@@ -394,11 +388,11 @@ export function useMoveContactStage() {
 }
 
 export function useRemoveContactFromPipeline() {
+  const supabase = useSupabaseClient()
   const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: async ({ contactId, pipelineId }: { contactId: string; pipelineId: string }) => {
-      const supabase = createClient()
       const { error } = await supabase
         .from('contact_pipeline')
         .delete()

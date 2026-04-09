@@ -26,12 +26,13 @@ import { ImportCSVDialog } from '@/components/contacts/ImportCSVDialog'
 import { ImportVCFDialog } from '@/components/contacts/ImportVCFDialog'
 import { useContacts, useDeleteContacts } from '@/hooks/useContacts'
 import { useDebounce } from '@/hooks/useDebounce'
-import { createClient } from '@/lib/supabase/client'
+import { useSupabaseClient } from '@/lib/supabase/context'
 import type { Contact, ContactFilters as Filters, ContactSortField } from '@/types'
 
 const EMPTY_FILTERS: Filters = { search: '', tags: [], company: '' }
 
 function ContactsPageContent() {
+  const supabase = useSupabaseClient()
   const searchParams = useSearchParams()
   const router = useRouter()
   const [page, setPage] = useState(0)
@@ -75,7 +76,6 @@ function ContactsPageContent() {
   const { data: allContacts = [] } = useQuery({
     queryKey: ['contacts-all-export'],
     queryFn: async () => {
-      const supabase = createClient()
       const { data, error } = await supabase
         .from('contacts')
         .select('*')

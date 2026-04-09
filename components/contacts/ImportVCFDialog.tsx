@@ -16,7 +16,7 @@ import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
 import { parseVCF, type ImportContactDto } from '@/lib/import/vcf'
-import { createClient } from '@/lib/supabase/client'
+import { useSupabaseClient } from '@/lib/supabase/context'
 import { useQueryClient } from '@tanstack/react-query'
 
 type Step = 'upload' | 'preview' | 'importing' | 'done'
@@ -94,6 +94,7 @@ function VirtualContactList({ contacts }: { contacts: ImportContactDto[] }) {
 // ---------------------------------------------------------------------------
 
 export function ImportVCFDialog({ open, onOpenChange }: ImportVCFDialogProps) {
+  const supabase = useSupabaseClient()
   const queryClient = useQueryClient()
 
   const [step, setStep] = useState<Step>('upload')
@@ -144,7 +145,6 @@ export function ImportVCFDialog({ open, onOpenChange }: ImportVCFDialogProps) {
     setStep('importing')
     setProgress(0)
 
-    const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
     const userId = user?.id ?? ''
     const result: ImportResult = { created: 0, errors: 0, errorMessages: [] }

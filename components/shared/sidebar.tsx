@@ -16,7 +16,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
-import { createClient } from '@/lib/supabase/client'
+import { useSupabaseClient } from '@/lib/supabase/context'
 
 interface NavItem {
   label: string
@@ -41,11 +41,11 @@ export function Sidebar({ onNavigate, isAdmin = false }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const { resolvedTheme } = useTheme()
+  const supabase = useSupabaseClient()
   const [mounted, setMounted] = useState(false)
   useEffect(() => setMounted(true), [])
 
   async function handleLogout() {
-    const supabase = createClient()
     await supabase.auth.signOut()
     router.replace('/login')
   }

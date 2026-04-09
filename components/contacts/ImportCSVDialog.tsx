@@ -31,7 +31,7 @@ import {
   type CsvRow,
 } from '@/lib/import/csv'
 import { toast } from 'sonner'
-import { createClient } from '@/lib/supabase/client'
+import { useSupabaseClient } from '@/lib/supabase/context'
 import { useQueryClient } from '@tanstack/react-query'
 
 type Step = 'upload' | 'mapping' | 'options' | 'importing' | 'done'
@@ -52,6 +52,7 @@ interface ImportCSVDialogProps {
 const NONE_VALUE = '__none__'
 
 export function ImportCSVDialog({ open, onOpenChange }: ImportCSVDialogProps) {
+  const supabase = useSupabaseClient()
   const queryClient = useQueryClient()
 
   const [step, setStep] = useState<Step>('upload')
@@ -129,7 +130,6 @@ export function ImportCSVDialog({ open, onOpenChange }: ImportCSVDialogProps) {
     setProgress(0)
 
     const contacts = mapCSVToContacts(csvRows, mapping)
-    const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
     const userId = user?.id ?? ''
 

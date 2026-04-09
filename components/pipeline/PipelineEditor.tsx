@@ -30,7 +30,7 @@ import {
   useReorderStages,
   type PipelineWithStages,
 } from '@/hooks/usePipelines'
-import { createClient } from '@/lib/supabase/client'
+import { useSupabaseClient } from '@/lib/supabase/context'
 import { useQueryClient } from '@tanstack/react-query'
 
 // ---------------------------------------------------------------------------
@@ -159,6 +159,7 @@ interface PipelineEditorProps {
 }
 
 export function PipelineEditor({ pipeline, onSuccess, onCancel }: PipelineEditorProps) {
+  const supabase = useSupabaseClient()
   const queryClient = useQueryClient()
   const createPipeline = useCreatePipeline()
   const updatePipeline = useUpdatePipeline()
@@ -225,7 +226,6 @@ export function PipelineEditor({ pipeline, onSuccess, onCancel }: PipelineEditor
     setIsSaving(true)
 
     try {
-      const supabase = createClient()
       let pipelineId = pipeline?.id ?? ''
 
       // 1. Create or update pipeline

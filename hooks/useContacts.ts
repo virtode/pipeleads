@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { createClient } from '@/lib/supabase/client'
+import { useSupabaseClient } from '@/lib/supabase/context'
 import type { ContactFilters, ContactSortField } from '@/types'
 import type { InsertDto, UpdateDto } from '@/lib/supabase/types'
 
@@ -23,11 +23,11 @@ export function useContacts({
   filters = {},
   sort = { field: 'created_at', direction: 'desc' },
 }: UseContactsParams = {}) {
+  const supabase = useSupabaseClient()
+
   return useQuery({
     queryKey: ['contacts', page, filters, sort],
     queryFn: async () => {
-      const supabase = createClient()
-
       let query = supabase
         .from('contacts')
         .select('*', { count: 'exact' })
@@ -61,11 +61,12 @@ export function useContacts({
 }
 
 export function useContact(id: string | null) {
+  const supabase = useSupabaseClient()
+
   return useQuery({
     queryKey: ['contact', id],
     queryFn: async () => {
       if (!id) return null
-      const supabase = createClient()
 
       const { data, error } = await supabase
         .from('contacts')
@@ -92,10 +93,11 @@ export function useContact(id: string | null) {
 }
 
 export function useContactTags() {
+  const supabase = useSupabaseClient()
+
   return useQuery({
     queryKey: ['contact-tags'],
     queryFn: async () => {
-      const supabase = createClient()
       const { data, error } = await supabase
         .from('contacts')
         .select('tags')
@@ -114,11 +116,11 @@ export function useContactTags() {
 // ---------------------------------------------------------------------------
 
 export function useCreateContact() {
+  const supabase = useSupabaseClient()
   const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: async (input: Omit<InsertDto<'contacts'>, 'user_id'>) => {
-      const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
       const userId = user?.id ?? ''
 
@@ -145,12 +147,11 @@ export function useCreateContact() {
 }
 
 export function useUpdateContact() {
+  const supabase = useSupabaseClient()
   const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: UpdateDto<'contacts'> }) => {
-      const supabase = createClient()
-
       const { data: contact, error } = await supabase
         .from('contacts')
         .update(data)
@@ -176,11 +177,11 @@ export function useUpdateContact() {
 }
 
 export function useDeleteContact() {
+  const supabase = useSupabaseClient()
   const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const supabase = createClient()
       const { error } = await supabase.from('contacts').delete().eq('id', id)
       if (error) throw error
     },
@@ -198,11 +199,11 @@ export function useDeleteContact() {
 }
 
 export function useDeleteContacts() {
+  const supabase = useSupabaseClient()
   const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: async (ids: string[]) => {
-      const supabase = createClient()
       const { error } = await supabase.from('contacts').delete().in('id', ids)
       if (error) throw error
     },

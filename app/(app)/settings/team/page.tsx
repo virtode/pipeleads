@@ -20,7 +20,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { createClient } from '@/lib/supabase/client'
+import { useSupabaseClient } from '@/lib/supabase/context'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -72,6 +72,7 @@ function Initials({ email }: { email: string | null }) {
 
 export default function TeamPage() {
   const router = useRouter()
+  const supabase = useSupabaseClient()
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [currentRole, setCurrentRole] = useState<'manager' | 'member' | null>(null)
   const [team, setTeam] = useState<TeamMember[]>([])
@@ -92,11 +93,10 @@ export default function TeamPage() {
   // ---------------------------------------------------------------------------
 
   useEffect(() => {
-    const supabase = createClient()
     supabase.auth.getUser().then(({ data }) => {
       setCurrentUserId(data.user?.id ?? null)
     })
-  }, [])
+  }, [supabase])
 
   const loadTeam = useCallback(async () => {
     setLoading(true)

@@ -8,7 +8,7 @@ import {
   AlertCircle, Loader2, LogOut, Database,
   ArrowRight, Info,
 } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
+import { useSupabaseClient } from '@/lib/supabase/context'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -64,12 +64,12 @@ interface SyncReport {
 
 export default function SettingsPage() {
   const router = useRouter()
+  const supabase = useSupabaseClient()
   const [userEmail, setUserEmail] = useState<string | null>(null)
 
   useEffect(() => {
-    const supabase = createClient()
     supabase.auth.getUser().then(({ data }) => setUserEmail(data.user?.email ?? null))
-  }, [])
+  }, [supabase])
 
   // --- Notion config state ---
   const [token, setToken] = useState('')
@@ -237,7 +237,6 @@ export default function SettingsPage() {
   async function handleLogout() {
     setLogoutLoading(true)
     try {
-      const supabase = createClient()
       await supabase.auth.signOut()
       router.push('/login')
     } catch {
