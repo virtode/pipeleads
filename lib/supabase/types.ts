@@ -13,6 +13,7 @@ export interface Database {
         Row: {
           id: string
           user_id: string
+          tenant_id: string | null
           first_name: string
           last_name: string | null
           email: string[] | null
@@ -34,6 +35,7 @@ export interface Database {
         Insert: {
           id?: string
           user_id: string
+          tenant_id?: string | null
           first_name: string
           last_name?: string | null
           email?: string[] | null
@@ -55,6 +57,7 @@ export interface Database {
         Update: {
           id?: string
           user_id?: string
+          tenant_id?: string | null
           first_name?: string
           last_name?: string | null
           email?: string[] | null
@@ -86,6 +89,7 @@ export interface Database {
         Row: {
           id: string
           user_id: string
+          tenant_id: string | null
           name: string
           description: string | null
           created_at: string
@@ -93,6 +97,7 @@ export interface Database {
         Insert: {
           id?: string
           user_id: string
+          tenant_id?: string | null
           name: string
           description?: string | null
           created_at?: string
@@ -100,6 +105,7 @@ export interface Database {
         Update: {
           id?: string
           user_id?: string
+          tenant_id?: string | null
           name?: string
           description?: string | null
         }
@@ -117,6 +123,7 @@ export interface Database {
         Row: {
           id: string
           pipeline_id: string
+          tenant_id: string | null
           name: string
           color: string
           position: number
@@ -125,6 +132,7 @@ export interface Database {
         Insert: {
           id?: string
           pipeline_id: string
+          tenant_id?: string | null
           name: string
           color?: string
           position: number
@@ -133,6 +141,7 @@ export interface Database {
         Update: {
           id?: string
           pipeline_id?: string
+          tenant_id?: string | null
           name?: string
           color?: string
           position?: number
@@ -152,6 +161,7 @@ export interface Database {
           id: string
           contact_id: string
           pipeline_id: string
+          tenant_id: string | null
           stage_id: string | null
           value: number | null
           updated_at: string
@@ -160,6 +170,7 @@ export interface Database {
           id?: string
           contact_id: string
           pipeline_id: string
+          tenant_id?: string | null
           stage_id?: string | null
           value?: number | null
           updated_at?: string
@@ -168,6 +179,7 @@ export interface Database {
           id?: string
           contact_id?: string
           pipeline_id?: string
+          tenant_id?: string | null
           stage_id?: string | null
           value?: number | null
         }
@@ -200,6 +212,7 @@ export interface Database {
           id: string
           contact_id: string
           pipeline_id: string
+          tenant_id: string | null
           from_stage_id: string | null
           to_stage_id: string | null
           changed_at: string
@@ -208,6 +221,7 @@ export interface Database {
           id?: string
           contact_id: string
           pipeline_id: string
+          tenant_id?: string | null
           from_stage_id?: string | null
           to_stage_id?: string | null
           changed_at?: string
@@ -216,6 +230,7 @@ export interface Database {
           id?: string
           contact_id?: string
           pipeline_id?: string
+          tenant_id?: string | null
           from_stage_id?: string | null
           to_stage_id?: string | null
         }
@@ -254,6 +269,7 @@ export interface Database {
         Row: {
           id: string
           contact_id: string
+          tenant_id: string | null
           type: 'contact_profile' | 'company_news'
           content: string
           model: string | null
@@ -262,6 +278,7 @@ export interface Database {
         Insert: {
           id?: string
           contact_id: string
+          tenant_id?: string | null
           type: 'contact_profile' | 'company_news'
           content: string
           model?: string | null
@@ -270,6 +287,7 @@ export interface Database {
         Update: {
           id?: string
           contact_id?: string
+          tenant_id?: string | null
           type?: 'contact_profile' | 'company_news'
           content?: string
           model?: string | null
@@ -288,6 +306,7 @@ export interface Database {
         Row: {
           id: string
           contact_id: string
+          tenant_id: string | null
           name: string
           file_name: string
           file_path: string
@@ -300,6 +319,7 @@ export interface Database {
         Insert: {
           id?: string
           contact_id: string
+          tenant_id?: string | null
           name: string
           file_name: string
           file_path: string
@@ -312,6 +332,7 @@ export interface Database {
         Update: {
           id?: string
           contact_id?: string
+          tenant_id?: string | null
           name?: string
           file_name?: string
           file_path?: string
@@ -329,6 +350,29 @@ export interface Database {
             referencedColumns: ['id']
           }
         ]
+      }
+      tenant_users: {
+        Row: {
+          id: string
+          user_id: string
+          role: 'manager' | 'member'
+          invited_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          role: 'manager' | 'member'
+          invited_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          role?: 'manager' | 'member'
+          invited_by?: string | null
+        }
+        Relationships: []
       }
       notion_config: {
         Row: {
@@ -373,6 +417,14 @@ export interface Database {
       set_updated_at: {
         Args: Record<string, never>
         Returns: unknown
+      }
+      current_tenant_id: {
+        Args: Record<string, never>
+        Returns: string | null
+      }
+      set_config: {
+        Args: { setting: string; value: string; is_local: boolean }
+        Returns: string
       }
     }
     Enums: Record<string, never>

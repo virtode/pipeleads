@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { getTenantFromHeaders } from '@/lib/tenant/context'
 import {
   CONTACT_FILES_BUCKET,
   MAX_FILE_SIZE,
@@ -49,7 +50,7 @@ export async function GET(
   }
 
   // Génère les signed URLs via le client admin
-  const adminClient = await createAdminClient()
+  const adminClient = createAdminClient()
   const filesWithUrls = await Promise.all(
     (files ?? []).map(async (file) => {
       const { data: signed } = await adminClient.storage
@@ -79,6 +80,10 @@ export async function POST(
   if (!user) {
     return NextResponse.json({ data: null, error: 'Non authentifié' }, { status: 401 })
   }
+
+  // Récupère le tenantId depuis les headers middleware
+  const tenant = await getTenantFromHeaders()
+  const tenantId = tenant?.tenantId ?? null
 
   // Vérifie que le contact appartient à l'utilisateur (via RLS)
   const { data: contact, error: contactErr } = await supabase
@@ -126,12 +131,13 @@ export async function POST(
   // Crée le bucket si nécessaire
   await ensureContactFilesBucket()
 
-  // Chemin : contact-files/{contactId}/{uuid}_{filename}
+  // Chemin : {tenantId ou 'solo'}/{contactId}/{uuid}_{filename}
   const uuid = randomUUID()
   const safeFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
-  const filePath = `${contactId}/${uuid}_${safeFileName}`
+  const tenantPrefix = tenantId ?? 'solo'
+  const filePath = `${tenantPrefix}/${contactId}/${uuid}_${safeFileName}`
 
-  const adminClient = await createAdminClient()
+  const adminClient = createAdminClient()
 
   const arrayBuffer = await file.arrayBuffer()
   const { error: uploadErr } = await adminClient.storage
@@ -151,6 +157,7 @@ export async function POST(
     .from('contact_files')
     .insert({
       contact_id: contactId,
+      tenant_id: tenantId,
       name: displayName,
       file_name: file.name,
       file_path: filePath,

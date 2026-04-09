@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { streamText } from 'ai'
 import { anthropic } from '@ai-sdk/anthropic'
 import { createClient } from '@/lib/supabase/server'
+import { getTenantFromHeaders } from '@/lib/tenant/context'
 import {
   buildContactProfilePrompt,
   buildCompanyNewsPrompt,
@@ -43,6 +44,9 @@ export async function POST(request: NextRequest): Promise<Response> {
   if (!user) {
     return NextResponse.json({ data: null, error: 'Non authentifié' }, { status: 401 })
   }
+
+  const tenant = await getTenantFromHeaders()
+  const tenantId = tenant?.tenantId ?? null
 
   // 2. Parse body (useCompletion sends { prompt, ...body })
   let body: { contactId?: string; type?: string; prompt?: string }
@@ -110,6 +114,7 @@ export async function POST(request: NextRequest): Promise<Response> {
         .from('ai_enrichments')
         .insert({
           contact_id: contactId,
+          tenant_id: tenantId,
           type: enrichType,
           content: summary,
           model: ANTHROPIC_MODEL,

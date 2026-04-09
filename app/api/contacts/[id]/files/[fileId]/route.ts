@@ -34,7 +34,7 @@ export async function DELETE(
   }
 
   // Supprime le fichier du Storage
-  const adminClient = await createAdminClient()
+  const adminClient = createAdminClient()
   const { error: storageErr } = await adminClient.storage
     .from(CONTACT_FILES_BUCKET)
     .remove([file.file_path])

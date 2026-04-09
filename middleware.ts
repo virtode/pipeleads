@@ -11,16 +11,18 @@
  *   3. Si slug présent :
  *        - Interroge la table `tenants` du Supabase master via service role key.
  *        - Tenant inexistant ou is_active = false → redirect /tenant-not-found.
- *        - Tenant valide → injecte les headers x-tenant-* dans la requête.
- *   4. Rafraîchit la session Supabase (avec les credentials du bon projet tenant).
+ *        - Tenant valide → injecte x-tenant-id, x-tenant-slug, x-tenant-name.
+ *   4. Rafraîchit la session Supabase (instance unique partagée).
  *   5. Protège les routes non-auth (redirect /login si pas de session).
  *
  * Headers injectés (lisibles via `headers()` de next/headers) :
- *   x-tenant-id          UUID du tenant dans le master
- *   x-tenant-slug        slug du tenant
- *   x-tenant-name        nom de l'entreprise
- *   x-tenant-supabase-url   URL du projet Supabase tenant
- *   x-tenant-anon-key    Anon key du projet Supabase tenant
+ *   x-tenant-id     UUID du tenant dans le master (absent si domaine racine)
+ *   x-tenant-slug   slug du tenant
+ *   x-tenant-name   nom de l'entreprise
+ *
+ * Tous les clients Supabase (serveur et browser) utilisent les mêmes
+ * credentials (NEXT_PUBLIC_SUPABASE_URL / ANON_KEY). L'isolation est
+ * assurée par RLS via app.tenant_id dans chaque transaction.
  */
 
 import { createServerClient } from '@supabase/ssr'
@@ -28,8 +30,8 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 const ROOT_DOMAIN = process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? 'pipeleads.app'
-const MASTER_URL = process.env.MASTER_SUPABASE_URL
-const MASTER_KEY = process.env.MASTER_SUPABASE_SERVICE_KEY
+const MASTER_URL = process.env.MASTER_SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL
+const MASTER_KEY = process.env.MASTER_SUPABASE_SERVICE_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY
 
 const RESERVED_SUBDOMAINS = ['www', 'app', 'api', 'dev', 'admin', 'staging']
 
@@ -41,8 +43,6 @@ interface TenantRow {
   id: string
   slug: string
   name: string
-  supabase_url: string
-  supabase_anon_key: string
   is_active: boolean
 }
 
@@ -75,7 +75,7 @@ async function resolveTenant(slug: string): Promise<TenantRow | null> {
 
   try {
     const res = await fetch(
-      `${MASTER_URL}/rest/v1/tenants?slug=eq.${encodeURIComponent(slug)}&select=id,slug,name,supabase_url,supabase_anon_key,is_active&limit=1`,
+      `${MASTER_URL}/rest/v1/tenants?slug=eq.${encodeURIComponent(slug)}&select=id,slug,name,is_active&limit=1`,
       {
         headers: {
           apikey: MASTER_KEY,
@@ -113,8 +113,6 @@ export async function middleware(request: NextRequest) {
   }
 
   // ── Résolution du tenant ──────────────────────────────────────────────────
-  let tenantSupabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-  let tenantAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   let requestHeaders = new Headers(request.headers)
 
   if (slug) {
@@ -129,14 +127,9 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL('/tenant-not-found', request.url))
     }
 
-    tenantSupabaseUrl = tenant.supabase_url
-    tenantAnonKey = tenant.supabase_anon_key
-
     requestHeaders.set('x-tenant-id', tenant.id)
     requestHeaders.set('x-tenant-slug', tenant.slug)
     requestHeaders.set('x-tenant-name', tenant.name)
-    requestHeaders.set('x-tenant-supabase-url', tenant.supabase_url)
-    requestHeaders.set('x-tenant-anon-key', tenant.supabase_anon_key)
   }
 
   // ── Rafraîchissement de session Supabase ──────────────────────────────────
@@ -145,8 +138,8 @@ export async function middleware(request: NextRequest) {
   })
 
   const supabase = createServerClient(
-    tenantSupabaseUrl,
-    tenantAnonKey,
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
         getAll() {

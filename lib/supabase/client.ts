@@ -3,21 +3,16 @@
 import { createBrowserClient } from '@supabase/ssr'
 import type { Database } from './types'
 
-interface ClientOptions {
-  url?: string
-  anonKey?: string
-}
-
 /**
  * Crée un client Supabase côté browser.
  *
- * En mode multi-tenant, passer { url, anonKey } du tenant courant
- * (récupérés via useTenant()). Sans paramètres → fallback sur les
- * variables d'environnement (dev local / mode solo).
+ * Architecture mono-instance : tous les tenants utilisent les mêmes
+ * credentials (NEXT_PUBLIC_SUPABASE_URL / ANON_KEY).
+ * L'isolation est assurée par RLS via tenant_id côté serveur.
  */
-export function createClient(options?: ClientOptions) {
-  const url = options?.url ?? process.env.NEXT_PUBLIC_SUPABASE_URL!
-  const key = options?.anonKey ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-
-  return createBrowserClient<Database>(url, key)
+export function createClient() {
+  return createBrowserClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
 }

@@ -28,27 +28,25 @@ export async function GET(request: NextRequest): Promise<Response> {
     return NextResponse.redirect(new URL('/login?error=true', baseUrl))
   }
 
-  // Le middleware injecte les credentials du bon projet Supabase tenant.
-  // Si absent (domaine racine ou dev sans tenant), on retombe sur les vars d'env globales.
-  const tenantUrl =
-    request.headers.get('x-tenant-supabase-url') ?? process.env.NEXT_PUBLIC_SUPABASE_URL!
-  const tenantAnonKey =
-    request.headers.get('x-tenant-anon-key') ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-
   const cookieStore = await cookies()
 
-  const supabase = createServerClient(tenantUrl, tenantAnonKey, {
-    cookies: {
-      getAll() {
-        return cookieStore.getAll()
+  // Architecture mono-instance : tous les tenants utilisent les mêmes credentials.
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll()
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) =>
+            cookieStore.set(name, value, options)
+          )
+        },
       },
-      setAll(cookiesToSet) {
-        cookiesToSet.forEach(({ name, value, options }) =>
-          cookieStore.set(name, value, options)
-        )
-      },
-    },
-  })
+    }
+  )
 
   const { error } = await supabase.auth.exchangeCodeForSession(code)
 

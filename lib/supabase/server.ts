@@ -5,42 +5,47 @@ import type { Database } from './types'
 /**
  * Crée un client Supabase côté serveur.
  *
- * En mode multi-tenant, le middleware injecte les headers :
- *   x-tenant-supabase-url   → URL du projet Supabase du tenant
- *   x-tenant-anon-key       → Anon key du tenant
+ * Architecture mono-instance : tous les tenants utilisent le même
+ * Supabase (NEXT_PUBLIC_SUPABASE_URL / ANON_KEY).
+ * L'isolation par tenant est assurée par RLS via app.tenant_id.
  *
- * Sans ces headers (dev local / mode solo) → fallback variables d'env.
+ * Si x-tenant-id est présent dans les headers (injecté par le middleware),
+ * on configure la session PostgreSQL avec set_config('app.tenant_id', …)
+ * afin que les policies RLS puissent filtrer par tenant.
  */
 export async function createClient() {
   const cookieStore = await cookies()
   const headerStore = await headers()
+  const tenantId = headerStore.get('x-tenant-id')
 
-  const url =
-    headerStore.get('x-tenant-supabase-url') ??
-    process.env.NEXT_PUBLIC_SUPABASE_URL!
+  const supabase = createServerClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll()
+        },
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              cookieStore.set(name, value, options)
+            })
+          } catch {
+            // Server Component — cookies set via middleware
+          }
+        },
+      },
+    }
+  )
 
-  const anonKey =
-    headerStore.get('x-tenant-anon-key') ??
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-
-  if (process.env.NODE_ENV === 'development') {
-    console.log('[supabase/server] URL utilisée :', url)
+  if (tenantId) {
+    await supabase.rpc('set_config', {
+      setting: 'app.tenant_id',
+      value: tenantId,
+      is_local: true,
+    })
   }
 
-  return createServerClient<Database>(url, anonKey, {
-    cookies: {
-      getAll() {
-        return cookieStore.getAll()
-      },
-      setAll(cookiesToSet) {
-        try {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            cookieStore.set(name, value, options)
-          })
-        } catch {
-          // Server Component — cookies set via middleware
-        }
-      },
-    },
-  })
+  return supabase
 }

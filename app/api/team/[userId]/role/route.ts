@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { requireManager } from '@/lib/tenant/roles'
-import { getTenantFromHeaders } from '@/lib/tenant/context'
-import { createClient as createSupabaseAdmin } from '@supabase/supabase-js'
 import { z } from 'zod'
 
 const RoleSchema = z.object({
@@ -51,17 +50,7 @@ export async function PATCH(
     )
   }
 
-  const tenant = await getTenantFromHeaders()
-  if (!tenant) {
-    return NextResponse.json({ error: 'Tenant non résolu' }, { status: 400 })
-  }
-
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!serviceKey) {
-    return NextResponse.json({ error: 'Configuration serveur manquante' }, { status: 500 })
-  }
-
-  const adminClient = createSupabaseAdmin(tenant.supabaseUrl, serviceKey)
+  const adminClient = createAdminClient()
 
   const { error } = await adminClient
     .from('tenant_users')

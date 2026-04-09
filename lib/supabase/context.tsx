@@ -5,6 +5,7 @@ import {
   useContext,
   useEffect,
   useState,
+  useMemo,
   type ReactNode,
 } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
@@ -13,69 +14,76 @@ import type { Database } from './types'
 
 type TypedSupabaseClient = SupabaseClient<Database>
 
-const SupabaseContext = createContext<TypedSupabaseClient | null>(null)
+interface SupabaseContextValue {
+  client: TypedSupabaseClient
+  tenantId: string | null
+}
+
+const SupabaseContext = createContext<SupabaseContextValue | null>(null)
 
 interface SupabaseProviderProps {
   children: ReactNode
 }
 
 /**
- * Fournit un client Supabase browser initialisé avec les credentials
- * du tenant courant (récupérés via GET /api/tenant/config au montage).
+ * Fournit un client Supabase browser et le tenantId courant.
  *
- * Initialisation synchrone avec les variables d'env par défaut pour éviter
- * tout flash / état de chargement. Si le tenant a des credentials différents,
- * le client est recréé après le premier fetch.
+ * Architecture mono-instance : le client utilise toujours les variables
+ * d'env (NEXT_PUBLIC_SUPABASE_URL / ANON_KEY) — plus besoin de recréer
+ * le client avec des credentials différents par tenant.
+ *
+ * Le tenantId est récupéré depuis /api/tenant/config au montage,
+ * puis exposé via useTenantId() pour que les hooks puissent l'inclure
+ * dans leurs mutations (INSERT).
  */
 export function SupabaseProvider({ children }: SupabaseProviderProps) {
-  const [client, setClient] = useState<TypedSupabaseClient>(() =>
-    createBrowserClient<Database>(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    )
+  const [tenantId, setTenantId] = useState<string | null>(null)
+
+  const client = useMemo(
+    () =>
+      createBrowserClient<Database>(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      ),
+    []
   )
 
   useEffect(() => {
-    async function initTenantClient() {
-      try {
-        const res = await fetch('/api/tenant/config')
-        if (!res.ok) return
-
-        const { url, anonKey } = (await res.json()) as {
-          url: string
-          anonKey: string
-        }
-
-        // Recréer le client uniquement si les credentials diffèrent des env vars
-        if (
-          url !== process.env.NEXT_PUBLIC_SUPABASE_URL ||
-          anonKey !== process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-        ) {
-          setClient(createBrowserClient<Database>(url, anonKey))
-        }
-      } catch {
-        // Conserver le client par défaut en cas d'erreur réseau
-      }
-    }
-
-    initTenantClient()
+    fetch('/api/tenant/config')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: { tenantId: string } | null) => {
+        if (data?.tenantId) setTenantId(data.tenantId)
+      })
+      .catch(() => {})
   }, [])
 
   return (
-    <SupabaseContext.Provider value={client}>
+    <SupabaseContext.Provider value={{ client, tenantId }}>
       {children}
     </SupabaseContext.Provider>
   )
 }
 
+function useSupabaseContext(): SupabaseContextValue {
+  const ctx = useContext(SupabaseContext)
+  if (!ctx) {
+    throw new Error('useSupabaseClient / useTenantId doivent être utilisés dans un SupabaseProvider')
+  }
+  return ctx
+}
+
 /**
- * Hook pour accéder au client Supabase browser du tenant courant.
+ * Hook pour accéder au client Supabase browser.
  * Doit être utilisé à l'intérieur d'un SupabaseProvider.
  */
 export function useSupabaseClient(): TypedSupabaseClient {
-  const client = useContext(SupabaseContext)
-  if (!client) {
-    throw new Error('useSupabaseClient doit être utilisé dans un SupabaseProvider')
-  }
-  return client
+  return useSupabaseContext().client
+}
+
+/**
+ * Hook pour accéder au tenantId courant (null = compte principal / solo).
+ * Doit être utilisé à l'intérieur d'un SupabaseProvider.
+ */
+export function useTenantId(): string | null {
+  return useSupabaseContext().tenantId
 }

@@ -25,7 +25,7 @@ export const ALLOWED_MIME_TYPES = new Set([
  * Taille max : 20 MB par fichier.
  */
 export async function ensureContactFilesBucket(): Promise<void> {
-  const supabase = await createAdminClient()
+  const supabase = createAdminClient()
 
   const { data: buckets } = await supabase.storage.listBuckets()
   const exists = buckets?.some((b) => b.name === CONTACT_FILES_BUCKET)

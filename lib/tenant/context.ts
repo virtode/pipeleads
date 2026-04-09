@@ -4,8 +4,6 @@ export interface TenantContext {
   tenantId: string
   slug: string
   name: string
-  supabaseUrl: string
-  anonKey: string
 }
 
 /**
@@ -20,16 +18,12 @@ export async function getTenantFromHeaders(): Promise<TenantContext | null> {
   const tenantId = headerStore.get('x-tenant-id')
   const slug = headerStore.get('x-tenant-slug')
   const name = headerStore.get('x-tenant-name')
-  const supabaseUrl = headerStore.get('x-tenant-supabase-url')
-  const anonKey = headerStore.get('x-tenant-anon-key')
 
-  if (!tenantId || !slug || !supabaseUrl || !anonKey) return null
+  if (!tenantId || !slug) return null
 
   return {
     tenantId,
     slug,
     name: name ?? slug,
-    supabaseUrl,
-    anonKey,
   }
 }

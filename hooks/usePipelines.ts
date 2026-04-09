@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { useSupabaseClient } from '@/lib/supabase/context'
+import { useSupabaseClient, useTenantId } from '@/lib/supabase/context'
 import type { InsertDto, UpdateDto } from '@/lib/supabase/types'
 import type { Contact, Pipeline, PipelineStage } from '@/types'
 
@@ -142,14 +142,15 @@ export function useKanban(pipelineId: string | null) {
 
 export function useCreatePipeline() {
   const supabase = useSupabaseClient()
+  const tenantId = useTenantId()
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async (input: Omit<InsertDto<'pipelines'>, 'user_id'>) => {
+    mutationFn: async (input: Omit<InsertDto<'pipelines'>, 'user_id' | 'tenant_id'>) => {
       const { data: { user } } = await supabase.auth.getUser()
       const { data, error } = await supabase
         .from('pipelines')
-        .insert({ ...input, user_id: user?.id ?? '' })
+        .insert({ ...input, user_id: user?.id ?? '', tenant_id: tenantId })
         .select()
         .single()
       if (error) throw error
@@ -223,13 +224,14 @@ export function useDeletePipeline() {
 
 export function useCreateStage() {
   const supabase = useSupabaseClient()
+  const tenantId = useTenantId()
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async (input: InsertDto<'pipeline_stages'>) => {
+    mutationFn: async (input: Omit<InsertDto<'pipeline_stages'>, 'tenant_id'>) => {
       const { data, error } = await supabase
         .from('pipeline_stages')
-        .insert(input)
+        .insert({ ...input, tenant_id: tenantId })
         .select()
         .single()
       if (error) throw error
@@ -309,6 +311,7 @@ export function useReorderStages() {
 
 export function useAssignContactToPipeline() {
   const supabase = useSupabaseClient()
+  const tenantId = useTenantId()
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -324,7 +327,7 @@ export function useAssignContactToPipeline() {
       const { data, error } = await supabase
         .from('contact_pipeline')
         .upsert(
-          { contact_id: contactId, pipeline_id: pipelineId, stage_id: stageId },
+          { contact_id: contactId, pipeline_id: pipelineId, stage_id: stageId, tenant_id: tenantId },
           { onConflict: 'contact_id,pipeline_id' }
         )
         .select()
@@ -344,6 +347,7 @@ export function useAssignContactToPipeline() {
 
 export function useMoveContactStage() {
   const supabase = useSupabaseClient()
+  const tenantId = useTenantId()
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -376,6 +380,7 @@ export function useMoveContactStage() {
           pipeline_id: pipelineId,
           from_stage_id: fromStageId,
           to_stage_id: toStageId,
+          tenant_id: tenantId,
         })
 
       if (histErr) throw histErr

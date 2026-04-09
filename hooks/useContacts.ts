@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { useSupabaseClient } from '@/lib/supabase/context'
+import { useSupabaseClient, useTenantId } from '@/lib/supabase/context'
 import type { ContactFilters, ContactSortField } from '@/types'
 import type { InsertDto, UpdateDto } from '@/lib/supabase/types'
 
@@ -117,16 +117,17 @@ export function useContactTags() {
 
 export function useCreateContact() {
   const supabase = useSupabaseClient()
+  const tenantId = useTenantId()
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async (input: Omit<InsertDto<'contacts'>, 'user_id'>) => {
+    mutationFn: async (input: Omit<InsertDto<'contacts'>, 'user_id' | 'tenant_id'>) => {
       const { data: { user } } = await supabase.auth.getUser()
       const userId = user?.id ?? ''
 
       const { data, error } = await supabase
         .from('contacts')
-        .insert({ ...input, user_id: userId })
+        .insert({ ...input, user_id: userId, tenant_id: tenantId })
         .select()
         .single()
 
