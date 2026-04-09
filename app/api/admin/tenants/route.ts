@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createMasterAdminClient } from '@/lib/admin/auth'
 import { z } from 'zod'
+import { sendEmail, buildInviteEmailHtml } from '@/lib/email/send'
 
 const CreateTenantSchema = z.object({
   slug: z
@@ -65,6 +66,7 @@ export async function POST(req: NextRequest) {
 
   // Associer le manager si email fourni
   let inviteLink: string | null = null
+  let emailSent = false
 
   if (managerEmail) {
     try {
@@ -124,7 +126,23 @@ export async function POST(req: NextRequest) {
       console.error('[admin/tenants] manager setup failed:', err)
       // Non-bloquant — le tenant est créé, le manager peut être invité plus tard
     }
+
+    // Envoyer l'email d'invitation (non-bloquant)
+    if (inviteLink) {
+      try {
+        await sendEmail({
+          to: managerEmail,
+          subject: `Vous êtes invité à rejoindre ${name} sur PipeLeads`,
+          html: buildInviteEmailHtml({ tenantName: name, inviteLink }),
+        })
+        emailSent = true
+        console.log('[admin/tenants] invite email sent to:', managerEmail)
+      } catch (emailErr) {
+        console.error('[admin/tenants] invite email failed:', emailErr)
+        // Non-bloquant — le lien reste disponible pour un envoi manuel
+      }
+    }
   }
 
-  return NextResponse.json({ data: { id: tenant.id, slug, inviteLink } })
+  return NextResponse.json({ data: { id: tenant.id, slug, inviteLink, emailSent } })
 }

@@ -83,6 +83,7 @@ export default function NewTenantPage() {
   const [inviteEmail, setInviteEmail] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
   const [initSchema, setInitSchema] = useState(true)
+  const [emailSent, setEmailSent] = useState<boolean | null>(null)
 
   const {
     register,
@@ -144,6 +145,7 @@ export default function NewTenantPage() {
       if (json.data?.inviteLink) {
         setInviteLink(json.data.inviteLink)
         setInviteEmail(data.managerEmail ?? null)
+        setEmailSent(json.data.emailSent ?? false)
       }
 
       if (initSchema) {
@@ -237,32 +239,79 @@ export default function NewTenantPage() {
         <StatusCard
           icon={<CheckCircle2 className="h-6 w-6 text-green-500" />}
           title="Tenant créé avec succès"
-          description="Le compte manager a été créé. Envoyez le lien d'invitation ci-dessous."
+          description={
+            emailSent
+              ? `Email d'invitation envoyé à ${inviteEmail}`
+              : "Le compte manager a été créé."
+          }
         />
 
-        <div className="rounded-lg border bg-muted/40 p-4 space-y-2">
-          <p className="text-sm font-medium">Lien d&apos;invitation manager</p>
-          <div className="flex items-center gap-2">
-            <code className="flex-1 rounded bg-zinc-100 dark:bg-zinc-800 px-3 py-2 text-xs break-all font-mono">
-              {inviteLink}
-            </code>
-            <Button
-              size="sm"
-              variant="outline"
-              className="shrink-0 gap-1.5"
-              onClick={handleCopyLink}
-            >
-              {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-              {copied ? 'Copié' : 'Copier'}
-            </Button>
-          </div>
-          {inviteEmail && (
-            <p className="text-xs text-zinc-500">
-              À envoyer manuellement à{' '}
-              <span className="font-medium">{inviteEmail}</span>
-            </p>
-          )}
-        </div>
+        {emailSent ? (
+          <>
+            <div className="flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950/30 px-4 py-3">
+              <CheckCircle2 className="h-4 w-4 shrink-0 text-green-600 dark:text-green-400" />
+              <p className="text-sm text-green-700 dark:text-green-300">
+                Email d&apos;invitation envoyé à{' '}
+                <span className="font-medium">{inviteEmail}</span>
+              </p>
+            </div>
+
+            <details className="rounded-lg border bg-muted/40">
+              <summary className="cursor-pointer px-4 py-3 text-sm text-zinc-500 select-none">
+                Lien de secours (si l&apos;email n&apos;arrive pas)
+              </summary>
+              <div className="px-4 pb-4 pt-2 space-y-2">
+                <div className="flex items-center gap-2">
+                  <code className="flex-1 rounded bg-zinc-100 dark:bg-zinc-800 px-3 py-2 text-xs break-all font-mono">
+                    {inviteLink}
+                  </code>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="shrink-0 gap-1.5"
+                    onClick={handleCopyLink}
+                  >
+                    {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                    {copied ? 'Copié' : 'Copier'}
+                  </Button>
+                </div>
+              </div>
+            </details>
+          </>
+        ) : (
+          <>
+            <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 px-4 py-3">
+              <AlertCircle className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+              <p className="text-sm text-amber-700 dark:text-amber-300">
+                L&apos;envoi de l&apos;email a échoué. Utilisez le lien ci-dessous pour inviter manuellement le manager.
+              </p>
+            </div>
+
+            <div className="rounded-lg border bg-muted/40 p-4 space-y-2">
+              <p className="text-sm font-medium">Lien d&apos;invitation manager</p>
+              <div className="flex items-center gap-2">
+                <code className="flex-1 rounded bg-zinc-100 dark:bg-zinc-800 px-3 py-2 text-xs break-all font-mono">
+                  {inviteLink}
+                </code>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="shrink-0 gap-1.5"
+                  onClick={handleCopyLink}
+                >
+                  {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                  {copied ? 'Copié' : 'Copier'}
+                </Button>
+              </div>
+              {inviteEmail && (
+                <p className="text-xs text-zinc-500">
+                  À envoyer manuellement à{' '}
+                  <span className="font-medium">{inviteEmail}</span>
+                </p>
+              )}
+            </div>
+          </>
+        )}
 
         <Button onClick={() => router.push(`/admin/tenants/${createdSlug}`)}>
           Aller au tenant
