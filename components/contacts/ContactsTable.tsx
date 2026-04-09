@@ -62,8 +62,13 @@ function buildColumns(onRowClick: (id: string) => void) {
     }),
 
     col.accessor((row) => `${row.first_name} ${row.last_name ?? ''}`.trim(), {
-      id: 'first_name',
+      id: 'last_name',
       header: 'Nom',
+      sortingFn: (rowA, rowB) => {
+        const a = (rowA.original.last_name ?? rowA.original.first_name ?? '').toLowerCase()
+        const b = (rowB.original.last_name ?? rowB.original.first_name ?? '').toLowerCase()
+        return a.localeCompare(b, 'fr')
+      },
       cell: ({ row }) => {
         const c = row.original
         return (
@@ -190,7 +195,7 @@ export function ContactsTable({
 }: ContactsTableProps) {
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
   const [sorting, setSorting] = useState<SortingState>([
-    { id: sort.field, desc: sort.direction === 'desc' },
+    { id: sort.field === 'first_name' ? 'last_name' : sort.field, desc: sort.direction === 'desc' },
   ])
 
   const columns = buildColumns(onRowClick)
@@ -204,7 +209,7 @@ export function ContactsTable({
       setSorting(next)
       if (next.length > 0) {
         const validFields: ContactSortField['field'][] = [
-          'first_name', 'last_name', 'company', 'created_at', 'updated_at',
+          'last_name', 'company', 'created_at', 'updated_at',
         ]
         const field = next[0].id as ContactSortField['field']
         if (validFields.includes(field)) {
