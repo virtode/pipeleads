@@ -30,16 +30,10 @@ async function getTenantId(slug: string): Promise<string | null> {
   return data?.id ?? null
 }
 
-// Resolve tenant_id → user_id (first manager)
-async function getUserIdForTenant(tenantId: string | null): Promise<string | null> {
-  const query = supabase.from('tenant_users').select('user_id').eq('role', 'manager')
-  if (tenantId) {
-    query.eq('tenant_id', tenantId)
-  } else {
-    query.is('tenant_id', null)
-  }
-  const { data } = await query.limit(1).single()
-  return data?.user_id ?? null
+// Resolve user email → user_id
+async function getUserIdByEmail(email: string): Promise<string | null> {
+  const { data: { users } } = await supabase.auth.admin.listUsers()
+  return users.find((u) => u.email === email)?.id ?? null
 }
 
 // Resolve tenant_id → tenant slug
@@ -156,15 +150,17 @@ async function handleVcfChange(filePath: string): Promise<void> {
       return
     }
 
-    // Extract tenantSlug from path: .../collections/{email}/{slug}-addressbook/{uid}.vcf
+    // Extract userEmail and tenantSlug from path:
+    // .../collections/{email}/{slug}-addressbook/{uid}.vcf
     const parts = filePath.replace(COLLECTIONS_PATH + path.sep, '').split(path.sep)
+    const userEmail = parts[0] ?? ''
     const tenantSlug = (parts[1] ?? 'master-addressbook').replace(/-addressbook$/, '')
 
     const tenantId = await getTenantId(tenantSlug)
-    const userId = await getUserIdForTenant(tenantId)
+    const userId = await getUserIdByEmail(userEmail)
 
     if (!userId) {
-      console.warn(`[radicale→supabase] No user for tenant ${tenantSlug}, skipping`)
+      console.warn(`[radicale→supabase] No user for email ${userEmail}, skipping`)
       return
     }
 

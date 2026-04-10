@@ -127,8 +127,8 @@ export async function initialSync(): Promise<void> {
       // Ensure htpasswd entry and collection exist
       await provisionTenantUser(userEmail, tu.carddav_password, tenantSlug)
 
-      // Fetch and write all contacts for this tenant
-      const synced = await writeTenantContacts(userEmail, tenantSlug, tu.tenant_id)
+      // Fetch and write contacts for this specific user
+      const synced = await writeTenantContacts(userEmail, tenantSlug, tu.tenant_id, tu.user_id)
       totalSynced += synced
       console.log(`[initialSync] Tenant ${tenantSlug}: synced ${synced} contacts`)
     } catch (err) {
@@ -140,15 +140,16 @@ export async function initialSync(): Promise<void> {
 }
 
 /**
- * Fetch all contacts for a given tenant and write them as VCF files.
+ * Fetch contacts for a specific user within a tenant and write them as VCF files.
  * Returns the number of contacts written.
  */
 async function writeTenantContacts(
   userEmail: string,
   tenantSlug: string,
-  tenantId: string | null
+  tenantId: string | null,
+  userId: string
 ): Promise<number> {
-  const baseQuery = supabase.from('contacts').select('*')
+  const baseQuery = supabase.from('contacts').select('*').eq('user_id', userId)
   const query = tenantId ? baseQuery.eq('tenant_id', tenantId) : baseQuery.is('tenant_id', null)
 
   const { data: contacts, error } = await query
@@ -202,7 +203,7 @@ export async function syncTenant(tenantSlug: string): Promise<{ synced: number; 
 
     try {
       await provisionTenantUser(userEmail, tu.carddav_password, tenantSlug)
-      const count = await writeTenantContacts(userEmail, tenantSlug, tenant.id)
+      const count = await writeTenantContacts(userEmail, tenantSlug, tenant.id, tu.user_id)
       synced += count
     } catch (err) {
       console.error(`[syncTenant] Error for ${tenantSlug}/${userEmail}:`, err)
