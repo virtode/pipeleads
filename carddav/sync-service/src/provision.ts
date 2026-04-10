@@ -3,6 +3,7 @@ import path from 'path'
 import bcrypt from 'bcryptjs'
 import { supabase } from './supabase'
 import { contactToVCard, type Contact } from './vcard'
+import { generateCarddavPassword } from './password'
 
 const DATA_PATH = process.env.CARDDAV_DATA_PATH ?? '/data'
 const HTPASSWD_FILE = path.join(DATA_PATH, 'users')
@@ -112,20 +113,32 @@ export async function initialSync(): Promise<void> {
   for (const tu of tenantUsers ?? []) {
     const tenantSlug = tu.tenant_id ? (tenantMap.get(tu.tenant_id) ?? 'master') : 'master'
 
-    if (!tu.carddav_password) {
-      console.log(`[initialSync] Tenant ${tenantSlug} skipped — no CardDAV password set`)
-      continue
-    }
-
     const userEmail = userEmailMap.get(tu.user_id)
     if (!userEmail) {
       console.warn(`[initialSync] No email for user ${tu.user_id}, skipping`)
       continue
     }
 
+    let carddavPassword = tu.carddav_password
+    if (!carddavPassword) {
+      // Auto-generate and persist the password so future restarts don't re-provision
+      try {
+        carddavPassword = generateCarddavPassword(userEmail)
+        await supabase
+          .from('tenant_users')
+          .update({ carddav_password: carddavPassword })
+          .eq('user_id', tu.user_id)
+          .eq('tenant_id', tu.tenant_id)
+        console.log(`[initialSync] Auto-generated CardDAV password for ${userEmail} in ${tenantSlug}`)
+      } catch (genErr) {
+        console.error(`[initialSync] Failed to generate password for ${userEmail}:`, genErr)
+        continue
+      }
+    }
+
     try {
       // Ensure htpasswd entry and collection exist
-      await provisionTenantUser(userEmail, tu.carddav_password, tenantSlug)
+      await provisionTenantUser(userEmail, carddavPassword, tenantSlug)
 
       // Fetch and write contacts for this specific user
       const synced = await writeTenantContacts(userEmail, tenantSlug, tu.tenant_id, tu.user_id)

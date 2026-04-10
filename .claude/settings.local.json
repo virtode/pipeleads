@@ -38,7 +38,8 @@
       "WebFetch(domain:raw.githubusercontent.com)",
       "WebFetch(domain:www.supascale.app)",
       "Bash(grep -E \"\\\\.\\(ts|tsx\\)$\")",
-      "Bash(scp:*)"
+      "Bash(scp:*)",
+      "Bash(grep -v \"^$\")"
     ]
   }
 }

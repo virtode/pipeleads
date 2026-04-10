@@ -9,6 +9,7 @@ import { TenantToggleButton } from '@/components/admin/TenantToggleButton'
 import { TenantInviteManagerButton } from '@/components/admin/TenantInviteManagerButton'
 import { TenantDeleteButton } from '@/components/admin/TenantDeleteButton'
 import { CardDavProvision } from '@/components/admin/CardDavProvision'
+import { generateCarddavPassword } from '@/lib/carddav/password'
 
 interface Tenant {
   id: string
@@ -29,11 +30,18 @@ interface TenantUser {
   created_at: string
 }
 
+interface CardDavConfig {
+  server: string
+  username: string
+  password: string
+  path: string
+}
+
 interface CardDavUser {
   email: string
   role: string
   userId: string
-  hasCardDav: boolean
+  config: CardDavConfig | null
 }
 
 interface Props {
@@ -68,14 +76,36 @@ export default async function TenantDetailPage({ params }: Props) {
       } = await master.auth.admin.listUsers()
       const authMap = new Map(authUsers.map((u) => [u.id, u.email]))
 
+      const carddavHost = process.env.CARDDAV_HOST ?? 'https://carddav.pipeleads.app'
+
       cardDavUsers = tenantUsersData
         .filter((tu) => authMap.has(tu.user_id))
-        .map((tu) => ({
-          userId: tu.user_id,
-          email: authMap.get(tu.user_id) ?? '',
-          role: tu.role as string,
-          hasCardDav: !!(tu as { carddav_password?: string | null }).carddav_password,
-        }))
+        .map((tu) => {
+          const email = authMap.get(tu.user_id) ?? ''
+          const hasPassword = !!(tu as { carddav_password?: string | null }).carddav_password
+
+          let config: CardDavConfig | null = null
+          if (hasPassword && email) {
+            try {
+              const password = generateCarddavPassword(email)
+              config = {
+                server: carddavHost,
+                username: email,
+                password,
+                path: `/${email}/${t.slug}-addressbook/`,
+              }
+            } catch {
+              // CARDDAV_PASSWORD_SECRET not set — config unavailable
+            }
+          }
+
+          return {
+            userId: tu.user_id,
+            email,
+            role: tu.role as string,
+            config,
+          }
+        })
     }
   } catch {
     // Pas encore d'utilisateurs CardDAV pour ce tenant
@@ -141,7 +171,6 @@ export default async function TenantDetailPage({ params }: Props) {
       {/* CardDAV */}
       <div className="rounded-lg border p-4">
         <CardDavProvision
-          tenantSlug={t.slug}
           tenantName={t.name}
           users={cardDavUsers}
         />

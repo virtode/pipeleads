@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createMasterAdminClient } from '@/lib/admin/auth'
 import { createClient as createSupabaseAdmin } from '@supabase/supabase-js'
 import { z } from 'zod'
+import { autoProvisionCardDav } from '@/lib/carddav/provision'
 
 const InviteManagerSchema = z.object({
   email: z.string().email('Email invalide'),
@@ -31,7 +32,7 @@ export async function POST(
 
   const { data: tenant } = await master
     .from('tenants')
-    .select('supabase_url, supabase_service_role_key')
+    .select('id, supabase_url, supabase_service_role_key')
     .eq('slug', slug)
     .single()
 
@@ -53,6 +54,7 @@ export async function POST(
     )
   }
 
+  // Insert into tenant's own tenant_users
   const { error: tuError } = await tenantAdmin.from('tenant_users').insert({
     user_id: invited.user.id,
     role: 'manager',
@@ -60,6 +62,54 @@ export async function POST(
 
   if (tuError) {
     console.error('[invite-manager] tenant_users insert error:', tuError)
+  }
+
+  // Also ensure the user exists in master auth and upsert into master tenant_users
+  // so the CardDAV sync-service can provision them.
+  try {
+    const { data: masterUsersData } = await master.auth.admin.listUsers()
+    let masterUserId: string | null = null
+
+    const existingMasterUser = masterUsersData?.users.find((u) => u.email === email)
+    if (existingMasterUser) {
+      masterUserId = existingMasterUser.id
+    } else {
+      const { data: newMasterUser, error: createErr } = await master.auth.admin.createUser({
+        email,
+        email_confirm: true,
+      })
+      if (createErr || !newMasterUser?.user) {
+        console.error('[invite-manager] create master user error:', createErr)
+      } else {
+        masterUserId = newMasterUser.user.id
+      }
+    }
+
+    if (masterUserId) {
+      const { data: masterTu, error: masterTuError } = await master
+        .from('tenant_users')
+        .upsert(
+          { user_id: masterUserId, tenant_id: tenant.id, role: 'manager' },
+          { onConflict: 'user_id,tenant_id' }
+        )
+        .select('id')
+        .single()
+
+      if (masterTuError) {
+        console.error('[invite-manager] master tenant_users upsert error:', masterTuError)
+      } else if (masterTu) {
+        // Auto-provision CardDAV (non-bloquant)
+        const carddavPassword = await autoProvisionCardDav(email, slug)
+        if (carddavPassword) {
+          await master.from('tenant_users')
+            .update({ carddav_password: carddavPassword })
+            .eq('id', masterTu.id)
+        }
+      }
+    }
+  } catch (err) {
+    console.error('[invite-manager] master provisioning failed:', err)
+    // Non-bloquant — l'invitation a réussi
   }
 
   return NextResponse.json({ data: { email, userId: invited.user.id } })

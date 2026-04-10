@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createMasterAdminClient } from '@/lib/admin/auth'
 import { z } from 'zod'
 import { sendEmail, buildInviteEmailHtml } from '@/lib/email/send'
+import { autoProvisionCardDav } from '@/lib/carddav/provision'
 
 const CreateTenantSchema = z.object({
   slug: z
@@ -76,16 +77,24 @@ export async function POST(req: NextRequest) {
 
       if (existingManager) {
         // Utilisateur déjà existant → upsert dans tenant_users avec le tenant_id
-        const { error: upsertError } = await master.from('tenant_users').upsert(
+        const { data: upsertedTu, error: upsertError } = await master.from('tenant_users').upsert(
           {
             user_id: existingManager.id,
             tenant_id: tenant.id,
             role: 'manager',
           },
           { onConflict: 'user_id,tenant_id' }
-        )
+        ).select('id').single()
         if (upsertError) {
           console.error('[admin/tenants] upsert tenant_users error:', upsertError)
+        } else {
+          // Auto-provision CardDAV (non-bloquant)
+          const carddavPassword = await autoProvisionCardDav(managerEmail, slug)
+          if (carddavPassword && upsertedTu) {
+            await master.from('tenant_users')
+              .update({ carddav_password: carddavPassword })
+              .eq('id', upsertedTu.id)
+          }
         }
       } else {
         // Utilisateur inexistant → créer le compte et insérer dans tenant_users
@@ -97,13 +106,21 @@ export async function POST(req: NextRequest) {
         if (createError || !newUser?.user) {
           console.error('[admin/tenants] create manager error:', createError)
         } else {
-          const { error: insertError } = await master.from('tenant_users').insert({
+          const { data: insertedTu, error: insertError } = await master.from('tenant_users').insert({
             user_id: newUser.user.id,
             tenant_id: tenant.id,
             role: 'manager',
-          })
+          }).select('id').single()
           if (insertError) {
             console.error('[admin/tenants] insert tenant_users error:', insertError)
+          } else {
+            // Auto-provision CardDAV (non-bloquant)
+            const carddavPassword = await autoProvisionCardDav(managerEmail, slug)
+            if (carddavPassword && insertedTu) {
+              await master.from('tenant_users')
+                .update({ carddav_password: carddavPassword })
+                .eq('id', insertedTu.id)
+            }
           }
 
           // Générer un magic link d'invitation
