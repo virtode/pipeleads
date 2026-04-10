@@ -33,7 +33,7 @@ const ROOT_DOMAIN = process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? 'pipeleads.app'
 const MASTER_URL = process.env.MASTER_SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL
 const MASTER_KEY = process.env.MASTER_SUPABASE_SERVICE_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY
 
-const RESERVED_SUBDOMAINS = ['www', 'app', 'api', 'dev', 'admin', 'staging']
+const RESERVED_SUBDOMAINS = ['www', 'app', 'api', 'dev', 'admin', 'staging', 'carddav']
 
 // ---------------------------------------------------------------------------
 // Types
