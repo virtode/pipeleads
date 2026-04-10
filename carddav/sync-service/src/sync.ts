@@ -179,10 +179,11 @@ async function deleteVcf(contact: Partial<Contact>): Promise<void> {
 // ---------------------------------------------------------------------------
 
 export function startFileWatcher(): void {
-  const watcher = chokidar.watch(path.join(COLLECTIONS_PATH, '**/*.vcf'), {
+  const watcher = chokidar.watch(COLLECTIONS_PATH, {
     persistent: true,
     ignoreInitial: true,
     awaitWriteFinish: { stabilityThreshold: 300, pollInterval: 100 },
+    ignored: [/\.Radicale\.cache/, /\.Radicale\.props/, /[/\\]history[/\\]/],
   })
 
   watcher
@@ -195,6 +196,23 @@ export function startFileWatcher(): void {
 
 async function handleVcfChange(filePath: string): Promise<void> {
   try {
+    // Ignore non-.vcf files and Radicale internal files
+    if (!filePath.endsWith('.vcf')) return
+    if (filePath.includes('.Radicale.cache')) return
+    if (filePath.includes('.Radicale.props')) return
+
+    // Parse path: collection-root/{email}/{slug}-addressbook/{id}.vcf
+    const rel = path.relative(COLLECTIONS_PATH, filePath)
+    const parts = rel.split(path.sep)
+
+    // Structure: collection-root / {email} / {slug}-addressbook / {id}.vcf
+    if (parts[0] !== 'collection-root') return
+    if (parts.length !== 4) return
+
+    const userEmail = parts[1]
+    const collectionName = parts[2]  // ex: aken-addressbook
+    const tenantSlug = collectionName.replace('-addressbook', '')
+
     const uid = path.basename(filePath, '.vcf')
     if (isRecentWrite(uid)) return
 
@@ -204,12 +222,6 @@ async function handleVcfChange(filePath: string): Promise<void> {
       console.warn(`[radicale→supabase] No UID in ${filePath}, skipping`)
       return
     }
-
-    // Extract userEmail and tenantSlug from path:
-    // .../collections/{email}/{slug}-addressbook/{uid}.vcf
-    const parts = filePath.replace(COLLECTIONS_PATH + path.sep, '').split(path.sep)
-    const userEmail = parts[0] ?? ''
-    const tenantSlug = (parts[1] ?? 'master-addressbook').replace(/-addressbook$/, '')
 
     const tenantId = await getTenantId(tenantSlug)
     const userId = await getUserIdByEmail(userEmail)
@@ -267,6 +279,16 @@ async function handleVcfChange(filePath: string): Promise<void> {
 
 async function handleVcfDelete(filePath: string): Promise<void> {
   try {
+    if (!filePath.endsWith('.vcf')) return
+    if (filePath.includes('.Radicale.cache')) return
+    if (filePath.includes('.Radicale.props')) return
+
+    // Only process files in collection-root
+    const rel = path.relative(COLLECTIONS_PATH, filePath)
+    const parts = rel.split(path.sep)
+    if (parts[0] !== 'collection-root') return
+    if (parts.length !== 4) return
+
     const uid = path.basename(filePath, '.vcf')
     if (isRecentWrite(uid)) return
 
