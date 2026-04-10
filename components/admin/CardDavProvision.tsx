@@ -44,7 +44,7 @@ export function CardDavProvision({ tenantSlug, initialConfig }: CardDavProvision
     let userEmail = ''
     if (meRes?.ok) {
       const meJson = await meRes.json().catch(() => null)
-      userEmail = meJson?.data?.email ?? ''
+      userEmail = meJson?.email ?? ''
     }
 
     if (!userEmail) {
