@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { TenantToggleButton } from '@/components/admin/TenantToggleButton'
 import { TenantInviteManagerButton } from '@/components/admin/TenantInviteManagerButton'
 import { TenantDeleteButton } from '@/components/admin/TenantDeleteButton'
+import { CardDavProvision } from '@/components/admin/CardDavProvision'
 
 interface Tenant {
   id: string
@@ -101,6 +102,11 @@ export default async function TenantDetailPage({ params }: Props) {
         <InfoRow label="ID" value={t.id} mono />
         <InfoRow label="Créé le" value={new Date(t.created_at).toLocaleString('fr-FR')} />
         <InfoRow label="Supabase URL" value={t.supabase_url} mono />
+      </div>
+
+      {/* CardDAV */}
+      <div className="rounded-lg border p-4">
+        <CardDavProvision tenantSlug={t.slug} />
       </div>
 
       {/* Managers */}
