@@ -141,9 +141,9 @@ export async function initialSync(): Promise<void> {
       await provisionTenantUser(userEmail, carddavPassword, tenantSlug)
 
       // Fetch and write contacts for this specific user
-      const synced = await writeTenantContacts(userEmail, tenantSlug, tu.tenant_id, tu.user_id)
+      const { synced, errors } = await writeTenantContacts(userEmail, carddavPassword, tenantSlug, tu.tenant_id, tu.user_id)
       totalSynced += synced
-      console.log(`[initialSync] Tenant ${tenantSlug}: synced ${synced} contacts`)
+      console.log(`[initialSync] Tenant ${tenantSlug}: synced ${synced} contacts, ${errors} errors`)
     } catch (err) {
       console.error(`[initialSync] Error syncing tenant ${tenantSlug}:`, err)
     }
@@ -153,33 +153,53 @@ export async function initialSync(): Promise<void> {
 }
 
 /**
- * Fetch contacts for a specific user within a tenant and write them as VCF files.
- * Returns the number of contacts written.
+ * Fetch contacts for a specific user within a tenant and PUT them via Radicale HTTP API.
+ * Returns counts of synced and errored contacts.
  */
 async function writeTenantContacts(
   userEmail: string,
+  carddavPassword: string,
   tenantSlug: string,
   tenantId: string | null,
   userId: string
-): Promise<number> {
+): Promise<{ synced: number; errors: number }> {
   const baseQuery = supabase.from('contacts').select('*').eq('user_id', userId)
   const query = tenantId ? baseQuery.eq('tenant_id', tenantId) : baseQuery.is('tenant_id', null)
 
   const { data: contacts, error } = await query
   if (error) {
     console.error(`[writeTenantContacts] Failed to fetch contacts for ${tenantSlug}:`, error)
-    return 0
+    return { synced: 0, errors: 1 }
   }
 
-  const collectionDir = path.join(DATA_PATH, 'collections', userEmail, `${tenantSlug}-addressbook`)
-  fs.mkdirSync(collectionDir, { recursive: true })
+  const encodedEmail = encodeURIComponent(userEmail)
+  const authHeader = 'Basic ' + Buffer.from(`${userEmail}:${carddavPassword}`).toString('base64')
+
+  let synced = 0
+  let errors = 0
 
   for (const contact of contacts ?? []) {
-    const vcfPath = path.join(collectionDir, `${contact.id}.vcf`)
-    fs.writeFileSync(vcfPath, contactToVCard(contact as Contact), 'utf8')
+    const url = `${RADICALE_URL}/${encodedEmail}/${tenantSlug}-addressbook/${contact.id}.vcf`
+    const vcardBuffer = Buffer.from(contactToVCard(contact as Contact), 'utf-8')
+    const response = await fetch(url, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'text/vcard; charset=utf-8',
+        'Content-Length': vcardBuffer.length.toString(),
+        'Authorization': authHeader,
+      },
+      body: vcardBuffer,
+    })
+
+    if (!response.ok) {
+      console.error(`[writeTenantContacts] PUT ${url} returned ${response.status}`)
+      errors++
+    } else {
+      synced++
+    }
   }
 
-  return (contacts ?? []).length
+  return { synced, errors }
 }
 
 /**
@@ -216,8 +236,9 @@ export async function syncTenant(tenantSlug: string): Promise<{ synced: number; 
 
     try {
       await provisionTenantUser(userEmail, tu.carddav_password, tenantSlug)
-      const count = await writeTenantContacts(userEmail, tenantSlug, tenant.id, tu.user_id)
-      synced += count
+      const result = await writeTenantContacts(userEmail, tu.carddav_password, tenantSlug, tenant.id, tu.user_id)
+      synced += result.synced
+      errors += result.errors
     } catch (err) {
       console.error(`[syncTenant] Error for ${tenantSlug}/${userEmail}:`, err)
       errors++

@@ -11,3 +11,15 @@ if (!url || !key) {
 export const supabase = createClient(url, key, {
   auth: { persistSession: false },
 })
+
+export const supabaseRealtime = createClient(
+  process.env.SUPABASE_REALTIME_URL ?? process.env.SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  {
+    realtime: {
+      params: {
+        eventsPerSecond: 10
+      }
+    }
+  }
+)

@@ -27,16 +27,22 @@ services:
       - CARDDAV_DATA_PATH=/data
       - RADICALE_URL=http://radicale:5232
       - CARDDAV_BASE_URL=https://carddav.pipeleads.app
+      - CARDDAV_PASSWORD_SECRET=${CARDDAV_PASSWORD_SECRET}
+      - SUPABASE_REALTIME_URL=http://10.0.5.11:8000
     depends_on:
       - radicale
     restart: unless-stopped
     networks:
       - coolify
       - default
+      - supabase
 
 networks:
   coolify:
     external: true
+  supabase:
+    external: true
+    name: fqg7al0xzfytzza2hgwth6ab
   default:
 
 volumes:

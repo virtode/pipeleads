@@ -1,5 +1,6 @@
 import fs from 'fs'
 import path from 'path'
+import { setInterval } from 'timers'
 import chokidar from 'chokidar'
 import { supabase } from './supabase'
 import { contactToVCard, vCardToContact, type Contact } from './vcard'
@@ -53,31 +54,32 @@ async function getUserEmail(userId: string): Promise<string | null> {
 // SUPABASE → RADICALE
 // ---------------------------------------------------------------------------
 
-export function startSupabaseWatcher(): void {
-  const channel = supabase
-    .channel('contacts-sync')
-    .on(
-      'postgres_changes',
-      { event: '*', schema: 'public', table: 'contacts' },
-      async (payload) => {
-        try {
-          if (payload.eventType === 'DELETE') {
-            const oldRecord = payload.old as Partial<Contact>
-            if (!oldRecord.id) return
-            await deleteVcf(oldRecord.id)
-          } else {
-            const record = payload.new as Contact
-            await upsertVcf(record)
-          }
-        } catch (err) {
-          console.error('[supabase→radicale] Error handling change:', err)
-        }
-      }
-    )
-    .subscribe()
+let lastChecked = new Date().toISOString()
 
-  console.log('[supabase→radicale] Realtime subscription active')
-  void channel
+export function startSupabaseWatcher(): void {
+  console.log('[supabase→radicale] Polling watcher active (30s interval)')
+
+  setInterval(async () => {
+    try {
+      const { data: contacts } = await supabase
+        .from('contacts')
+        .select('*')
+        .gte('updated_at', lastChecked)
+
+      const now = new Date().toISOString()
+      lastChecked = now
+
+      if (!contacts || contacts.length === 0) return
+
+      console.log(`[supabase→radicale] ${contacts.length} contact(s) updated, syncing...`)
+
+      for (const contact of contacts) {
+        await upsertVcf(contact as Contact)
+      }
+    } catch (err) {
+      console.error('[supabase→radicale] Polling error:', err)
+    }
+  }, 30_000)
 }
 
 async function upsertVcf(contact: Contact): Promise<void> {
@@ -90,32 +92,85 @@ async function upsertVcf(contact: Contact): Promise<void> {
     return
   }
 
-  const dir = path.join(COLLECTIONS_PATH, userEmail, `${tenantSlug}-addressbook`)
-  fs.mkdirSync(dir, { recursive: true })
+  const tuQuery = supabase.from('tenant_users').select('carddav_password').eq('user_id', userId)
+  const { data: tu } = contact.tenant_id
+    ? await tuQuery.eq('tenant_id', contact.tenant_id).single()
+    : await tuQuery.is('tenant_id', null).single()
 
-  const vcfPath = path.join(dir, `${contact.id}.vcf`)
+  const carddavPassword = tu?.carddav_password
+  if (!carddavPassword) {
+    console.warn(`[supabase→radicale] No carddav_password for user ${userId}, skipping`)
+    return
+  }
+
+  const radicaleUrl = process.env.RADICALE_URL ?? 'http://radicale:5232'
+  const url = `${radicaleUrl}/${encodeURIComponent(userEmail)}/${tenantSlug}-addressbook/${contact.id}.vcf`
+
   markRecentWrite(contact.id)
-  fs.writeFileSync(vcfPath, contactToVCard(contact), 'utf8')
-  console.log(`[supabase→radicale] Wrote ${vcfPath}`)
+
+  const vcardBuffer = Buffer.from(contactToVCard(contact), 'utf-8')
+  const response = await fetch(url, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'text/vcard; charset=utf-8',
+      'Content-Length': vcardBuffer.length.toString(),
+      'Authorization': 'Basic ' + Buffer.from(`${userEmail}:${carddavPassword}`).toString('base64'),
+    },
+    body: vcardBuffer,
+  })
+
+  if (!response.ok) {
+    console.error(`[supabase→radicale] PUT ${url} returned ${response.status}`)
+  } else {
+    console.log(`[supabase→radicale] PUT ${url} — ${response.status}`)
+  }
 }
 
-async function deleteVcf(contactId: string): Promise<void> {
-  // Search across all tenant directories
-  const pattern = path.join(COLLECTIONS_PATH, '**', `${contactId}.vcf`)
-  // Use a glob-like scan: iterate collections subdirs
-  if (!fs.existsSync(COLLECTIONS_PATH)) return
+async function deleteVcf(contact: Partial<Contact>): Promise<void> {
+  const contactId = contact.id
+  if (!contactId) return
 
-  for (const userDir of fs.readdirSync(COLLECTIONS_PATH)) {
-    const userPath = path.join(COLLECTIONS_PATH, userDir)
-    if (!fs.statSync(userPath).isDirectory()) continue
-    for (const tenantDir of fs.readdirSync(userPath)) {
-      const vcfPath = path.join(userPath, tenantDir, `${contactId}.vcf`)
-      if (fs.existsSync(vcfPath)) {
-        markRecentWrite(contactId)
-        fs.unlinkSync(vcfPath)
-        console.log(`[supabase→radicale] Deleted ${vcfPath}`)
-      }
-    }
+  const userId = contact.user_id
+  if (!userId) {
+    console.warn(`[supabase→radicale] No user_id in deleted contact ${contactId}, skipping`)
+    return
+  }
+
+  const userEmail = await getUserEmail(userId)
+  if (!userEmail) {
+    console.warn(`[supabase→radicale] No email for user ${userId}, skipping delete`)
+    return
+  }
+
+  const tenantSlug = await getTenantSlug(contact.tenant_id ?? null)
+
+  const tuQuery = supabase.from('tenant_users').select('carddav_password').eq('user_id', userId)
+  const { data: tu } = contact.tenant_id
+    ? await tuQuery.eq('tenant_id', contact.tenant_id).single()
+    : await tuQuery.is('tenant_id', null).single()
+
+  const carddavPassword = tu?.carddav_password
+  if (!carddavPassword) {
+    console.warn(`[supabase→radicale] No carddav_password for user ${userId}, skipping delete`)
+    return
+  }
+
+  const radicaleUrl = process.env.RADICALE_URL ?? 'http://radicale:5232'
+  const url = `${radicaleUrl}/${encodeURIComponent(userEmail)}/${tenantSlug}-addressbook/${contactId}.vcf`
+
+  markRecentWrite(contactId)
+
+  const response = await fetch(url, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': 'Basic ' + Buffer.from(`${userEmail}:${carddavPassword}`).toString('base64'),
+    },
+  })
+
+  if (!response.ok && response.status !== 404) {
+    console.error(`[supabase→radicale] DELETE ${url} returned ${response.status}`)
+  } else {
+    console.log(`[supabase→radicale] DELETE ${url} — ${response.status}`)
   }
 }
 
