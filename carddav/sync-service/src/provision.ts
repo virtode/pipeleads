@@ -6,6 +6,8 @@ import { contactToVCard, type Contact } from './vcard'
 
 const DATA_PATH = process.env.CARDDAV_DATA_PATH ?? '/data'
 const HTPASSWD_FILE = path.join(DATA_PATH, 'users')
+const RADICALE_URL = process.env.RADICALE_URL ?? 'http://radicale:5232'
+const CARDDAV_BASE_URL = process.env.CARDDAV_BASE_URL ?? 'https://carddav.pipeleads.app'
 
 function readHtpasswd(): Map<string, string> {
   const map = new Map<string, string>()
@@ -27,36 +29,49 @@ function writeHtpasswd(map: Map<string, string>): void {
   fs.writeFileSync(HTPASSWD_FILE, content, 'utf8')
 }
 
+export interface ProvisionResult {
+  server: string
+  username: string
+  path: string
+}
+
 export async function provisionTenantUser(
   userEmail: string,
   carddavPassword: string,
   tenantSlug: string
-): Promise<void> {
+): Promise<ProvisionResult> {
   // 1. Hash password and upsert into htpasswd
   const hash = await bcrypt.hash(carddavPassword, 10)
   const map = readHtpasswd()
   map.set(userEmail, hash)
   writeHtpasswd(map)
 
-  // 2. Create addressbook directory
-  const collectionPath = path.join(
-    DATA_PATH,
-    'collections',
-    userEmail,
-    tenantSlug,
-    'addressbook'
-  )
-  fs.mkdirSync(collectionPath, { recursive: true })
+  // 2. Create addressbook collection via MKCOL — let Radicale manage its own structure
+  const collectionPath = `/${encodeURIComponent(userEmail)}/${tenantSlug}-addressbook/`
+  const response = await fetch(`${RADICALE_URL}${collectionPath}`, {
+    method: 'MKCOL',
+    headers: {
+      'Authorization': 'Basic ' + Buffer.from(`${userEmail}:${carddavPassword}`).toString('base64'),
+      'Content-Type': 'application/xml',
+    },
+    body: `<?xml version="1.0" encoding="utf-8"?>
+      <d:mkcol xmlns:d="DAV:" xmlns:cr="urn:ietf:params:xml:ns:carddav">
+        <d:set><d:prop>
+          <d:resourcetype><d:collection/><cr:addressbook/></d:resourcetype>
+          <d:displayname>PipeLeads - ${tenantSlug}</d:displayname>
+        </d:prop></d:set>
+      </d:mkcol>`,
+  })
 
-  // 3. Write addressbook.props (Radicale collection metadata)
-  const propsPath = path.join(collectionPath, '.Radicale.props')
-  if (!fs.existsSync(propsPath)) {
-    const props = JSON.stringify({
-      'D:displayname': `PipeLeads - ${tenantSlug}`,
-      'CR:addressbook-description': `PipeLeads CardDAV for ${tenantSlug}`,
-      'tag': 'VADDRESSBOOK',
-    })
-    fs.writeFileSync(propsPath, props, 'utf8')
+  // 405 means the collection already exists — that's acceptable
+  if (!response.ok && response.status !== 405) {
+    console.warn(`[provision] MKCOL returned ${response.status} for ${collectionPath}`)
+  }
+
+  return {
+    server: CARDDAV_BASE_URL,
+    username: userEmail,
+    path: collectionPath,
   }
 }
 
@@ -78,50 +93,122 @@ export async function initialSync(): Promise<void> {
     (tenants ?? []).map((t: { id: string; slug: string }) => [t.id, t.slug])
   )
 
-  // Get all contacts with their associated user email
-  const { data: contacts, error: contactsError } = await supabase
-    .from('contacts')
-    .select('*, tenant_users!inner(user_id)')
+  // Get all tenant_users that have a carddav_password set
+  const { data: tenantUsers, error: tuError } = await supabase
+    .from('tenant_users')
+    .select('user_id, tenant_id, carddav_password')
 
-  if (contactsError) {
-    console.error('[initialSync] Failed to fetch contacts:', contactsError)
+  if (tuError) {
+    console.error('[initialSync] Failed to fetch tenant_users:', tuError)
     return
   }
-
-  // Get all tenant_users to resolve emails
-  const { data: tenantUsers } = await supabase
-    .from('tenant_users')
-    .select('user_id, tenant_id')
 
   // Get user emails from auth
   const { data: { users } } = await supabase.auth.admin.listUsers()
   const userEmailMap = new Map(users.map((u) => [u.id, u.email ?? '']))
 
+  let totalSynced = 0
+
+  for (const tu of tenantUsers ?? []) {
+    const tenantSlug = tu.tenant_id ? (tenantMap.get(tu.tenant_id) ?? 'master') : 'master'
+
+    if (!tu.carddav_password) {
+      console.log(`[initialSync] Tenant ${tenantSlug} skipped — no CardDAV password set`)
+      continue
+    }
+
+    const userEmail = userEmailMap.get(tu.user_id)
+    if (!userEmail) {
+      console.warn(`[initialSync] No email for user ${tu.user_id}, skipping`)
+      continue
+    }
+
+    try {
+      // Ensure htpasswd entry and collection exist
+      await provisionTenantUser(userEmail, tu.carddav_password, tenantSlug)
+
+      // Fetch and write all contacts for this tenant
+      const synced = await writeTenantContacts(userEmail, tenantSlug, tu.tenant_id)
+      totalSynced += synced
+      console.log(`[initialSync] Tenant ${tenantSlug}: synced ${synced} contacts`)
+    } catch (err) {
+      console.error(`[initialSync] Error syncing tenant ${tenantSlug}:`, err)
+    }
+  }
+
+  console.log(`[initialSync] Done. Total synced: ${totalSynced} contacts.`)
+}
+
+/**
+ * Fetch all contacts for a given tenant and write them as VCF files.
+ * Returns the number of contacts written.
+ */
+async function writeTenantContacts(
+  userEmail: string,
+  tenantSlug: string,
+  tenantId: string | null
+): Promise<number> {
+  const baseQuery = supabase.from('contacts').select('*')
+  const query = tenantId ? baseQuery.eq('tenant_id', tenantId) : baseQuery.is('tenant_id', null)
+
+  const { data: contacts, error } = await query
+  if (error) {
+    console.error(`[writeTenantContacts] Failed to fetch contacts for ${tenantSlug}:`, error)
+    return 0
+  }
+
+  const collectionDir = path.join(DATA_PATH, 'collections', userEmail, `${tenantSlug}-addressbook`)
+  fs.mkdirSync(collectionDir, { recursive: true })
+
   for (const contact of contacts ?? []) {
-    const tenantSlug = contact.tenant_id ? (tenantMap.get(contact.tenant_id) ?? 'master') : 'master'
-
-    // Find the user associated with this contact's tenant
-    const tenantUser = (tenantUsers ?? []).find(
-      (tu: { user_id: string; tenant_id: string | null }) =>
-        tu.tenant_id === contact.tenant_id
-    )
-    if (!tenantUser) continue
-
-    const userEmail = userEmailMap.get(tenantUser.user_id)
-    if (!userEmail) continue
-
-    const collectionPath = path.join(
-      DATA_PATH,
-      'collections',
-      userEmail,
-      tenantSlug,
-      'addressbook'
-    )
-    fs.mkdirSync(collectionPath, { recursive: true })
-
-    const vcfPath = path.join(collectionPath, `${contact.id}.vcf`)
+    const vcfPath = path.join(collectionDir, `${contact.id}.vcf`)
     fs.writeFileSync(vcfPath, contactToVCard(contact as Contact), 'utf8')
   }
 
-  console.log(`[initialSync] Done. Synced ${(contacts ?? []).length} contacts.`)
+  return (contacts ?? []).length
+}
+
+/**
+ * Sync all contacts for a specific tenant slug.
+ * Called by POST /sync/:tenantSlug.
+ */
+export async function syncTenant(tenantSlug: string): Promise<{ synced: number; errors: number }> {
+  const { data: tenant, error: tenantError } = await supabase
+    .from('tenants')
+    .select('id, slug')
+    .eq('slug', tenantSlug)
+    .single()
+
+  if (tenantError || !tenant) {
+    throw new Error(`Tenant "${tenantSlug}" not found`)
+  }
+
+  const { data: tenantUsers } = await supabase
+    .from('tenant_users')
+    .select('user_id, carddav_password')
+    .eq('tenant_id', tenant.id)
+
+  const { data: { users } } = await supabase.auth.admin.listUsers()
+  const userEmailMap = new Map(users.map((u) => [u.id, u.email ?? '']))
+
+  let synced = 0
+  let errors = 0
+
+  for (const tu of tenantUsers ?? []) {
+    if (!tu.carddav_password) continue
+
+    const userEmail = userEmailMap.get(tu.user_id)
+    if (!userEmail) continue
+
+    try {
+      await provisionTenantUser(userEmail, tu.carddav_password, tenantSlug)
+      const count = await writeTenantContacts(userEmail, tenantSlug, tenant.id)
+      synced += count
+    } catch (err) {
+      console.error(`[syncTenant] Error for ${tenantSlug}/${userEmail}:`, err)
+      errors++
+    }
+  }
+
+  return { synced, errors }
 }

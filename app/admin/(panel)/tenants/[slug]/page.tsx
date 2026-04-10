@@ -22,6 +22,14 @@ interface Tenant {
   created_at: string
 }
 
+interface CardDavConfig {
+  server: string
+  username: string
+  password: string
+  path: string
+  tenantName: string
+}
+
 interface TenantUser {
   id: string
   user_id: string
@@ -46,6 +54,37 @@ export default async function TenantDetailPage({ params }: Props) {
   if (!tenant) notFound()
 
   const t = tenant as Tenant
+
+  // Récupérer la configuration CardDAV existante depuis master
+  let carddavConfig: CardDavConfig | null = null
+  const carddavHost = process.env.CARDDAV_HOST ?? 'https://carddav.pipeleads.app'
+  try {
+    const { data: carddavUser } = await master
+      .from('tenant_users')
+      .select('user_id, carddav_password')
+      .eq('tenant_id', t.id)
+      .not('carddav_password', 'is', null)
+      .limit(1)
+      .single()
+
+    if (carddavUser?.carddav_password) {
+      const {
+        data: { users: authUsers },
+      } = await master.auth.admin.listUsers()
+      const authUser = authUsers.find((u) => u.id === carddavUser.user_id)
+      if (authUser?.email) {
+        carddavConfig = {
+          server: carddavHost,
+          username: authUser.email,
+          password: carddavUser.carddav_password as string,
+          path: `/${authUser.email}/${t.slug}-addressbook/`,
+          tenantName: t.name,
+        }
+      }
+    }
+  } catch {
+    // Pas encore de config CardDAV pour ce tenant
+  }
 
   // Récupérer les managers depuis le projet Supabase du tenant
   let managers: Array<{ email: string | undefined; createdAt: string; role: string }> = []
@@ -106,7 +145,7 @@ export default async function TenantDetailPage({ params }: Props) {
 
       {/* CardDAV */}
       <div className="rounded-lg border p-4">
-        <CardDavProvision tenantSlug={t.slug} />
+        <CardDavProvision tenantSlug={t.slug} initialConfig={carddavConfig} />
       </div>
 
       {/* Managers */}

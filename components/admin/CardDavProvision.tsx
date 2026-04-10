@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { Loader2, Copy, Check, Smartphone } from 'lucide-react'
+import { Loader2, Copy, Check, Smartphone, CheckCircle2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -17,13 +17,14 @@ interface CardDavConfig {
 
 interface CardDavProvisionProps {
   tenantSlug: string
+  initialConfig?: CardDavConfig | null
 }
 
-export function CardDavProvision({ tenantSlug }: CardDavProvisionProps) {
+export function CardDavProvision({ tenantSlug, initialConfig }: CardDavProvisionProps) {
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [loading, setLoading] = useState(false)
-  const [config, setConfig] = useState<CardDavConfig | null>(null)
+  const [config, setConfig] = useState<CardDavConfig | null>(initialConfig ?? null)
   const [copied, setCopied] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
@@ -65,12 +66,27 @@ export function CardDavProvision({ tenantSlug }: CardDavProvisionProps) {
         return
       }
 
-      setConfig(json.data as CardDavConfig)
+      const newConfig = json.data as CardDavConfig
+      setConfig(newConfig)
       toast.success('Synchronisation CardDAV activée')
+
+      // Trigger initial sync for this tenant
+      fetch(`/api/carddav/sync/${encodeURIComponent(tenantSlug)}`, { method: 'POST' })
+        .then((r) => r.json())
+        .then((r) => {
+          if (r.data) {
+            toast.success(`${r.data.synced} contact(s) synchronisé(s)`)
+          }
+        })
+        .catch(() => {
+          // Non-fatal: provisioning succeeded
+        })
     } catch {
       toast.error('Erreur réseau')
     } finally {
       setLoading(false)
+      setPassword('')
+      setConfirm('')
     }
   }
 
@@ -99,6 +115,12 @@ export function CardDavProvision({ tenantSlug }: CardDavProvisionProps) {
       <div className="flex items-center gap-2">
         <Smartphone className="h-4 w-4 text-zinc-500" />
         <h2 className="text-base font-semibold">Synchronisation CardDAV</h2>
+        {config && (
+          <span className="flex items-center gap-1 text-xs font-medium text-green-600">
+            <CheckCircle2 className="h-3.5 w-3.5" />
+            Activé
+          </span>
+        )}
       </div>
 
       {!config ? (
@@ -150,28 +172,30 @@ export function CardDavProvision({ tenantSlug }: CardDavProvisionProps) {
             Chemin : {config.path}
           </p>
 
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleCopy}
-            className="gap-1.5"
-          >
-            {copied ? (
-              <Check className="h-3.5 w-3.5 text-green-500" />
-            ) : (
-              <Copy className="h-3.5 w-3.5" />
-            )}
-            Copier la configuration
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleCopy}
+              className="gap-1.5"
+            >
+              {copied ? (
+                <Check className="h-3.5 w-3.5 text-green-500" />
+              ) : (
+                <Copy className="h-3.5 w-3.5" />
+              )}
+              Copier la configuration
+            </Button>
 
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setConfig(null)}
-            className="ml-2 text-zinc-500"
-          >
-            Modifier le mot de passe
-          </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setConfig(null)}
+              className="text-zinc-500"
+            >
+              Réinitialiser le mot de passe CardDAV
+            </Button>
+          </div>
         </div>
       )}
     </div>

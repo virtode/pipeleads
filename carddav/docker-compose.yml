@@ -1,12 +1,20 @@
-version: '3.8'
 services:
   radicale:
     build: ./radicale
-    ports:
-      - "5232:5232"
     volumes:
       - carddav_data:/data
     restart: unless-stopped
+    networks:
+      - coolify
+      - default
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.radicale.rule=Host(`carddav.pipeleads.app`)"
+      - "traefik.http.routers.radicale.entrypoints=https"
+      - "traefik.http.routers.radicale.tls=true"
+      - "traefik.http.routers.radicale.tls.certresolver=letsencrypt"
+      - "traefik.http.services.radicale.loadbalancer.server.port=5232"
+      - "traefik.docker.network=coolify"
 
   sync-service:
     build: ./sync-service
@@ -19,9 +27,18 @@ services:
       - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
       - INTERNAL_SECRET=${INTERNAL_SECRET}
       - CARDDAV_DATA_PATH=/data
+      - RADICALE_URL=http://radicale:5232
+      - CARDDAV_BASE_URL=https://carddav.pipeleads.app
     depends_on:
       - radicale
     restart: unless-stopped
+    networks:
+      - default
+
+networks:
+  coolify:
+    external: true
+  default:
 
 volumes:
   carddav_data:

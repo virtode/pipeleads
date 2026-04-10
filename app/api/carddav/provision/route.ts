@@ -64,16 +64,40 @@ export async function POST(req: NextRequest) {
 
   const { data: tenant } = await master
     .from('tenants')
-    .select('name')
+    .select('id, name')
     .eq('slug', tenantSlug)
     .single()
+
+  // Persist carddav_password in tenant_users so initialSync can reprovision on restart
+  if (tenant) {
+    try {
+      const { data: { users: authUsers } } = await master.auth.admin.listUsers()
+      const authUser = authUsers.find((u) => u.email === userEmail)
+      if (authUser) {
+        await master
+          .from('tenant_users')
+          .upsert(
+            {
+              user_id: authUser.id,
+              tenant_id: tenant.id,
+              role: 'manager',
+              carddav_password: carddavPassword,
+            },
+            { onConflict: 'user_id,tenant_id' }
+          )
+      }
+    } catch (err) {
+      // Non-fatal: provisioning succeeded, just log the persistence failure
+      console.error('[carddav/provision] Failed to persist carddav_password:', err)
+    }
+  }
 
   return NextResponse.json({
     data: {
       server: carddavHost,
       username: userEmail,
       password: carddavPassword,
-      path: `/${userEmail}/${tenantSlug}/addressbook/`,
+      path: `/${userEmail}/${tenantSlug}-addressbook/`,
       tenantName: tenant?.name ?? tenantSlug,
     },
   })

@@ -7,7 +7,7 @@ htpasswd_filename = /data/users
 htpasswd_encryption = bcrypt
 
 [rights]
-type = owner_only
+type = authenticated
 
 [storage]
 filesystem_folder = /data/collections

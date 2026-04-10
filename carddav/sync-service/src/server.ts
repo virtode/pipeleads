@@ -1,5 +1,5 @@
 import express, { Request, Response, NextFunction } from 'express'
-import { provisionTenantUser } from './provision'
+import { provisionTenantUser, syncTenant } from './provision'
 
 const INTERNAL_SECRET = process.env.INTERNAL_SECRET
 
@@ -40,14 +40,40 @@ export function createServer(): express.Express {
     }
 
     try {
-      await provisionTenantUser(userEmail, carddavPassword, tenantSlug)
+      const { server, username, path: collectionPath } = await provisionTenantUser(
+        userEmail,
+        carddavPassword,
+        tenantSlug
+      )
       res.json({
         success: true,
-        path: `/${userEmail}/${tenantSlug}/addressbook/`,
+        server,
+        username,
+        path: collectionPath,
+        instructions: {
+          ios: {
+            server: server.replace(/^https?:\/\//, ''),
+            username,
+            path: collectionPath,
+          },
+        },
       })
     } catch (err) {
       console.error('[server] provision error:', err)
       res.status(500).json({ error: 'Provisioning failed' })
+    }
+  })
+
+  app.post('/sync/:tenantSlug', requireInternalSecret, async (req: Request, res: Response) => {
+    const { tenantSlug } = req.params as { tenantSlug: string }
+
+    try {
+      const result = await syncTenant(tenantSlug)
+      res.json(result)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Sync failed'
+      console.error(`[server] sync error for ${tenantSlug}:`, err)
+      res.status(500).json({ error: message })
     }
   })
 

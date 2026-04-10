@@ -96,7 +96,7 @@ async function upsertVcf(contact: Contact): Promise<void> {
     return
   }
 
-  const dir = path.join(COLLECTIONS_PATH, userEmail, tenantSlug, 'addressbook')
+  const dir = path.join(COLLECTIONS_PATH, userEmail, `${tenantSlug}-addressbook`)
   fs.mkdirSync(dir, { recursive: true })
 
   const vcfPath = path.join(dir, `${contact.id}.vcf`)
@@ -115,7 +115,7 @@ async function deleteVcf(contactId: string): Promise<void> {
     const userPath = path.join(COLLECTIONS_PATH, userDir)
     if (!fs.statSync(userPath).isDirectory()) continue
     for (const tenantDir of fs.readdirSync(userPath)) {
-      const vcfPath = path.join(userPath, tenantDir, 'addressbook', `${contactId}.vcf`)
+      const vcfPath = path.join(userPath, tenantDir, `${contactId}.vcf`)
       if (fs.existsSync(vcfPath)) {
         markRecentWrite(contactId)
         fs.unlinkSync(vcfPath)
@@ -156,9 +156,9 @@ async function handleVcfChange(filePath: string): Promise<void> {
       return
     }
 
-    // Extract tenantSlug from path: .../collections/{email}/{slug}/addressbook/{uid}.vcf
+    // Extract tenantSlug from path: .../collections/{email}/{slug}-addressbook/{uid}.vcf
     const parts = filePath.replace(COLLECTIONS_PATH + path.sep, '').split(path.sep)
-    const tenantSlug = parts[1] ?? 'master'
+    const tenantSlug = (parts[1] ?? 'master-addressbook').replace(/-addressbook$/, '')
 
     const tenantId = await getTenantId(tenantSlug)
     const userId = await getUserIdForTenant(tenantId)
