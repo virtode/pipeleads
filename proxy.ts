@@ -98,7 +98,7 @@ async function resolveTenant(slug: string): Promise<TenantRow | null> {
 // Middleware
 // ---------------------------------------------------------------------------
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const host = request.headers.get('host') ?? ''
   const slug = extractSlug(host)
   const pathname = request.nextUrl.pathname
