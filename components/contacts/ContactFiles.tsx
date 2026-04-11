@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useCallback, DragEvent, ChangeEvent } from 'react'
+import { useState, useRef, useCallback, useEffect, DragEvent, ChangeEvent } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   FileText, FileImage, File, Loader2, Upload, Trash2,
@@ -89,8 +89,13 @@ export function ContactFiles({ contactId }: ContactFilesProps) {
   const queryClient = useQueryClient()
   const inputRef = useRef<HTMLInputElement>(null)
 
+  const [isMobile, setIsMobile] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
   const [pendingFile, setPendingFile] = useState<File | null>(null)
+
+  useEffect(() => {
+    setIsMobile('ontouchstart' in window || navigator.maxTouchPoints > 0)
+  }, [])
   const [pendingDescription, setPendingDescription] = useState('')
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [uploadProgress, setUploadProgress] = useState(false)
@@ -214,21 +219,28 @@ export function ContactFiles({ contactId }: ContactFilesProps) {
 
       {/* Zone de drop */}
       <div
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
+        onDragOver={!isMobile ? handleDragOver : undefined}
+        onDragLeave={!isMobile ? handleDragLeave : undefined}
+        onDrop={!isMobile ? handleDrop : undefined}
         onClick={() => inputRef.current?.click()}
         className={[
-          'flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed px-4 py-6 text-center transition-colors',
+          'flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed px-4 text-center transition-colors',
+          isMobile ? 'min-h-[120px] py-4' : 'py-6',
           isDragging
             ? 'border-primary bg-primary/5'
             : 'border-muted-foreground/25 hover:border-muted-foreground/50 hover:bg-muted/30',
         ].join(' ')}
       >
-        <Upload className="h-6 w-6 text-muted-foreground" />
-        <p className="text-sm text-muted-foreground">
-          Glisser-déposer ou <span className="text-primary underline">choisir un fichier</span>
-        </p>
+        <Upload className={isMobile ? 'h-5 w-5 text-muted-foreground' : 'h-6 w-6 text-muted-foreground'} />
+        {isMobile ? (
+          <p className="text-sm text-muted-foreground">
+            <span className="text-primary underline">Appuyer pour choisir un fichier</span>
+          </p>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            Glisser-déposer ou <span className="text-primary underline">choisir un fichier</span>
+          </p>
+        )}
         <p className="text-xs text-muted-foreground/60">
           PDF, Word, Excel, PowerPoint, images — max 20 Mo
         </p>
@@ -308,7 +320,7 @@ export function ContactFiles({ contactId }: ContactFilesProps) {
             >
               <FileIcon mimeType={file.mime_type} />
               <div className="min-w-0 flex-1 space-y-0.5">
-                <p className="truncate text-sm font-medium">{file.name}</p>
+                <p className="truncate text-sm font-medium max-w-[150px] sm:max-w-none">{file.name}</p>
                 {file.description && (
                   <p className="truncate text-xs text-muted-foreground">{file.description}</p>
                 )}
