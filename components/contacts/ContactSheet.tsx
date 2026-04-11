@@ -192,32 +192,34 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
 
             {/* Tabbed content (view mode only) */}
             {mode === 'view' && <Tabs defaultValue="info" className="flex-1 overflow-hidden gap-0">
-              <TabsList
-                variant="line"
-                className="w-full justify-start rounded-none border-b px-6 gap-4 h-auto py-0"
-              >
-                <TabsTrigger value="info" className="rounded-none pb-3 pt-2.5 px-0 h-auto">
-                  Informations
-                </TabsTrigger>
-                <TabsTrigger value="pipelines" className="rounded-none pb-3 pt-2.5 px-0 h-auto">
-                  Pipelines{contactPipelines.length > 0 && ` (${contactPipelines.length})`}
-                </TabsTrigger>
-                <TabsTrigger value="ai" className="rounded-none pb-3 pt-2.5 px-0 h-auto">
-                  IA{enrichments.length > 0 && ` (${enrichments.length})`}
-                </TabsTrigger>
-                <TabsTrigger value="notes" className="rounded-none pb-3 pt-2.5 px-0 h-auto">
-                  <span className="relative">
-                    Notes
-                    {contact.notes && (
-                      <span className="absolute -top-0.5 -right-2.5 h-1.5 w-1.5 rounded-full bg-primary" />
-                    )}
-                  </span>
-                </TabsTrigger>
-                <TabsTrigger value="documents" className="rounded-none pb-3 pt-2.5 px-0 h-auto">
-                  <Paperclip className="mr-1 h-3.5 w-3.5" />
-                  Documents{fileCount > 0 && ` (${fileCount})`}
-                </TabsTrigger>
-              </TabsList>
+              <div className="overflow-x-auto scrollbar-hide border-b">
+                <TabsList
+                  variant="line"
+                  className="min-w-max w-full justify-start rounded-none border-0 px-6 gap-4 h-auto py-0"
+                >
+                  <TabsTrigger value="info" className="rounded-none pb-3 pt-2.5 px-0 h-auto flex-shrink-0 whitespace-nowrap">
+                    Informations
+                  </TabsTrigger>
+                  <TabsTrigger value="pipelines" className="rounded-none pb-3 pt-2.5 px-0 h-auto flex-shrink-0 whitespace-nowrap">
+                    Pipelines{contactPipelines.length > 0 && ` (${contactPipelines.length})`}
+                  </TabsTrigger>
+                  <TabsTrigger value="ai" className="rounded-none pb-3 pt-2.5 px-0 h-auto flex-shrink-0 whitespace-nowrap">
+                    IA{enrichments.length > 0 && ` (${enrichments.length})`}
+                  </TabsTrigger>
+                  <TabsTrigger value="notes" className="rounded-none pb-3 pt-2.5 px-0 h-auto flex-shrink-0 whitespace-nowrap">
+                    <span className="relative">
+                      Notes
+                      {contact.notes && (
+                        <span className="absolute -top-0.5 -right-2.5 h-1.5 w-1.5 rounded-full bg-primary" />
+                      )}
+                    </span>
+                  </TabsTrigger>
+                  <TabsTrigger value="documents" className="rounded-none pb-3 pt-2.5 px-0 h-auto flex-shrink-0 whitespace-nowrap">
+                    <Paperclip className="mr-1 h-3.5 w-3.5" />
+                    Documents{fileCount > 0 && ` (${fileCount})`}
+                  </TabsTrigger>
+                </TabsList>
+              </div>
 
               {/* Informations */}
               <TabsContent value="info" className="overflow-y-auto space-y-5 px-6 py-5">
