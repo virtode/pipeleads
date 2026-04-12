@@ -134,3 +134,4 @@
     display: none;
   }
 }
+@source inline("border-b-[3px] border-transparent data-[state=active]:border-primary");
