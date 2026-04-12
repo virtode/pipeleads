@@ -220,37 +220,41 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
 
             {/* Tabbed content (view mode only) */}
             {mode === 'view' && <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 overflow-hidden gap-0">
-              <div className="overflow-x-auto scrollbar-hide border-b touch-pan-x overscroll-x-contain">
+              <div className="overflow-x-auto scrollbar-hide border-b touch-pan-x overscroll-x-contain" onTouchStart={handleTabTouchStart} onTouchEnd={handleTabTouchEnd}>
                 <TabsList
                   variant="line"
                   className="min-w-max w-full justify-start rounded-none border-0 px-6 gap-4 h-auto py-0"
                 >
-                  <TabsTrigger value="info" className={`rounded-none pb-3 pt-2.5 px-0 h-auto flex-shrink-0 whitespace-nowrap border-b-2 ${activeTab === 'info' ? 'border-primary' : 'border-transparent'}`}>
+                  <TabsTrigger value="info" className="relative rounded-none pb-3 pt-2.5 px-0 h-auto flex-shrink-0 whitespace-nowrap border-0">
                     Informations
+                    {activeTab === 'info' && <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full" />}
                   </TabsTrigger>
-                  <TabsTrigger value="pipelines" className={`rounded-none pb-3 pt-2.5 px-0 h-auto flex-shrink-0 whitespace-nowrap border-b-2 ${activeTab === 'pipelines' ? 'border-primary' : 'border-transparent'}`}>
+                  <TabsTrigger value="pipelines" className="relative rounded-none pb-3 pt-2.5 px-0 h-auto flex-shrink-0 whitespace-nowrap border-0">
                     Pipelines{contactPipelines.length > 0 && ` (${contactPipelines.length})`}
+                    {activeTab === 'pipelines' && <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full" />}
                   </TabsTrigger>
-                  <TabsTrigger value="ai" className={`rounded-none pb-3 pt-2.5 px-0 h-auto flex-shrink-0 whitespace-nowrap border-b-2 ${activeTab === 'ai' ? 'border-primary' : 'border-transparent'}`}>
+                  <TabsTrigger value="ai" className="relative rounded-none pb-3 pt-2.5 px-0 h-auto flex-shrink-0 whitespace-nowrap border-0">
                     IA{enrichments.length > 0 && ` (${enrichments.length})`}
+                    {activeTab === 'ai' && <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full" />}
                   </TabsTrigger>
-                  <TabsTrigger value="notes" className={`rounded-none pb-3 pt-2.5 px-0 h-auto flex-shrink-0 whitespace-nowrap border-b-2 ${activeTab === 'notes' ? 'border-primary' : 'border-transparent'}`}>
+                  <TabsTrigger value="notes" className="relative rounded-none pb-3 pt-2.5 px-0 h-auto flex-shrink-0 whitespace-nowrap border-0">
                     <span className="relative">
                       Notes
                       {contact.notes && (
                         <span className="absolute -top-0.5 -right-2.5 h-1.5 w-1.5 rounded-full bg-primary" />
                       )}
                     </span>
+                    {activeTab === 'notes' && <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full" />}
                   </TabsTrigger>
-                  <TabsTrigger value="documents" className={`rounded-none pb-3 pt-2.5 px-0 h-auto flex-shrink-0 whitespace-nowrap border-b-2 ${activeTab === 'documents' ? 'border-primary' : 'border-transparent'}`}>
+                  <TabsTrigger value="documents" className="relative rounded-none pb-3 pt-2.5 px-0 h-auto flex-shrink-0 whitespace-nowrap border-0">
                     <Paperclip className="mr-1 h-3.5 w-3.5" />
                     Documents{fileCount > 0 && ` (${fileCount})`}
+                    {activeTab === 'documents' && <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full" />}
                   </TabsTrigger>
                 </TabsList>
               </div>
 
-              {/* Zone swipeable entre onglets */}
-              <div className="flex-1 overflow-hidden" onTouchStart={handleTabTouchStart} onTouchEnd={handleTabTouchEnd}>
+              <div className="flex-1 overflow-hidden">
 
               {/* Informations */}
               <TabsContent value="info" className="overflow-y-auto space-y-5 px-6 py-5">
@@ -523,7 +527,7 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
                 <ContactFiles contactId={contact.id} />
               </TabsContent>
 
-              </div>{/* end swipeable zone */}
+              </div>
             </Tabs>}
 
             {/* Barre d'actions sticky en bas */}
