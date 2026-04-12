@@ -296,31 +296,26 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
                   variant="line"
                   className="min-w-max w-full justify-start rounded-none border-0 px-6 gap-4 h-auto py-0"
                 >
-                  <TabsTrigger value="info" className="relative rounded-none pb-3 pt-2.5 px-0 h-auto flex-shrink-0 whitespace-nowrap border-0 after:hidden">
+                  <TabsTrigger value="info" className={`relative rounded-none pb-3 pt-2.5 px-0 h-auto flex-shrink-0 whitespace-nowrap after:hidden border-0 ${activeTab === 'info' ? 'border-b-[3px] border-primary' : 'border-b-[3px] border-transparent'}`}>
                     Informations
-                    {activeTab === 'info' && <span className="absolute bottom-[-1px] left-0 right-0 h-[3px] bg-primary rounded-full" />}
                   </TabsTrigger>
-                  <TabsTrigger value="pipelines" className="relative rounded-none pb-3 pt-2.5 px-0 h-auto flex-shrink-0 whitespace-nowrap border-0 after:hidden">
+                  <TabsTrigger value="pipelines" className={`relative rounded-none pb-3 pt-2.5 px-0 h-auto flex-shrink-0 whitespace-nowrap after:hidden border-0 ${activeTab === 'pipelines' ? 'border-b-[3px] border-primary' : 'border-b-[3px] border-transparent'}`}>
                     Pipelines{contactPipelines.length > 0 && ` (${contactPipelines.length})`}
-                    {activeTab === 'pipelines' && <span className="absolute bottom-[-1px] left-0 right-0 h-[3px] bg-primary rounded-full" />}
                   </TabsTrigger>
-                  <TabsTrigger value="ai" className="relative rounded-none pb-3 pt-2.5 px-0 h-auto flex-shrink-0 whitespace-nowrap border-0 after:hidden">
+                  <TabsTrigger value="ai" className={`relative rounded-none pb-3 pt-2.5 px-0 h-auto flex-shrink-0 whitespace-nowrap after:hidden border-0 ${activeTab === 'ai' ? 'border-b-[3px] border-primary' : 'border-b-[3px] border-transparent'}`}>
                     IA{enrichments.length > 0 && ` (${enrichments.length})`}
-                    {activeTab === 'ai' && <span className="absolute bottom-[-1px] left-0 right-0 h-[3px] bg-primary rounded-full" />}
                   </TabsTrigger>
-                  <TabsTrigger value="notes" className="relative rounded-none pb-3 pt-2.5 px-0 h-auto flex-shrink-0 whitespace-nowrap border-0 after:hidden">
+                  <TabsTrigger value="notes" className={`relative rounded-none pb-3 pt-2.5 px-0 h-auto flex-shrink-0 whitespace-nowrap after:hidden border-0 ${activeTab === 'notes' ? 'border-b-[3px] border-primary' : 'border-b-[3px] border-transparent'}`}>
                     <span className="relative">
                       Notes
                       {contact.notes && (
                         <span className="absolute -top-0.5 -right-2.5 h-1.5 w-1.5 rounded-full bg-primary" />
                       )}
                     </span>
-                    {activeTab === 'notes' && <span className="absolute bottom-[-1px] left-0 right-0 h-[3px] bg-primary rounded-full" />}
                   </TabsTrigger>
-                  <TabsTrigger value="documents" className="relative rounded-none pb-3 pt-2.5 px-0 h-auto flex-shrink-0 whitespace-nowrap border-0 after:hidden">
+                  <TabsTrigger value="documents" className={`relative rounded-none pb-3 pt-2.5 px-0 h-auto flex-shrink-0 whitespace-nowrap after:hidden border-0 ${activeTab === 'documents' ? 'border-b-[3px] border-primary' : 'border-b-[3px] border-transparent'}`}>
                     <Paperclip className="mr-1 h-3.5 w-3.5" />
                     Documents{fileCount > 0 && ` (${fileCount})`}
-                    {activeTab === 'documents' && <span className="absolute bottom-[-1px] left-0 right-0 h-[3px] bg-primary rounded-full" />}
                   </TabsTrigger>
                 </TabsList>
               </div>
