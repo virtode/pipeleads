@@ -12,7 +12,6 @@ import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -71,24 +70,22 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
   const [addingPipelineId, setAddingPipelineId] = useState<string | null>(null)
   const [dragX, setDragX] = useState(0)
   const [isDragging, setIsDragging] = useState(false)
+  const [mounted, setMounted] = useState(false)
   const formRef = useRef<ContactFormHandle>(null)
   const sheetRef = useRef<HTMLDivElement>(null)
   const dragStartX = useRef(0)
   const dragStartY = useRef(0)
   const CLOSE_THRESHOLD = 120
 
-  const tabTouchStartX = useRef<number>(0)
-  const tabTouchStartY = useRef<number>(0)
-
-  const handleTabTouchStart = (e: React.TouchEvent) => {
-    e.stopPropagation()
-    tabTouchStartX.current = e.touches[0].clientX
-    tabTouchStartY.current = e.touches[0].clientY
-  }
-
-  const handleTabTouchEnd = (e: React.TouchEvent) => {
-    e.stopPropagation()
-  }
+  useEffect(() => {
+    if (isOpen) {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => setMounted(true))
+      })
+    } else {
+      setMounted(false)
+    }
+  }, [isOpen])
 
   const handleSheetTouchStart = (e: React.TouchEvent) => {
     dragStartX.current = e.touches[0].clientX
@@ -120,11 +117,13 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
       setTimeout(() => {
         onClose()
         setDragX(0)
+        setMounted(false)
       }, 250)
     } else {
       setDragX(0)
     }
   }
+
   const { data: contact, isLoading } = useContact(contactId)
   const deleteMutation = useDeleteContact()
   const { data: allPipelines } = usePipelines()
@@ -175,29 +174,42 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
     onClose()
   }
 
+  if (!isOpen) return null
+
   return (
-    <Sheet open={isOpen} onOpenChange={(open) => { if (!open) onClose() }}>
-      <SheetContent showCloseButton={false} className="flex w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-md">
+    <>
+      {/* Overlay / backdrop */}
+      <div
+        className="fixed inset-0 z-40 bg-black/50"
+        style={{
+          opacity: Math.max(0, 1 - dragX / 300),
+          transition: isDragging ? 'none' : 'opacity 0.3s ease',
+        }}
+        onClick={onClose}
+      />
 
-        {/* Drag-to-close wrapper */}
-        <div
-          ref={sheetRef}
-          className="flex flex-1 flex-col overflow-hidden"
-          style={{
-            transform: `translateX(${dragX}px)`,
-            transition: isDragging ? 'none' : 'transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
-            opacity: Math.max(0, 1 - dragX / 300),
-          }}
-          onTouchStart={handleSheetTouchStart}
-          onTouchMove={handleSheetTouchMove}
-          onTouchEnd={handleSheetTouchEnd}
+      {/* Panneau de la fiche */}
+      <div
+        ref={sheetRef}
+        className="fixed inset-y-0 right-0 z-50 w-full sm:max-w-[480px] bg-background shadow-xl flex flex-col"
+        style={{
+          transform: mounted ? `translateX(${dragX}px)` : 'translateX(100%)',
+          transition: isDragging
+            ? 'none'
+            : 'transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+        }}
+        onTouchStart={handleSheetTouchStart}
+        onTouchMove={handleSheetTouchMove}
+        onTouchEnd={handleSheetTouchEnd}
+      >
+
+        {/* Bouton fermer */}
+        <button
+          onClick={onClose}
+          className="absolute right-4 top-4 rounded-full p-1 hover:bg-muted transition-colors"
         >
-
-        {/* Desktop-only close button — same visual as the default shadcn X */}
-        <SheetClose className="ring-offset-background focus:ring-ring data-[state=open]:bg-secondary absolute top-4 right-4 hidden md:flex rounded-sm opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none">
-          <X className="size-4" />
-          <span className="sr-only">Fermer</span>
-        </SheetClose>
+          <X className="h-4 w-4" />
+        </button>
 
         {isLoading || !contact ? (
           <div className="flex flex-1 flex-col gap-4 p-6">
@@ -216,11 +228,11 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
           <>
             {/* Header */}
             {mode === 'edit' ? (
-              <SheetHeader className="border-b px-6 py-4">
-                <SheetTitle>Modifier le contact</SheetTitle>
-              </SheetHeader>
+              <div className="border-b px-6 py-4">
+                <h2 className="text-base font-semibold">Modifier le contact</h2>
+              </div>
             ) : (
-              <SheetHeader className="border-b px-6 py-4">
+              <div className="border-b px-6 py-4">
                 <div className="flex items-center gap-3">
                   <Avatar className="h-12 w-12">
                     <AvatarImage src={contact.photo_url ?? undefined} />
@@ -229,9 +241,9 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
                     </AvatarFallback>
                   </Avatar>
                   <div className="min-w-0 flex-1">
-                    <SheetTitle className="truncate">
+                    <h2 className="truncate text-base font-semibold">
                       {contact.first_name} {contact.last_name}
-                    </SheetTitle>
+                    </h2>
                     {(contact.job_title || contact.company) && (
                       <p className="truncate text-sm text-muted-foreground">
                         {[contact.job_title, contact.company].filter(Boolean).join(' · ')}
@@ -239,12 +251,16 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
                     )}
                   </div>
                 </div>
-              </SheetHeader>
+              </div>
             )}
 
             {/* Edit form */}
             {mode === 'edit' && (
-              <div className="flex-1 overflow-y-auto px-6 py-4">
+              <div
+                className="flex-1 overflow-y-auto px-6 py-4"
+                onTouchStart={(e) => e.stopPropagation()}
+                onTouchMove={(e) => e.stopPropagation()}
+              >
                 <ContactForm
                   ref={formRef}
                   hideActions={true}
@@ -257,7 +273,12 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
 
             {/* Tabbed content (view mode only) */}
             {mode === 'view' && <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 overflow-hidden gap-0">
-              <div className="overflow-x-auto scrollbar-hide touch-pan-x overscroll-x-contain" onTouchStart={handleTabTouchStart} onTouchEnd={handleTabTouchEnd}>
+              <div
+                className="overflow-x-auto scrollbar-hide touch-pan-x overscroll-x-contain"
+                onTouchStart={(e) => { e.stopPropagation() }}
+                onTouchMove={(e) => { e.stopPropagation() }}
+                onTouchEnd={(e) => { e.stopPropagation() }}
+              >
                 <TabsList
                   variant="line"
                   className="min-w-max w-full justify-start rounded-none border-0 px-6 gap-4 h-auto py-0"
@@ -294,7 +315,12 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
               <div className="flex-1 overflow-hidden">
 
               {/* Informations */}
-              <TabsContent value="info" className="overflow-y-auto space-y-5 px-6 py-5">
+              <TabsContent
+                value="info"
+                className="overflow-y-auto space-y-5 px-6 py-5"
+                onTouchStart={(e) => e.stopPropagation()}
+                onTouchMove={(e) => e.stopPropagation()}
+              >
 
                 {/* Coordonnées */}
                 <section className="space-y-2.5">
@@ -373,7 +399,12 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
               </TabsContent>
 
               {/* Pipelines */}
-              <TabsContent value="pipelines" className="overflow-y-auto px-6 py-5 space-y-2">
+              <TabsContent
+                value="pipelines"
+                className="overflow-y-auto px-6 py-5 space-y-2"
+                onTouchStart={(e) => e.stopPropagation()}
+                onTouchMove={(e) => e.stopPropagation()}
+              >
                 <div className="flex items-center justify-between">
                   <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
                     <GitBranch className="h-3.5 w-3.5" /> Pipelines
@@ -529,7 +560,12 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
               </TabsContent>
 
               {/* Enrichissements IA — tous, sans limite */}
-              <TabsContent value="ai" className="overflow-y-auto px-6 py-5">
+              <TabsContent
+                value="ai"
+                className="overflow-y-auto px-6 py-5"
+                onTouchStart={(e) => e.stopPropagation()}
+                onTouchMove={(e) => e.stopPropagation()}
+              >
                 <AIEnrichmentPanel
                   contactId={contact.id}
                   hasCompany={!!contact.company}
@@ -538,7 +574,12 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
               </TabsContent>
 
               {/* Notes */}
-              <TabsContent value="notes" className="overflow-y-auto px-6 py-5 space-y-3">
+              <TabsContent
+                value="notes"
+                className="overflow-y-auto px-6 py-5 space-y-3"
+                onTouchStart={(e) => e.stopPropagation()}
+                onTouchMove={(e) => e.stopPropagation()}
+              >
                 {contact.notes ? (
                   <>
                     <div className="flex justify-end">
@@ -560,7 +601,12 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
               </TabsContent>
 
               {/* Documents */}
-              <TabsContent value="documents" className="overflow-y-auto px-6 py-5">
+              <TabsContent
+                value="documents"
+                className="overflow-y-auto px-6 py-5"
+                onTouchStart={(e) => e.stopPropagation()}
+                onTouchMove={(e) => e.stopPropagation()}
+              >
                 <ContactFiles contactId={contact.id} />
               </TabsContent>
 
@@ -618,17 +664,14 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
                   </Button>
 
                   {/* Fermer — à droite */}
-                  <SheetClose asChild>
-                    <Button className="flex-1 h-12">Fermer</Button>
-                  </SheetClose>
+                  <Button className="flex-1 h-12" onClick={onClose}>Fermer</Button>
                 </>
               )}
             </div>
           </>
         )}
 
-        </div>{/* end swipe wrapper */}
-      </SheetContent>
-    </Sheet>
+      </div>
+    </>
   )
 }
