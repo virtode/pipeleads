@@ -287,25 +287,25 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
             {/* Tabbed content (view mode only) */}
             {mode === 'view' && <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 gap-0">
               <div
-                className="overflow-x-auto scrollbar-hide touch-pan-x overscroll-x-contain border-b"
+                className="overflow-x-auto scrollbar-hide touch-pan-x overscroll-x-contain border-b pb-[3px]"
                 onTouchStart={(e) => { e.stopPropagation() }}
                 onTouchMove={(e) => { e.stopPropagation() }}
                 onTouchEnd={(e) => { e.stopPropagation() }}
               >
                 <TabsList
                   variant="line"
-                  className="min-w-max w-full justify-start rounded-none border-0 px-6 gap-4 h-auto py-0"
+                  className="min-w-max w-full justify-start rounded-none border-0 px-6 gap-4 !h-auto py-0"
                 >
-                  <TabsTrigger value="info" className="relative rounded-none pb-3 pt-2.5 px-0 h-auto flex-shrink-0 whitespace-nowrap border-b-[3px] border-transparent data-[state=active]:border-primary">
+                  <TabsTrigger value="info" className="relative rounded-none pb-3 pt-2.5 px-0 h-auto flex-shrink-0 whitespace-nowrap !border-b-[3px] border-transparent data-[state=active]:border-primary">
                     Informations
                   </TabsTrigger>
-                  <TabsTrigger value="pipelines" className="relative rounded-none pb-3 pt-2.5 px-0 h-auto flex-shrink-0 whitespace-nowrap border-b-[3px] border-transparent data-[state=active]:border-primary">
+                  <TabsTrigger value="pipelines" className="relative rounded-none pb-3 pt-2.5 px-0 h-auto flex-shrink-0 whitespace-nowrap !border-b-[3px] border-transparent data-[state=active]:border-primary">
                     Pipelines{contactPipelines.length > 0 && ` (${contactPipelines.length})`}
                   </TabsTrigger>
-                  <TabsTrigger value="ai" className="relative rounded-none pb-3 pt-2.5 px-0 h-auto flex-shrink-0 whitespace-nowrap border-b-[3px] border-transparent data-[state=active]:border-primary">
+                  <TabsTrigger value="ai" className="relative rounded-none pb-3 pt-2.5 px-0 h-auto flex-shrink-0 whitespace-nowrap !border-b-[3px] border-transparent data-[state=active]:border-primary">
                     IA{enrichments.length > 0 && ` (${enrichments.length})`}
                   </TabsTrigger>
-                  <TabsTrigger value="notes" className="relative rounded-none pb-3 pt-2.5 px-0 h-auto flex-shrink-0 whitespace-nowrap border-b-[3px] border-transparent data-[state=active]:border-primary">
+                  <TabsTrigger value="notes" className="relative rounded-none pb-3 pt-2.5 px-0 h-auto flex-shrink-0 whitespace-nowrap !border-b-[3px] border-transparent data-[state=active]:border-primary">
                     <span className="relative">
                       Notes
                       {contact.notes && (
@@ -313,7 +313,7 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
                       )}
                     </span>
                   </TabsTrigger>
-                  <TabsTrigger value="documents" className="relative rounded-none pb-3 pt-2.5 px-0 h-auto flex-shrink-0 whitespace-nowrap border-b-[3px] border-transparent data-[state=active]:border-primary">
+                  <TabsTrigger value="documents" className="relative rounded-none pb-3 pt-2.5 px-0 h-auto flex-shrink-0 whitespace-nowrap !border-b-[3px] border-transparent data-[state=active]:border-primary">
                     <Paperclip className="mr-1 h-3.5 w-3.5" />
                     Documents{fileCount > 0 && ` (${fileCount})`}
                   </TabsTrigger>
