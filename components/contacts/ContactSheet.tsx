@@ -285,7 +285,7 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
             )}
 
             {/* Tabbed content (view mode only) */}
-            {mode === 'view' && <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 overflow-hidden gap-0">
+            {mode === 'view' && <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 gap-0">
               <div
                 className="overflow-x-auto scrollbar-hide touch-pan-x overscroll-x-contain border-b"
                 onTouchStart={(e) => { e.stopPropagation() }}
