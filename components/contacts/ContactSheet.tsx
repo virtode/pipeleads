@@ -79,9 +79,22 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
 
   useEffect(() => {
     if (isOpen) {
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => setMounted(true))
-      })
+      document.body.style.overflow = 'hidden'
+      document.body.style.position = 'fixed'
+      document.body.style.width = '100%'
+      const scrollY = window.scrollY
+      document.body.style.top = `-${scrollY}px`
+
+      setTimeout(() => setMounted(true), 10)
+
+      return () => {
+        document.body.style.overflow = ''
+        document.body.style.position = ''
+        document.body.style.width = ''
+        const top = document.body.style.top
+        document.body.style.top = ''
+        window.scrollTo(0, parseInt(top || '0') * -1)
+      }
     } else {
       setMounted(false)
     }
@@ -372,7 +385,6 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
                 {/* Tags */}
                 {(contact.tags ?? []).length > 0 && (
                   <>
-                    <Separator />
                     <section>
                       <InfoRow icon={Tag}>
                         <div className="flex flex-wrap gap-1">
