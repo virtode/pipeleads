@@ -210,7 +210,6 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
           transition: isDragging
             ? 'none'
             : 'transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
-          paddingBottom: 'env(safe-area-inset-bottom)',
         }}
         onTouchStart={handleSheetTouchStart}
         onTouchMove={handleSheetTouchMove}
@@ -622,7 +621,7 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
             </Tabs>}
 
             {/* Barre d'actions sticky en bas */}
-            <div className="sticky bottom-0 border-t bg-white dark:bg-zinc-900 p-4 flex gap-2">
+            <div className="sticky bottom-0 border-t bg-white dark:bg-zinc-900 p-4 flex gap-2" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
               {mode === 'edit' ? (
                 <>
                   <Button type="button" variant="outline" className="flex-1 h-12" onClick={() => setMode('view')}>
