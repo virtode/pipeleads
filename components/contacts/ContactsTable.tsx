@@ -195,7 +195,7 @@ export function ContactsTable({
 }: ContactsTableProps) {
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
   const [sorting, setSorting] = useState<SortingState>([
-    { id: sort.field === 'first_name' ? 'last_name' : sort.field, desc: sort.direction === 'desc' },
+    { id: sort.field, desc: sort.direction === 'desc' },
   ])
 
   const columns = buildColumns(onRowClick)

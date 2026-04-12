@@ -193,7 +193,7 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
     <>
       {/* Overlay / backdrop */}
       <div
-        className="fixed inset-0 z-40 bg-black/50"
+        className="fixed top-0 left-0 right-0 bottom-0 h-[100dvh] z-40 bg-black/50"
         style={{
           opacity: Math.max(0, 1 - dragX / 300),
           transition: isDragging ? 'none' : 'opacity 0.3s ease',
@@ -204,7 +204,7 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
       {/* Panneau de la fiche */}
       <div
         ref={sheetRef}
-        className="fixed top-0 bottom-0 right-0 z-50 w-full sm:max-w-[480px] bg-background shadow-xl flex flex-col"
+        className="fixed top-0 right-0 h-[100dvh] z-50 w-full sm:max-w-[480px] bg-background shadow-xl flex flex-col"
         style={{
           transform: mounted ? `translateX(${dragX}px)` : 'translateX(100%)',
           transition: isDragging
@@ -621,7 +621,7 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
             </Tabs>}
 
             {/* Barre d'actions sticky en bas */}
-            <div className="sticky bottom-0 border-t bg-white dark:bg-zinc-900 p-4 flex gap-2" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
+            <div className="sticky bottom-0 border-t bg-background p-4 flex gap-2" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
               {mode === 'edit' ? (
                 <>
                   <Button type="button" variant="outline" className="flex-1 h-12" onClick={() => setMode('view')}>

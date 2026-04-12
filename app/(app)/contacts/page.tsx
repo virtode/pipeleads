@@ -38,8 +38,8 @@ function ContactsPageContent() {
   const [page, setPage] = useState(0)
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS)
   const [sort, setSort] = useState<ContactSortField>({
-    field: 'created_at',
-    direction: 'desc',
+    field: 'last_name',
+    direction: 'asc',
   })
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [isSheetOpen, setIsSheetOpen] = useState(false)
