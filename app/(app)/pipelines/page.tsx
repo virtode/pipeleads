@@ -81,7 +81,7 @@ export default function PipelinesPage() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {(pipelines ?? []).map((pipeline) => (
             <Card key={pipeline.id} className="flex flex-col">
-              <CardHeader className="pb-3">
+              <CardHeader className="pb-2">
                 <div className="flex items-start justify-between gap-2">
                   <CardTitle className="text-base leading-snug">{pipeline.name}</CardTitle>
                   <div className="flex gap-1 shrink-0">
@@ -107,7 +107,7 @@ export default function PipelinesPage() {
                   <CardDescription className="line-clamp-2">{pipeline.description}</CardDescription>
                 )}
               </CardHeader>
-              <CardContent className="flex-1">
+              <CardContent className="flex-1 pt-2">
                 {pipeline.pipeline_stages.length === 0 ? (
                   <p className="text-xs text-muted-foreground italic">Aucune étape</p>
                 ) : (

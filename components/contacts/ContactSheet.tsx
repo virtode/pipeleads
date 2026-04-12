@@ -204,12 +204,13 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
       {/* Panneau de la fiche */}
       <div
         ref={sheetRef}
-        className="fixed inset-y-0 right-0 z-50 w-full sm:max-w-[480px] bg-background shadow-xl flex flex-col"
+        className="fixed top-0 bottom-0 right-0 z-50 w-full sm:max-w-[480px] bg-background shadow-xl flex flex-col"
         style={{
           transform: mounted ? `translateX(${dragX}px)` : 'translateX(100%)',
           transition: isDragging
             ? 'none'
             : 'transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+          paddingBottom: 'env(safe-area-inset-bottom)',
         }}
         onTouchStart={handleSheetTouchStart}
         onTouchMove={handleSheetTouchMove}
