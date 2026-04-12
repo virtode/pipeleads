@@ -298,15 +298,15 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
                 >
                   <TabsTrigger value="info" className="relative rounded-none pb-3 pt-2.5 px-0 h-auto flex-shrink-0 whitespace-nowrap border-0 after:hidden">
                     Informations
-                    {activeTab === 'info' && <span className="absolute bottom-0 left-0 right-0 h-[3px] bg-primary rounded-full" />}
+                    {activeTab === 'info' && <span className="absolute bottom-[-1px] left-0 right-0 h-[3px] bg-primary rounded-full" />}
                   </TabsTrigger>
                   <TabsTrigger value="pipelines" className="relative rounded-none pb-3 pt-2.5 px-0 h-auto flex-shrink-0 whitespace-nowrap border-0 after:hidden">
                     Pipelines{contactPipelines.length > 0 && ` (${contactPipelines.length})`}
-                    {activeTab === 'pipelines' && <span className="absolute bottom-0 left-0 right-0 h-[3px] bg-primary rounded-full" />}
+                    {activeTab === 'pipelines' && <span className="absolute bottom-[-1px] left-0 right-0 h-[3px] bg-primary rounded-full" />}
                   </TabsTrigger>
                   <TabsTrigger value="ai" className="relative rounded-none pb-3 pt-2.5 px-0 h-auto flex-shrink-0 whitespace-nowrap border-0 after:hidden">
                     IA{enrichments.length > 0 && ` (${enrichments.length})`}
-                    {activeTab === 'ai' && <span className="absolute bottom-0 left-0 right-0 h-[3px] bg-primary rounded-full" />}
+                    {activeTab === 'ai' && <span className="absolute bottom-[-1px] left-0 right-0 h-[3px] bg-primary rounded-full" />}
                   </TabsTrigger>
                   <TabsTrigger value="notes" className="relative rounded-none pb-3 pt-2.5 px-0 h-auto flex-shrink-0 whitespace-nowrap border-0 after:hidden">
                     <span className="relative">
@@ -315,12 +315,12 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
                         <span className="absolute -top-0.5 -right-2.5 h-1.5 w-1.5 rounded-full bg-primary" />
                       )}
                     </span>
-                    {activeTab === 'notes' && <span className="absolute bottom-0 left-0 right-0 h-[3px] bg-primary rounded-full" />}
+                    {activeTab === 'notes' && <span className="absolute bottom-[-1px] left-0 right-0 h-[3px] bg-primary rounded-full" />}
                   </TabsTrigger>
                   <TabsTrigger value="documents" className="relative rounded-none pb-3 pt-2.5 px-0 h-auto flex-shrink-0 whitespace-nowrap border-0 after:hidden">
                     <Paperclip className="mr-1 h-3.5 w-3.5" />
                     Documents{fileCount > 0 && ` (${fileCount})`}
-                    {activeTab === 'documents' && <span className="absolute bottom-0 left-0 right-0 h-[3px] bg-primary rounded-full" />}
+                    {activeTab === 'documents' && <span className="absolute bottom-[-1px] left-0 right-0 h-[3px] bg-primary rounded-full" />}
                   </TabsTrigger>
                 </TabsList>
               </div>
