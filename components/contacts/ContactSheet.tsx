@@ -29,7 +29,6 @@ import { AIEnrichmentPanel } from './AIEnrichmentPanel'
 import { ContactFiles } from './ContactFiles'
 import { useQuery } from '@tanstack/react-query'
 import { useContact, useDeleteContact } from '@/hooks/useContacts'
-import { useSwipeToClose } from '@/hooks/useSwipeToClose'
 import { usePipelines, useAssignContactToPipeline, useRemoveContactFromPipeline } from '@/hooks/usePipelines'
 import {
   Select,
@@ -70,33 +69,60 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
   const [mode, setMode] = useState<'view' | 'edit'>('view')
   const [activeTab, setActiveTab] = useState('info')
   const [addingPipelineId, setAddingPipelineId] = useState<string | null>(null)
+  const [dragX, setDragX] = useState(0)
+  const [isDragging, setIsDragging] = useState(false)
   const formRef = useRef<ContactFormHandle>(null)
-  const swipe = useSwipeToClose({ onClose })
+  const sheetRef = useRef<HTMLDivElement>(null)
+  const dragStartX = useRef(0)
+  const dragStartY = useRef(0)
+  const CLOSE_THRESHOLD = 120
 
-  const tabOrder = ['info', 'pipelines', 'ai', 'notes', 'documents']
   const tabTouchStartX = useRef<number>(0)
   const tabTouchStartY = useRef<number>(0)
 
   const handleTabTouchStart = (e: React.TouchEvent) => {
+    e.stopPropagation()
     tabTouchStartX.current = e.touches[0].clientX
     tabTouchStartY.current = e.touches[0].clientY
   }
 
   const handleTabTouchEnd = (e: React.TouchEvent) => {
-    const deltaX = e.changedTouches[0].clientX - tabTouchStartX.current
-    const deltaY = e.changedTouches[0].clientY - tabTouchStartY.current
-
-    if (Math.abs(deltaY) > Math.abs(deltaX)) return
-    if (Math.abs(deltaX) < 50) return
-
-    // Swipe horizontal confirmé — empêche useSwipeToClose de fermer la sheet
     e.stopPropagation()
+  }
 
-    const currentIndex = tabOrder.indexOf(activeTab)
-    if (deltaX < 0 && currentIndex < tabOrder.length - 1) {
-      setActiveTab(tabOrder[currentIndex + 1])
-    } else if (deltaX > 0 && currentIndex > 0) {
-      setActiveTab(tabOrder[currentIndex - 1])
+  const handleSheetTouchStart = (e: React.TouchEvent) => {
+    dragStartX.current = e.touches[0].clientX
+    dragStartY.current = e.touches[0].clientY
+    setIsDragging(true)
+  }
+
+  const handleSheetTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging) return
+    const deltaX = e.touches[0].clientX - dragStartX.current
+    const deltaY = e.touches[0].clientY - dragStartY.current
+
+    if (Math.abs(deltaY) > Math.abs(deltaX) && dragX === 0) {
+      setIsDragging(false)
+      return
+    }
+
+    if (deltaX < 0) {
+      setDragX(deltaX * 0.3)
+    } else {
+      setDragX(deltaX)
+    }
+  }
+
+  const handleSheetTouchEnd = () => {
+    setIsDragging(false)
+    if (dragX > CLOSE_THRESHOLD) {
+      setDragX(window.innerWidth)
+      setTimeout(() => {
+        onClose()
+        setDragX(0)
+      }, 250)
+    } else {
+      setDragX(0)
     }
   }
   const { data: contact, isLoading } = useContact(contactId)
@@ -153,8 +179,19 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
     <Sheet open={isOpen} onOpenChange={(open) => { if (!open) onClose() }}>
       <SheetContent showCloseButton={false} className="flex w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-md">
 
-        {/* Swipe-to-close wrapper */}
-        <div className="flex flex-1 flex-col overflow-hidden" {...swipe}>
+        {/* Drag-to-close wrapper */}
+        <div
+          ref={sheetRef}
+          className="flex flex-1 flex-col overflow-hidden"
+          style={{
+            transform: `translateX(${dragX}px)`,
+            transition: isDragging ? 'none' : 'transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+            opacity: Math.max(0, 1 - dragX / 300),
+          }}
+          onTouchStart={handleSheetTouchStart}
+          onTouchMove={handleSheetTouchMove}
+          onTouchEnd={handleSheetTouchEnd}
+        >
 
         {/* Desktop-only close button — same visual as the default shadcn X */}
         <SheetClose className="ring-offset-background focus:ring-ring data-[state=open]:bg-secondary absolute top-4 right-4 hidden md:flex rounded-sm opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none">
@@ -220,7 +257,7 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
 
             {/* Tabbed content (view mode only) */}
             {mode === 'view' && <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 overflow-hidden gap-0">
-              <div className="overflow-x-auto scrollbar-hide border-b touch-pan-x overscroll-x-contain" onTouchStart={handleTabTouchStart} onTouchEnd={handleTabTouchEnd}>
+              <div className="overflow-x-auto scrollbar-hide touch-pan-x overscroll-x-contain" onTouchStart={handleTabTouchStart} onTouchEnd={handleTabTouchEnd}>
                 <TabsList
                   variant="line"
                   className="min-w-max w-full justify-start rounded-none border-0 px-6 gap-4 h-auto py-0"
