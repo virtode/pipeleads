@@ -262,19 +262,19 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
                   variant="line"
                   className="min-w-max w-full justify-start rounded-none border-0 px-6 gap-4 h-auto py-0"
                 >
-                  <TabsTrigger value="info" className="relative rounded-none pb-3 pt-2.5 px-0 h-auto flex-shrink-0 whitespace-nowrap border-0">
+                  <TabsTrigger value="info" className="relative rounded-none pb-3 pt-2.5 px-0 h-auto flex-shrink-0 whitespace-nowrap border-0 after:hidden">
                     Informations
                     {activeTab === 'info' && <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full" />}
                   </TabsTrigger>
-                  <TabsTrigger value="pipelines" className="relative rounded-none pb-3 pt-2.5 px-0 h-auto flex-shrink-0 whitespace-nowrap border-0">
+                  <TabsTrigger value="pipelines" className="relative rounded-none pb-3 pt-2.5 px-0 h-auto flex-shrink-0 whitespace-nowrap border-0 after:hidden">
                     Pipelines{contactPipelines.length > 0 && ` (${contactPipelines.length})`}
                     {activeTab === 'pipelines' && <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full" />}
                   </TabsTrigger>
-                  <TabsTrigger value="ai" className="relative rounded-none pb-3 pt-2.5 px-0 h-auto flex-shrink-0 whitespace-nowrap border-0">
+                  <TabsTrigger value="ai" className="relative rounded-none pb-3 pt-2.5 px-0 h-auto flex-shrink-0 whitespace-nowrap border-0 after:hidden">
                     IA{enrichments.length > 0 && ` (${enrichments.length})`}
                     {activeTab === 'ai' && <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full" />}
                   </TabsTrigger>
-                  <TabsTrigger value="notes" className="relative rounded-none pb-3 pt-2.5 px-0 h-auto flex-shrink-0 whitespace-nowrap border-0">
+                  <TabsTrigger value="notes" className="relative rounded-none pb-3 pt-2.5 px-0 h-auto flex-shrink-0 whitespace-nowrap border-0 after:hidden">
                     <span className="relative">
                       Notes
                       {contact.notes && (
@@ -283,7 +283,7 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
                     </span>
                     {activeTab === 'notes' && <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full" />}
                   </TabsTrigger>
-                  <TabsTrigger value="documents" className="relative rounded-none pb-3 pt-2.5 px-0 h-auto flex-shrink-0 whitespace-nowrap border-0">
+                  <TabsTrigger value="documents" className="relative rounded-none pb-3 pt-2.5 px-0 h-auto flex-shrink-0 whitespace-nowrap border-0 after:hidden">
                     <Paperclip className="mr-1 h-3.5 w-3.5" />
                     Documents{fileCount > 0 && ` (${fileCount})`}
                     {activeTab === 'documents' && <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full" />}
