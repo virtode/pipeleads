@@ -73,9 +73,10 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
   const [mounted, setMounted] = useState(false)
   const formRef = useRef<ContactFormHandle>(null)
   const sheetRef = useRef<HTMLDivElement>(null)
-  const dragStartX = useRef(0)
-  const dragStartY = useRef(0)
+  const onCloseRef = useRef(onClose)
   const CLOSE_THRESHOLD = 120
+
+  useEffect(() => { onCloseRef.current = onClose })
 
   useEffect(() => {
     if (isOpen) {
@@ -100,42 +101,68 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
     }
   }, [isOpen])
 
-  const handleSheetTouchStart = (e: React.TouchEvent) => {
-    dragStartX.current = e.touches[0].clientX
-    dragStartY.current = e.touches[0].clientY
-    setIsDragging(true)
-  }
+  // Native listeners with { passive: false } so we can call e.preventDefault()
+  // on horizontal swipes, preventing iOS from routing them to the table scroll context.
+  useEffect(() => {
+    const sheet = sheetRef.current
+    if (!sheet || !isOpen) return
 
-  const handleSheetTouchMove = (e: React.TouchEvent) => {
-    if (!isDragging) return
-    const deltaX = e.touches[0].clientX - dragStartX.current
-    const deltaY = e.touches[0].clientY - dragStartY.current
+    let startX = 0
+    let startY = 0
+    let currentDragX = 0
+    let committed = false
 
-    if (Math.abs(deltaY) > Math.abs(deltaX) && dragX === 0) {
+    const onStart = (e: TouchEvent) => {
+      startX = e.touches[0].clientX
+      startY = e.touches[0].clientY
+      currentDragX = 0
+      committed = false
+    }
+
+    const onMove = (e: TouchEvent) => {
+      const dx = e.touches[0].clientX - startX
+      const dy = e.touches[0].clientY - startY
+
+      if (!committed) {
+        if (Math.abs(dx) < 5 && Math.abs(dy) < 5) return // not enough movement yet
+        if (Math.abs(dy) >= Math.abs(dx)) return // vertical dominant — let content scroll
+        if (dx <= 0) return // leftward only — not a close gesture
+        committed = true
+        setIsDragging(true)
+      }
+
+      e.preventDefault() // prevent iOS from routing this touch to a scroll context
+      currentDragX = dx < 0 ? dx * 0.3 : dx
+      setDragX(currentDragX)
+    }
+
+    const onEnd = () => {
+      const wasDragging = committed
+      committed = false
       setIsDragging(false)
-      return
-    }
-
-    if (deltaX < 0) {
-      setDragX(deltaX * 0.3)
-    } else {
-      setDragX(deltaX)
-    }
-  }
-
-  const handleSheetTouchEnd = () => {
-    setIsDragging(false)
-    if (dragX > CLOSE_THRESHOLD) {
-      setDragX(window.innerWidth)
-      setTimeout(() => {
-        onClose()
+      if (!wasDragging) return
+      if (currentDragX > CLOSE_THRESHOLD) {
+        setDragX(window.innerWidth)
+        setTimeout(() => {
+          onCloseRef.current()
+          setDragX(0)
+          setMounted(false)
+        }, 250)
+      } else {
         setDragX(0)
-        setMounted(false)
-      }, 250)
-    } else {
-      setDragX(0)
+      }
     }
-  }
+
+    sheet.addEventListener('touchstart', onStart, { passive: true })
+    sheet.addEventListener('touchmove', onMove, { passive: false })
+    sheet.addEventListener('touchend', onEnd, { passive: true })
+
+    return () => {
+      sheet.removeEventListener('touchstart', onStart)
+      sheet.removeEventListener('touchmove', onMove)
+      sheet.removeEventListener('touchend', onEnd)
+    }
+  }, [isOpen])
 
   const { data: contact, isLoading } = useContact(contactId)
   const deleteMutation = useDeleteContact()
@@ -211,9 +238,6 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
             ? 'none'
             : 'transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
         }}
-        onTouchStart={handleSheetTouchStart}
-        onTouchMove={handleSheetTouchMove}
-        onTouchEnd={handleSheetTouchEnd}
       >
 
         {/* Bouton fermer */}
