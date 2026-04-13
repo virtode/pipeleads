@@ -278,7 +278,7 @@ export function ContactsTable({
       )}
 
       {/* Table */}
-      <div className="flex-1 overflow-auto min-h-0 rounded-lg border">
+      <div className="flex-1 overflow-auto overscroll-contain min-h-0 rounded-lg border">
         <table className="w-full caption-bottom text-sm">
           <TableHeader>
             {table.getHeaderGroups().map((hg) => (
