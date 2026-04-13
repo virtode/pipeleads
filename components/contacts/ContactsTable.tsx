@@ -23,7 +23,6 @@ import {
 } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
-  Table,
   TableBody,
   TableCell,
   TableHead,
@@ -279,8 +278,8 @@ export function ContactsTable({
       )}
 
       {/* Table */}
-      <div className="flex-1 overflow-y-auto min-h-0 rounded-lg border">
-        <Table>
+      <div className="flex-1 overflow-auto min-h-0 rounded-lg border">
+        <table className="w-full caption-bottom text-sm">
           <TableHeader>
             {table.getHeaderGroups().map((hg) => (
               <TableRow key={hg.id}>
@@ -376,7 +375,7 @@ export function ContactsTable({
               ))
             )}
           </TableBody>
-        </Table>
+        </table>
       </div>
 
       {/* Pagination */}
