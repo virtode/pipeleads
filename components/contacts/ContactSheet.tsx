@@ -241,11 +241,11 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
           <>
             {/* Header */}
             {mode === 'edit' ? (
-              <div className="border-b px-6 py-4">
+              <div className="shrink-0 border-b px-6 py-4">
                 <h2 className="text-base font-semibold">Modifier le contact</h2>
               </div>
             ) : (
-              <div className="border-b px-6 py-4">
+              <div className="shrink-0 border-b px-6 py-4">
                 <div className="flex items-center gap-3">
                   <Avatar className="h-12 w-12">
                     <AvatarImage src={contact.photo_url ?? undefined} />
@@ -285,9 +285,9 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
             )}
 
             {/* Tabbed content (view mode only) */}
-            {mode === 'view' && <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 gap-0">
+            {mode === 'view' && <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden min-h-0 gap-0">
               <div
-                className="overflow-x-auto scrollbar-hide touch-pan-x overscroll-x-contain border-b pb-[3px]"
+                className="shrink-0 overflow-x-auto scrollbar-hide touch-pan-x overscroll-x-contain border-b pb-[3px]"
                 onTouchStart={(e) => { e.stopPropagation() }}
                 onTouchMove={(e) => { e.stopPropagation() }}
                 onTouchEnd={(e) => { e.stopPropagation() }}
@@ -320,12 +320,12 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
                 </TabsList>
               </div>
 
-              <div className="flex-1 overflow-hidden">
+              <div className="flex-1 overflow-hidden min-h-0 flex flex-col">
 
               {/* Informations */}
               <TabsContent
                 value="info"
-                className="overflow-y-auto space-y-5 px-6 py-5"
+                className="overflow-y-auto h-full space-y-5 px-6 py-5"
                 onTouchStart={(e) => e.stopPropagation()}
                 onTouchMove={(e) => e.stopPropagation()}
               >
@@ -411,7 +411,7 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
               {/* Pipelines */}
               <TabsContent
                 value="pipelines"
-                className="overflow-y-auto px-6 py-5 space-y-2"
+                className="overflow-y-auto h-full px-6 py-5 space-y-2"
                 onTouchStart={(e) => e.stopPropagation()}
                 onTouchMove={(e) => e.stopPropagation()}
               >
@@ -572,7 +572,7 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
               {/* Enrichissements IA — tous, sans limite */}
               <TabsContent
                 value="ai"
-                className="overflow-y-auto px-6 py-5"
+                className="overflow-y-auto h-full px-6 py-5"
                 onTouchStart={(e) => e.stopPropagation()}
                 onTouchMove={(e) => e.stopPropagation()}
               >
@@ -586,7 +586,7 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
               {/* Notes */}
               <TabsContent
                 value="notes"
-                className="overflow-y-auto px-6 py-5 space-y-3"
+                className="overflow-y-auto h-full px-6 py-5 space-y-3"
                 onTouchStart={(e) => e.stopPropagation()}
                 onTouchMove={(e) => e.stopPropagation()}
               >
@@ -613,7 +613,7 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
               {/* Documents */}
               <TabsContent
                 value="documents"
-                className="overflow-y-auto px-6 py-5"
+                className="overflow-y-auto h-full px-6 py-5"
                 onTouchStart={(e) => e.stopPropagation()}
                 onTouchMove={(e) => e.stopPropagation()}
               >
@@ -624,7 +624,7 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
             </Tabs>}
 
             {/* Barre d'actions sticky en bas */}
-            <div className="sticky bottom-0 border-t bg-background p-4 flex gap-2" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
+            <div className="shrink-0 border-t bg-background p-4 flex gap-2" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
               {mode === 'edit' ? (
                 <>
                   <Button type="button" variant="outline" className="flex-1 h-12" onClick={() => setMode('view')}>
