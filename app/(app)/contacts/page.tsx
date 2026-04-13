@@ -130,7 +130,7 @@ function ContactsPageContent() {
   }
 
   return (
-    <div className="flex flex-col h-full overflow-hidden p-6">
+    <div className="flex flex-col flex-1 min-h-0 overflow-hidden p-6">
       {/* En-tête */}
       <div className="shrink-0 flex flex-col gap-3 md:flex-row md:items-center md:justify-between pb-4">
         <div>

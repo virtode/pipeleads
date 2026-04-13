@@ -249,7 +249,7 @@ export function ContactsTable({
   }
 
   return (
-    <div className="h-full flex flex-col gap-2">
+    <div className="flex-1 min-h-0 flex flex-col gap-2">
       {/* Barre d'actions en masse */}
       {selectedIds.length > 0 && (
         <div className="shrink-0 flex items-center gap-3 rounded-lg border bg-muted/60 px-4 py-2">
