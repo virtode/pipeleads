@@ -14,6 +14,13 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   Table,
@@ -23,7 +30,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { CONTACTS_PAGE_SIZE } from '@/hooks/useContacts'
 import { getInitials, formatDate } from '@/lib/utils'
 import type { Contact, ContactSortField } from '@/types'
 
@@ -163,9 +169,11 @@ interface ContactsTableProps {
   contacts: Contact[]
   totalCount: number
   page: number
+  pageSize: number
   sort: ContactSortField
   isLoading: boolean
   onPageChange: (page: number) => void
+  onPageSizeChange: (size: number) => void
   onSortChange: (sort: ContactSortField) => void
   onRowClick: (id: string) => void
   onBulkDelete: (ids: string[]) => void
@@ -181,9 +189,11 @@ export function ContactsTable({
   contacts,
   totalCount,
   page,
+  pageSize,
   sort,
   isLoading,
   onPageChange,
+  onPageSizeChange,
   onSortChange,
   onRowClick,
   onBulkDelete,
@@ -228,7 +238,7 @@ export function ContactsTable({
   const selectedIds = selectedRows.map((r) => r.original.id)
   const selectedContacts = selectedRows.map((r) => r.original)
 
-  const totalPages = Math.ceil(totalCount / CONTACTS_PAGE_SIZE)
+  const totalPages = Math.ceil(totalCount / pageSize)
 
   function SortIcon({ columnId }: { columnId: string }) {
     const col = table.getColumn(columnId)
@@ -371,14 +381,30 @@ export function ContactsTable({
 
       {/* Pagination */}
       <div className="flex items-center justify-between px-1 py-1 text-sm text-muted-foreground">
-        <span>
-          {totalCount === 0
-            ? 'Aucun résultat'
-            : `${page * CONTACTS_PAGE_SIZE + 1}–${Math.min(
-                (page + 1) * CONTACTS_PAGE_SIZE,
-                totalCount
-              )} sur ${totalCount}`}
-        </span>
+        <div className="flex items-center gap-2">
+          <span>Lignes par page</span>
+          <Select
+            value={String(pageSize)}
+            onValueChange={(val) => onPageSizeChange(Number(val))}
+          >
+            <SelectTrigger className="h-8 w-16">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="10">10</SelectItem>
+              <SelectItem value="20">20</SelectItem>
+              <SelectItem value="50">50</SelectItem>
+            </SelectContent>
+          </Select>
+          <span>
+            {totalCount === 0
+              ? 'Aucun résultat'
+              : `${page * pageSize + 1}–${Math.min(
+                  (page + 1) * pageSize,
+                  totalCount
+                )} sur ${totalCount}`}
+          </span>
+        </div>
         <div className="flex items-center gap-1">
           <Button
             variant="outline"

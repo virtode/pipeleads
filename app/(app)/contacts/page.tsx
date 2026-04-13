@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useState, useEffect } from 'react'
+import { Suspense, useState, useEffect, useCallback } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Plus, Download, Upload, ChevronDown } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
@@ -36,6 +36,10 @@ function ContactsPageContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const [page, setPage] = useState(0)
+  const [pageSize, setPageSize] = useState(() => {
+    const saved = localStorage.getItem('contacts_page_size')
+    return saved ? Number(saved) : 20
+  })
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS)
   const [sort, setSort] = useState<ContactSortField>({
     field: 'last_name',
@@ -67,9 +71,18 @@ function ContactsPageContent() {
   const isFiltered =
     !!filters.search || (filters.tags?.length ?? 0) > 0 || !!filters.company
 
+  useEffect(() => {
+    localStorage.setItem('contacts_page_size', String(pageSize))
+  }, [pageSize])
+
+  const handlePageSizeChange = useCallback((size: number) => {
+    setPageSize(size)
+    setPage(0)
+  }, [])
+
   const debouncedFilters = useDebounce(filters, 300)
 
-  const { data, isLoading } = useContacts({ page, filters: debouncedFilters, sort })
+  const { data, isLoading } = useContacts({ page, pageSize, filters: debouncedFilters, sort })
   const bulkDeleteMutation = useDeleteContacts()
 
   // Fetch all contacts (no pagination) — enabled only when export dialog is open
@@ -173,9 +186,11 @@ function ContactsPageContent() {
         contacts={data?.contacts ?? []}
         totalCount={data?.total ?? 0}
         page={page}
+        pageSize={pageSize}
         sort={sort}
         isLoading={isLoading}
         onPageChange={setPage}
+        onPageSizeChange={handlePageSizeChange}
         onSortChange={handleSortChange}
         onRowClick={handleRowClick}
         onBulkDelete={handleBulkDelete}

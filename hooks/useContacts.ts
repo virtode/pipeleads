@@ -10,6 +10,7 @@ export const CONTACTS_PAGE_SIZE = 20
 
 interface UseContactsParams {
   page?: number
+  pageSize?: number
   filters?: ContactFilters
   sort?: ContactSortField
 }
@@ -20,13 +21,14 @@ interface UseContactsParams {
 
 export function useContacts({
   page = 0,
+  pageSize = CONTACTS_PAGE_SIZE,
   filters = {},
   sort = { field: 'created_at', direction: 'desc' },
 }: UseContactsParams = {}) {
   const supabase = useSupabaseClient()
 
   return useQuery({
-    queryKey: ['contacts', page, filters, sort],
+    queryKey: ['contacts', page, pageSize, filters, sort],
     queryFn: async () => {
       let query = supabase
         .from('contacts')
@@ -49,8 +51,8 @@ export function useContacts({
 
       query = query.order(sort.field, { ascending: sort.direction === 'asc' })
 
-      const from = page * CONTACTS_PAGE_SIZE
-      query = query.range(from, from + CONTACTS_PAGE_SIZE - 1)
+      const from = page * pageSize
+      query = query.range(from, from + pageSize - 1)
 
       const { data, error, count } = await query
       if (error) throw error
