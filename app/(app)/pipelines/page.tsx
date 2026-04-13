@@ -41,7 +41,7 @@ export default function PipelinesPage() {
   const isOpen = editTarget !== null
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 flex-1 overflow-y-auto px-6 py-6">
       {/* Header */}
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>

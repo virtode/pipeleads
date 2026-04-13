@@ -16,6 +16,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { ThemeToggle } from '@/components/shared/ThemeToggle'
 import { useSupabaseClient } from '@/lib/supabase/context'
 
 interface NavItem {
@@ -104,16 +105,17 @@ export function Sidebar({ onNavigate, isAdmin = false }: SidebarProps) {
         </div>
       )}
 
-      {/* Déconnexion */}
-      <div className="border-t p-2">
+      {/* Déconnexion + thème */}
+      <div className="border-t p-2 flex items-center gap-1">
         <Button
           variant="ghost"
-          className="w-full justify-start gap-3 text-muted-foreground hover:text-foreground"
+          className="flex-1 justify-start gap-3 text-muted-foreground hover:text-foreground"
           onClick={handleLogout}
         >
           <LogOut className="h-4 w-4 shrink-0" />
           <span className="text-sm font-medium">Déconnexion</span>
         </Button>
+        <ThemeToggle />
       </div>
     </div>
   )

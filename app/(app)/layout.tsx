@@ -17,8 +17,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
       {/* Zone principale */}
       <div className="flex flex-1 flex-col overflow-hidden">
-        {/* Header — toujours visible */}
-        <header className="flex h-14 shrink-0 items-center border-b bg-background px-4 gap-2">
+        {/* Header — mobile uniquement */}
+        <header className="flex h-14 shrink-0 items-center border-b bg-background px-4 gap-2 md:hidden">
           {/* Mobile: bouton menu */}
           <div className="md:hidden">
             <MobileSidebar isAdmin={adminUser} />
@@ -35,7 +35,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </header>
 
         {/* Contenu */}
-        <main className="flex-1 overflow-y-auto p-6">
+        <main className="flex-1 overflow-hidden flex flex-col">
           {children}
         </main>
       </div>
