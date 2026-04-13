@@ -184,7 +184,7 @@ function ContactsPageContent() {
       </div>
 
       {/* Table */}
-      <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
+      <div className={`flex-1 min-h-0 overflow-hidden flex flex-col${isSheetOpen ? ' pointer-events-none' : ''}`}>
         <ContactsTable
         contacts={data?.contacts ?? []}
         totalCount={data?.total ?? 0}

@@ -103,72 +103,46 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
     }
   }, [isOpen])
 
-  // Ref stable pour éviter de recréer les listeners à chaque render
-  const onCloseRef = useRef(onClose)
-  useEffect(() => { onCloseRef.current = onClose }, [onClose])
+  const handleSheetTouchStart = (e: React.TouchEvent) => {
+    dragStartX.current = e.touches[0].clientX
+    dragStartY.current = e.touches[0].clientY
+    isDraggingRef.current = true
+    setIsDragging(true)
+  }
 
-  // Native DOM listeners — contournent le stopPropagation React des zones de contenu
-  useEffect(() => {
-    const el = sheetRef.current
-    if (!el || !isOpen) return
-
-    const onTouchStart = (e: TouchEvent) => {
-      // Ne pas déclencher le drag depuis les zones marquées data-no-drag
-      let t = e.target as HTMLElement | null
-      while (t && t !== el) {
-        if (t.dataset.noDrag === 'true') return
-        t = t.parentElement
-      }
-      dragStartX.current = e.touches[0].clientX
-      dragStartY.current = e.touches[0].clientY
-      isDraggingRef.current = true
-      setIsDragging(true)
-    }
-
-    const onTouchMove = (e: TouchEvent) => {
-      if (!isDraggingRef.current) return
-      const deltaX = e.touches[0].clientX - dragStartX.current
-      const deltaY = e.touches[0].clientY - dragStartY.current
-      if (Math.abs(deltaY) > Math.abs(deltaX) && dragXRef.current === 0) {
-        isDraggingRef.current = false
-        setIsDragging(false)
-        return
-      }
-      const newDragX = deltaX < 0 ? deltaX * 0.3 : deltaX
-      dragXRef.current = newDragX
-      setDragX(newDragX)
-    }
-
-    const onTouchEnd = () => {
-      if (!isDraggingRef.current) return
+  const handleSheetTouchMove = (e: React.TouchEvent) => {
+    if (!isDraggingRef.current) return
+    const deltaX = e.touches[0].clientX - dragStartX.current
+    const deltaY = e.touches[0].clientY - dragStartY.current
+    if (Math.abs(deltaY) > Math.abs(deltaX) && dragXRef.current === 0) {
       isDraggingRef.current = false
       setIsDragging(false)
-      if (dragXRef.current > CLOSE_THRESHOLD) {
-        const exitX = window.innerWidth
-        dragXRef.current = exitX
-        setDragX(exitX)
-        setTimeout(() => {
-          onCloseRef.current()
-          dragXRef.current = 0
-          setDragX(0)
-          setMounted(false)
-        }, 250)
-      } else {
+      return
+    }
+    const newDragX = deltaX < 0 ? deltaX * 0.3 : deltaX
+    dragXRef.current = newDragX
+    setDragX(newDragX)
+  }
+
+  const handleSheetTouchEnd = () => {
+    if (!isDraggingRef.current) return
+    isDraggingRef.current = false
+    setIsDragging(false)
+    if (dragXRef.current > CLOSE_THRESHOLD) {
+      const exitX = window.innerWidth
+      dragXRef.current = exitX
+      setDragX(exitX)
+      setTimeout(() => {
+        onClose()
         dragXRef.current = 0
         setDragX(0)
-      }
+        setMounted(false)
+      }, 250)
+    } else {
+      dragXRef.current = 0
+      setDragX(0)
     }
-
-    el.addEventListener('touchstart', onTouchStart, { passive: true })
-    el.addEventListener('touchmove', onTouchMove, { passive: true })
-    el.addEventListener('touchend', onTouchEnd, { passive: true })
-
-    return () => {
-      el.removeEventListener('touchstart', onTouchStart)
-      el.removeEventListener('touchmove', onTouchMove)
-      el.removeEventListener('touchend', onTouchEnd)
-    }
-  }, [isOpen])
+  }
 
   const { data: contact, isLoading } = useContact(contactId)
   const deleteMutation = useDeleteContact()
@@ -244,6 +218,9 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
             ? 'none'
             : 'transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
         }}
+        onTouchStart={handleSheetTouchStart}
+        onTouchMove={handleSheetTouchMove}
+        onTouchEnd={handleSheetTouchEnd}
       >
 
         {/* Bouton fermer */}
@@ -301,7 +278,8 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
             {mode === 'edit' && (
               <div
                 className="flex-1 overflow-y-auto px-6 py-4"
-                data-no-drag="true"
+                onTouchStart={(e) => e.stopPropagation()}
+                onTouchMove={(e) => e.stopPropagation()}
               >
                 <ContactForm
                   ref={formRef}
@@ -317,7 +295,8 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
             {mode === 'view' && <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden min-h-0 gap-0">
               <div
                 className="shrink-0 overflow-x-auto scrollbar-hide touch-pan-x overscroll-x-contain border-b pb-[3px]"
-                data-no-drag="true"
+                onTouchStart={(e) => e.stopPropagation()}
+                onTouchMove={(e) => e.stopPropagation()}
               >
                 <TabsList
                   variant="line"
@@ -347,7 +326,7 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
                 </TabsList>
               </div>
 
-              <div className="flex-1 overflow-hidden min-h-0 flex flex-col" data-no-drag="true">
+              <div className="flex-1 overflow-hidden min-h-0 flex flex-col">
 
               {/* Informations */}
               <TabsContent
