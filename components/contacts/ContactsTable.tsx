@@ -382,12 +382,12 @@ export function ContactsTable({
       {/* Pagination */}
       <div className="flex items-center justify-between px-1 py-1 text-sm text-muted-foreground">
         <div className="flex items-center gap-2">
-          <span>Lignes par page</span>
+          <span>Contacts par page</span>
           <Select
             value={String(pageSize)}
             onValueChange={(val) => onPageSizeChange(Number(val))}
           >
-            <SelectTrigger className="h-8 w-16">
+            <SelectTrigger className="h-8 w-20">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
