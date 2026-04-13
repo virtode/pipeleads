@@ -278,7 +278,7 @@ export function ContactsTable({
       )}
 
       {/* Table */}
-      <div className="flex-1 overflow-auto overscroll-contain min-h-0 rounded-lg border">
+      <div className="flex-1 overflow-auto overscroll-none min-h-0 rounded-lg border">
         <table className="w-full caption-bottom text-sm">
           <TableHeader>
             {table.getHeaderGroups().map((hg) => (
@@ -287,7 +287,7 @@ export function ContactsTable({
                   <TableHead
                     key={header.id}
                     onClick={header.column.getToggleSortingHandler()}
-                    className={`sticky top-0 z-10 bg-background${header.column.getCanSort() ? ' cursor-pointer select-none' : ''}`}
+                    className={`sticky top-0 z-10 bg-background${header.column.getCanSort() ? ' cursor-pointer select-none' : ''}${['email', 'phone', 'tags', 'created_at'].includes(header.id) ? ' hidden md:table-cell' : ''}`}
                   >
                     <div className="flex items-center">
                       {flexRender(header.column.columnDef.header, header.getContext())}
@@ -367,7 +367,10 @@ export function ContactsTable({
                   onClick={() => onRowClick(row.original.id)}
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
+                    <TableCell
+                      key={cell.id}
+                      className={['email', 'phone', 'tags', 'created_at'].includes(cell.column.id) ? 'hidden md:table-cell' : undefined}
+                    >
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </TableCell>
                   ))}
