@@ -248,6 +248,10 @@ async function handleVcfChange(filePath: string): Promise<void> {
           phone: parsed.phone ?? null,
           company: parsed.company ?? null,
           job_title: parsed.job_title ?? null,
+          address: parsed.address ?? null,
+          city: parsed.city ?? null,
+          postal_code: parsed.postal_code ?? null,
+          country: parsed.country ?? null,
           notes: parsed.notes ?? null,
           updated_at: new Date().toISOString(),
         })
@@ -266,6 +270,10 @@ async function handleVcfChange(filePath: string): Promise<void> {
         phone: parsed.phone ?? null,
         company: parsed.company ?? null,
         job_title: parsed.job_title ?? null,
+        address: parsed.address ?? null,
+        city: parsed.city ?? null,
+        postal_code: parsed.postal_code ?? null,
+        country: parsed.country ?? null,
         notes: parsed.notes ?? null,
       })
 

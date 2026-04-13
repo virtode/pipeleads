@@ -343,9 +343,12 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
                     </InfoRow>
                   ))}
 
-                  {(contact.city || contact.country) && (
+                  {(contact.city || contact.postal_code || contact.country) && (
                     <InfoRow icon={MapPin}>
-                      {[contact.city, contact.country].filter(Boolean).join(', ')}
+                      {[
+                        [contact.postal_code, contact.city].filter(Boolean).join(' ') || null,
+                        contact.country,
+                      ].filter(Boolean).join(', ')}
                     </InfoRow>
                   )}
                 </section>

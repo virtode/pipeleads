@@ -32,6 +32,7 @@ const contactFormSchema = z.object({
   job_title: z.string(),
   address: z.string(),
   city: z.string(),
+  postal_code: z.string(),
   country: z.string(),
   tags: z.array(z.object({ value: z.string().min(1, { message: 'Tag vide' }) })),
   notes: z.string(),
@@ -60,6 +61,7 @@ function getDefaultValues(contact?: Contact | null): ContactFormValues {
     job_title: contact?.job_title ?? '',
     address: contact?.address ?? '',
     city: contact?.city ?? '',
+    postal_code: contact?.postal_code ?? '',
     country: contact?.country ?? '',
     tags: toFieldArray(contact?.tags),
     notes: contact?.notes ?? '',
@@ -118,6 +120,7 @@ function ContactForm({ contact, onSuccess, onCancel, hideActions }, ref) {
       job_title: values.job_title || null,
       address: values.address || null,
       city: values.city || null,
+      postal_code: values.postal_code || null,
       country: values.country || null,
       tags: values.tags.map((t) => t.value).filter(Boolean),
       notes: values.notes || null,
@@ -275,9 +278,13 @@ function ContactForm({ contact, onSuccess, onCancel, hideActions }, ref) {
             <Input id="city" {...form.register('city')} />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="country">Pays</Label>
-            <Input id="country" {...form.register('country')} />
+            <Label htmlFor="postal_code">Code postal</Label>
+            <Input id="postal_code" {...form.register('postal_code')} />
           </div>
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="country">Pays</Label>
+          <Input id="country" {...form.register('country')} />
         </div>
       </section>
 

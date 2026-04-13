@@ -6,6 +6,10 @@ export interface Contact {
   phone: string[] | null
   company: string | null
   job_title: string | null
+  address: string | null
+  city: string | null
+  postal_code: string | null
+  country: string | null
   notes: string | null
   updated_at: string
   tenant_id: string | null
@@ -38,6 +42,14 @@ export function contactToVCard(contact: Contact): string {
 
   if (contact.job_title) {
     lines.push(`TITLE:${contact.job_title}`)
+  }
+
+  if (contact.address || contact.city || contact.postal_code || contact.country) {
+    const street  = (contact.address ?? '').replace(/[,;\\]/g, (c) => '\\' + c)
+    const city    = (contact.city ?? '').replace(/[,;\\]/g, (c) => '\\' + c)
+    const postal  = (contact.postal_code ?? '').replace(/[,;\\]/g, (c) => '\\' + c)
+    const country = (contact.country ?? '').replace(/[,;\\]/g, (c) => '\\' + c)
+    lines.push(`ADR;TYPE=HOME:;;${street};${city};;${postal};${country}`)
   }
 
   if (contact.notes) {
@@ -82,6 +94,13 @@ export function vCardToContact(vcf: string): Partial<Contact> {
       result.company = value || null
     } else if (field === 'TITLE') {
       result.job_title = value || null
+    } else if (field === 'ADR' || field.startsWith('ADR;')) {
+      // ADR: poBox;ext;street;city;region;postalCode;country
+      const parts = value.split(';')
+      result.address     = parts[2]?.trim().replace(/\\,/g, ',') || null
+      result.city        = parts[3]?.trim().replace(/\\,/g, ',') || null
+      result.postal_code = parts[5]?.trim() || null
+      result.country     = parts[6]?.trim().replace(/\\,/g, ',') || null
     } else if (field === 'NOTE') {
       result.notes = value.replace(/\\n/g, '\n') || null
     }

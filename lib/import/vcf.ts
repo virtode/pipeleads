@@ -160,14 +160,14 @@ function parseVCard(block: string[]): ImportContactDto | null {
   const adrProp = getFirst('ADR')
   let address: string | null = null
   let city: string | null = null
+  let postal_code: string | null = null
   let country: string | null = null
   if (adrProp) {
     const adrParts = splitSemicolon(adrProp)
-    address = [adrParts[2], adrParts[3] ? '' : ''].filter(Boolean).join(', ').trim() || null
-    // Use street only
-    address = adrParts[2]?.trim() || null
-    city    = adrParts[3]?.trim() || null
-    country = adrParts[6]?.trim() || null
+    address     = adrParts[2]?.trim() || null
+    city        = adrParts[3]?.trim() || null
+    postal_code = adrParts[5]?.trim() || null
+    country     = adrParts[6]?.trim() || null
   }
 
   // URL
@@ -212,6 +212,7 @@ function parseVCard(block: string[]): ImportContactDto | null {
     job_title:    jobTitle,
     address,
     city,
+    postal_code,
     country,
     tags,
     notes,

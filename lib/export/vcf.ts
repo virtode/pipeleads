@@ -60,13 +60,13 @@ function contactToVCard(contact: Contact): string {
     if (phone) lines.push(fold(`TEL;TYPE=VOICE:${escapeVcfValue(phone)}`))
   }
 
-  // ADR — full address in STREET field for simplicity
-  if (contact.address || contact.city || contact.country) {
-    const street = escapeVcfValue(contact.address ?? '')
-    const city   = escapeVcfValue(contact.city ?? '')
+  // ADR — poBox;ext;street;city;region;postalCode;country
+  if (contact.address || contact.city || contact.postal_code || contact.country) {
+    const street  = escapeVcfValue(contact.address ?? '')
+    const city    = escapeVcfValue(contact.city ?? '')
+    const postal  = escapeVcfValue(contact.postal_code ?? '')
     const country = escapeVcfValue(contact.country ?? '')
-    // ADR:;;street;city;;postal;country
-    lines.push(fold(`ADR;TYPE=HOME:;;${street};${city};;;${country}`))
+    lines.push(fold(`ADR;TYPE=HOME:;;${street};${city};;${postal};${country}`))
   }
 
   // URL (website)

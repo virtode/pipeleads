@@ -22,6 +22,7 @@ export interface Database {
           job_title: string | null
           address: string | null
           city: string | null
+          postal_code: string | null
           country: string | null
           tags: string[] | null
           notes: string | null
@@ -44,6 +45,7 @@ export interface Database {
           job_title?: string | null
           address?: string | null
           city?: string | null
+          postal_code?: string | null
           country?: string | null
           tags?: string[] | null
           notes?: string | null
@@ -66,6 +68,7 @@ export interface Database {
           job_title?: string | null
           address?: string | null
           city?: string | null
+          postal_code?: string | null
           country?: string | null
           tags?: string[] | null
           notes?: string | null
