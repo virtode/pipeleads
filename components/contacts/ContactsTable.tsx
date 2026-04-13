@@ -250,10 +250,10 @@ export function ContactsTable({
   }
 
   return (
-    <div className="space-y-2">
+    <div className="h-full flex flex-col gap-2">
       {/* Barre d'actions en masse */}
       {selectedIds.length > 0 && (
-        <div className="flex items-center gap-3 rounded-lg border bg-muted/60 px-4 py-2">
+        <div className="shrink-0 flex items-center gap-3 rounded-lg border bg-muted/60 px-4 py-2">
           <span className="text-sm font-medium">
             {selectedIds.length} contact{selectedIds.length > 1 ? 's' : ''} sélectionné{selectedIds.length > 1 ? 's' : ''}
           </span>
@@ -279,7 +279,7 @@ export function ContactsTable({
       )}
 
       {/* Table */}
-      <div className="rounded-lg border">
+      <div className="flex-1 overflow-y-auto min-h-0 rounded-lg border">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((hg) => (
@@ -288,7 +288,7 @@ export function ContactsTable({
                   <TableHead
                     key={header.id}
                     onClick={header.column.getToggleSortingHandler()}
-                    className={header.column.getCanSort() ? 'cursor-pointer select-none' : ''}
+                    className={`sticky top-0 z-10 bg-background${header.column.getCanSort() ? ' cursor-pointer select-none' : ''}`}
                   >
                     <div className="flex items-center">
                       {flexRender(header.column.columnDef.header, header.getContext())}
@@ -380,17 +380,17 @@ export function ContactsTable({
       </div>
 
       {/* Pagination */}
-      <div className="flex items-center justify-between px-1 py-1 text-sm text-muted-foreground">
+      <div className="shrink-0 flex items-center justify-between px-1 py-1 text-sm text-muted-foreground border-t">
         <div className="flex items-center gap-2">
           <span>Contacts par page</span>
           <Select
             value={String(pageSize)}
             onValueChange={(val) => onPageSizeChange(Number(val))}
           >
-            <SelectTrigger className="h-8 w-20">
+            <SelectTrigger className="h-8 w-[4.5rem]">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="w-16">
               <SelectItem value="10">10</SelectItem>
               <SelectItem value="20">20</SelectItem>
               <SelectItem value="50">50</SelectItem>

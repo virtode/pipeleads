@@ -130,9 +130,9 @@ function ContactsPageContent() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col h-full overflow-hidden">
       {/* En-tête */}
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+      <div className="shrink-0 flex flex-col gap-3 md:flex-row md:items-center md:justify-between pb-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Contacts</h1>
           <p className="text-sm text-muted-foreground">
@@ -175,14 +175,17 @@ function ContactsPageContent() {
       </div>
 
       {/* Filtres */}
-      <ContactFilters
-        filters={filters}
-        onChange={handleFiltersChange}
-        onReset={() => { setFilters(EMPTY_FILTERS); setPage(0) }}
-      />
+      <div className="shrink-0 pb-3">
+        <ContactFilters
+          filters={filters}
+          onChange={handleFiltersChange}
+          onReset={() => { setFilters(EMPTY_FILTERS); setPage(0) }}
+        />
+      </div>
 
       {/* Table */}
-      <ContactsTable
+      <div className="flex-1 min-h-0">
+        <ContactsTable
         contacts={data?.contacts ?? []}
         totalCount={data?.total ?? 0}
         page={page}
@@ -199,7 +202,8 @@ function ContactsPageContent() {
         onAddContact={() => setIsCreateOpen(true)}
         onImport={() => setIsImportCSVOpen(true)}
         onResetFilters={() => { setFilters(EMPTY_FILTERS); setPage(0) }}
-      />
+        />
+      </div>
 
       {/* Sheet contact */}
       <ContactSheet
