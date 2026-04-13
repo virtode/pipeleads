@@ -75,6 +75,9 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
   const sheetRef = useRef<HTMLDivElement>(null)
   const dragStartX = useRef(0)
   const dragStartY = useRef(0)
+  // Refs pour éviter les stale closures dans les handlers touch
+  const isDraggingRef = useRef(false)
+  const dragXRef = useRef(0)
   const CLOSE_THRESHOLD = 120
 
   useEffect(() => {
@@ -103,36 +106,41 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
   const handleSheetTouchStart = (e: React.TouchEvent) => {
     dragStartX.current = e.touches[0].clientX
     dragStartY.current = e.touches[0].clientY
+    isDraggingRef.current = true
     setIsDragging(true)
   }
 
   const handleSheetTouchMove = (e: React.TouchEvent) => {
-    if (!isDragging) return
+    if (!isDraggingRef.current) return
     const deltaX = e.touches[0].clientX - dragStartX.current
     const deltaY = e.touches[0].clientY - dragStartY.current
 
-    if (Math.abs(deltaY) > Math.abs(deltaX) && dragX === 0) {
+    if (Math.abs(deltaY) > Math.abs(deltaX) && dragXRef.current === 0) {
+      isDraggingRef.current = false
       setIsDragging(false)
       return
     }
 
-    if (deltaX < 0) {
-      setDragX(deltaX * 0.3)
-    } else {
-      setDragX(deltaX)
-    }
+    const newDragX = deltaX < 0 ? deltaX * 0.3 : deltaX
+    dragXRef.current = newDragX
+    setDragX(newDragX)
   }
 
   const handleSheetTouchEnd = () => {
+    isDraggingRef.current = false
     setIsDragging(false)
-    if (dragX > CLOSE_THRESHOLD) {
-      setDragX(window.innerWidth)
+    if (dragXRef.current > CLOSE_THRESHOLD) {
+      const exitX = window.innerWidth
+      dragXRef.current = exitX
+      setDragX(exitX)
       setTimeout(() => {
         onClose()
+        dragXRef.current = 0
         setDragX(0)
         setMounted(false)
       }, 250)
     } else {
+      dragXRef.current = 0
       setDragX(0)
     }
   }
