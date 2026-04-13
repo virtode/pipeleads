@@ -1,7 +1,6 @@
 import { Sidebar } from '@/components/shared/sidebar'
 import { MobileSidebar } from '@/components/shared/mobile-sidebar'
 import { MobileHeaderLogo } from '@/components/shared/MobileHeaderLogo'
-import { ThemeToggle } from '@/components/shared/ThemeToggle'
 import { CommandPalette } from '@/components/shared/CommandPalette'
 import { isAdmin } from '@/lib/admin/isAdmin'
 
@@ -27,11 +26,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <MobileHeaderLogo />
           </div>
 
-          {/* Spacer */}
-          <div className="flex-1" />
-
-          {/* Thème toggle — toujours visible */}
-          <ThemeToggle />
         </header>
 
         {/* Contenu */}

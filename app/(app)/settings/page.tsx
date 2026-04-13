@@ -308,7 +308,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-8 flex-1 overflow-y-auto px-6 py-6">
+    <div className="mx-auto max-w-2xl w-full space-y-8 flex-1 overflow-y-auto overflow-x-hidden px-6 py-6">
       <div>
         <h1 className="text-2xl font-bold">Paramètres</h1>
         <p className="mt-1 text-sm text-muted-foreground">
