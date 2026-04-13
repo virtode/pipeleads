@@ -8,7 +8,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const adminUser = await isAdmin()
 
   return (
-    <div className="flex h-dvh overflow-hidden">
+    <div className="fixed inset-0 flex overflow-hidden">
       {/* Sidebar desktop — fixe */}
       <aside className="hidden w-60 shrink-0 border-r bg-background md:flex md:flex-col">
         <Sidebar isAdmin={adminUser} />
