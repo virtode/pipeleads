@@ -16,7 +16,7 @@ import { useQueryClient, useMutation } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { useSupabaseClient } from '@/lib/supabase/context'
 import { formatDateTime } from '@/lib/utils'
-import { renderMarkdown } from '@/lib/utils/markdown'
+import { MarkdownContent } from '@/lib/utils/markdown'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -202,8 +202,8 @@ export function AIEnrichmentPanel({
               </span>
             </div>
           </div>
-          <div className="prose-sm text-foreground">
-            {renderMarkdown(completion)}
+          <div className="text-foreground">
+            <MarkdownContent content={completion} />
           </div>
         </div>
       )}
@@ -254,9 +254,7 @@ export function AIEnrichmentPanel({
                   </button>
                 </div>
                 <AccordionContent className="pt-1 pb-3">
-                  <div className="text-sm space-y-0.5">
-                    {renderMarkdown(e.content)}
-                  </div>
+                  <MarkdownContent content={e.content} />
                 </AccordionContent>
               </AccordionItem>
             ))}
