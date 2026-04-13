@@ -390,7 +390,7 @@ export function ContactsTable({
             <SelectTrigger className="h-8 w-[4.5rem]">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="w-16">
+            <SelectContent className="w-14 min-w-0">
               <SelectItem value="10">10</SelectItem>
               <SelectItem value="20">20</SelectItem>
               <SelectItem value="50">50</SelectItem>
