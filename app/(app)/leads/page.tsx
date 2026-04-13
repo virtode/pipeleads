@@ -72,9 +72,9 @@ export default function LeadsPage() {
   }
 
   return (
-    <div className="flex flex-col gap-4 h-full px-6 pt-6">
+    <div className="flex flex-col h-full overflow-hidden px-6 pt-6">
       {/* Toolbar */}
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+      <div className="shrink-0 flex flex-col gap-3 pb-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Leads</h1>
         </div>
@@ -126,7 +126,7 @@ export default function LeadsPage() {
 
       {/* Kanban */}
       {kanban ? (
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 overflow-hidden min-h-0">
           <KanbanBoard
             data={kanban}
             onCardOpen={handleCardOpen}
