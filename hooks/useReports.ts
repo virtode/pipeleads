@@ -325,14 +325,13 @@ export function useConversionFunnel(pipelineId: string | null, filters: ReportFi
       const normalCounts: number[] = normalStages.map((_, i) =>
         normalStages.slice(i).reduce((sum, s) => sum + (stageCounts.get(s.id) ?? 0), 0)
       )
-      const normalTotal = normalCounts[0] ?? 0
 
       const normalSteps: ConversionStep[] = normalStages.map((stage, i) => ({
         stageId: stage.id,
         stageName: stage.name,
         stageColor: stage.color,
-        count: normalCounts[i],
-        rate: normalTotal > 0 ? (i === 0 ? 100 : Math.round((normalCounts[i] / normalTotal) * 100)) : 0,
+        count: i === 0 ? totalInPipeline : normalCounts[i],
+        rate: totalInPipeline > 0 ? (i === 0 ? 100 : Math.round((normalCounts[i] / totalInPipeline) * 100)) : 0,
         isLost: false,
       }))
 
