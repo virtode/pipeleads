@@ -18,7 +18,7 @@ import {
 } from '@dnd-kit/sortable'
 import { KeyboardSensor } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
-import { GripVertical, Plus, Trash2, Loader2 } from 'lucide-react'
+import { GripVertical, Plus, Trash2, Loader2, XCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -58,13 +58,15 @@ interface StageRowProps {
   id: string
   name: string
   color: string
+  isLost: boolean
   onNameChange: (v: string) => void
   onColorChange: (v: string) => void
+  onIsLostChange: (v: boolean) => void
   onDelete: () => void
   canDelete: boolean
 }
 
-function StageRow({ id, name, color, onNameChange, onColorChange, onDelete, canDelete }: StageRowProps) {
+function StageRow({ id, name, color, isLost, onNameChange, onColorChange, onIsLostChange, onDelete, canDelete }: StageRowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id })
 
@@ -75,51 +77,80 @@ function StageRow({ id, name, color, onNameChange, onColorChange, onDelete, canD
   }
 
   return (
-    <div ref={setNodeRef} style={style} className="flex items-center gap-2">
-      {/* Drag handle */}
-      <button
-        {...attributes}
-        {...listeners}
-        className="cursor-grab touch-none text-muted-foreground hover:text-foreground"
-        aria-label="Réordonner"
-      >
-        <GripVertical className="h-4 w-4" />
-      </button>
+    <div ref={setNodeRef} style={style} className="flex flex-col gap-1.5">
+      <div className="flex items-center gap-2">
+        {/* Drag handle */}
+        <button
+          {...attributes}
+          {...listeners}
+          className="cursor-grab touch-none text-muted-foreground hover:text-foreground"
+          aria-label="Réordonner"
+        >
+          <GripVertical className="h-4 w-4" />
+        </button>
 
-      {/* Color dot picker */}
-      <div className="flex gap-1">
-        {STAGE_COLORS.map((c) => (
-          <button
-            key={c}
-            type="button"
-            className={`h-4 w-4 rounded-full transition-transform ${c === color ? 'scale-125 ring-2 ring-offset-1 ring-foreground/30' : 'hover:scale-110'}`}
-            style={{ backgroundColor: c }}
-            onClick={() => onColorChange(c)}
-            aria-label={`Couleur ${c}`}
-          />
-        ))}
+        {/* Color dot picker */}
+        <div className="flex gap-1">
+          {STAGE_COLORS.map((c) => (
+            <button
+              key={c}
+              type="button"
+              className={`h-4 w-4 rounded-full transition-transform ${c === color ? 'scale-125 ring-2 ring-offset-1 ring-foreground/30' : 'hover:scale-110'}`}
+              style={{ backgroundColor: c }}
+              onClick={() => onColorChange(c)}
+              aria-label={`Couleur ${c}`}
+            />
+          ))}
+        </div>
+
+        {/* Name */}
+        <Input
+          value={name}
+          onChange={(e) => onNameChange(e.target.value)}
+          placeholder="Nom de l'étape"
+          className={`h-8 flex-1 text-sm ${isLost ? 'border-red-300 dark:border-red-800' : ''}`}
+        />
+
+        {/* Delete */}
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
+          onClick={onDelete}
+          disabled={!canDelete}
+          aria-label="Supprimer"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </Button>
       </div>
 
-      {/* Name */}
-      <Input
-        value={name}
-        onChange={(e) => onNameChange(e.target.value)}
-        placeholder="Nom de l'étape"
-        className="h-8 flex-1 text-sm"
-      />
-
-      {/* Delete */}
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon"
-        className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
-        onClick={onDelete}
-        disabled={!canDelete}
-        aria-label="Supprimer"
-      >
-        <Trash2 className="h-3.5 w-3.5" />
-      </Button>
+      {/* is_lost toggle */}
+      <div className="ml-6 flex items-center gap-2">
+        <button
+          type="button"
+          role="switch"
+          aria-checked={isLost}
+          onClick={() => onIsLostChange(!isLost)}
+          className={`relative inline-flex h-4 w-7 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+            isLost ? 'bg-red-500' : 'bg-muted-foreground/30'
+          }`}
+        >
+          <span
+            className={`pointer-events-none inline-block h-3 w-3 rounded-full bg-white shadow-sm transition-transform ${
+              isLost ? 'translate-x-3' : 'translate-x-0'
+            }`}
+          />
+        </button>
+        <span className={`text-xs ${isLost ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'}`}>
+          Étape de clôture négative
+          {isLost && (
+            <span className="ml-1 text-muted-foreground font-normal">
+              — exclue de l&apos;entonnoir
+            </span>
+          )}
+        </span>
+      </div>
     </div>
   )
 }
@@ -134,6 +165,7 @@ interface DraftStage {
   name: string
   color: string
   position: number
+  isLost: boolean
   isNew: boolean
 }
 
@@ -144,6 +176,7 @@ function buildDrafts(stages: PipelineWithStages['pipeline_stages']): DraftStage[
     name: s.name,
     color: s.color,
     position: s.position,
+    isLost: s.is_lost,
     isNew: false,
   }))
 }
@@ -198,6 +231,7 @@ export function PipelineEditor({ pipeline, onSuccess, onCancel }: PipelineEditor
         name: '',
         color: STAGE_COLORS[stages.length % STAGE_COLORS.length],
         position: maxPos + 1,
+        isLost: false,
         isNew: true,
       },
     ])
@@ -247,7 +281,7 @@ export function PipelineEditor({ pipeline, onSuccess, onCancel }: PipelineEditor
       // 3. Upsert stages (insert new, update existing)
       for (let i = 0; i < stages.length; i++) {
         const s = stages[i]
-        const payload = { name: s.name || 'Étape', color: s.color, position: i }
+        const payload = { name: s.name || 'Étape', color: s.color, position: i, is_lost: s.isLost }
 
         if (s.dbId) {
           // Update existing
@@ -324,6 +358,7 @@ export function PipelineEditor({ pipeline, onSuccess, onCancel }: PipelineEditor
                   id={stage.localId}
                   name={stage.name}
                   color={stage.color}
+                  isLost={stage.isLost}
                   onNameChange={(v) =>
                     setStages((prev) =>
                       prev.map((s) => (s.localId === stage.localId ? { ...s, name: v } : s))
@@ -332,6 +367,11 @@ export function PipelineEditor({ pipeline, onSuccess, onCancel }: PipelineEditor
                   onColorChange={(v) =>
                     setStages((prev) =>
                       prev.map((s) => (s.localId === stage.localId ? { ...s, color: v } : s))
+                    )
+                  }
+                  onIsLostChange={(v) =>
+                    setStages((prev) =>
+                      prev.map((s) => (s.localId === stage.localId ? { ...s, isLost: v } : s))
                     )
                   }
                   onDelete={() => removeStage(stage.localId)}

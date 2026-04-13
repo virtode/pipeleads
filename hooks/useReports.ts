@@ -18,6 +18,7 @@ export interface StageDistributionItem {
   stageName: string
   stageColor: string
   count: number
+  isLost: boolean
 }
 
 export interface TimelinePoint {
@@ -43,7 +44,8 @@ export interface ConversionStep {
   stageName: string
   stageColor: string
   count: number
-  rate: number   // % from previous step (0–100)
+  rate: number   // cumulative % for normal stages, loss rate for lost stages (0–100)
+  isLost: boolean
 }
 
 export interface KpiData {
@@ -99,7 +101,7 @@ export function useStageDistribution(filters: ReportFilters) {
       // Fetch stages for this pipeline
       const { data: stages, error: stagesErr } = await supabase
         .from('pipeline_stages')
-        .select('id, name, color')
+        .select('id, name, color, is_lost')
         .eq('pipeline_id', filters.pipelineId)
         .order('position', { ascending: true })
 
@@ -124,6 +126,7 @@ export function useStageDistribution(filters: ReportFilters) {
         stageName: stage.name,
         stageColor: stage.color,
         count: counts.get(stage.id) ?? 0,
+        isLost: stage.is_lost,
       }))
 
       // Add "unassigned" if any
@@ -134,6 +137,7 @@ export function useStageDistribution(filters: ReportFilters) {
           stageName: 'Sans étape',
           stageColor: '#94a3b8',
           count: unassignedCount,
+          isLost: false,
         })
       }
 
@@ -288,30 +292,14 @@ export function useConversionFunnel(pipelineId: string | null, filters: ReportFi
       // Fetch stages ordered
       const { data: stages, error: stagesErr } = await supabase
         .from('pipeline_stages')
-        .select('id, name, color, position')
+        .select('id, name, color, position, is_lost')
         .eq('pipeline_id', pipelineId)
         .order('position', { ascending: true })
 
       if (stagesErr) throw stagesErr
       if (!stages || stages.length === 0) return []
 
-      const { data: history, error: histErr } = await supabase
-        .from('pipeline_history')
-        .select('to_stage_id')
-        .eq('pipeline_id', pipelineId)
-        .gte('changed_at', filters.startDate.toISOString())
-        .lte('changed_at', filters.endDate.toISOString())
-        .not('to_stage_id', 'is', null)
-
-      if (histErr) throw histErr
-
-      const stageCounts = new Map<string, number>()
-      for (const row of history ?? []) {
-        if (row.to_stage_id) {
-          stageCounts.set(row.to_stage_id, (stageCounts.get(row.to_stage_id) ?? 0) + 1)
-        }
-      }
-
+      // Use current contact_pipeline assignments
       const { data: current, error: currentErr } = await supabase
         .from('contact_pipeline')
         .select('stage_id')
@@ -320,27 +308,48 @@ export function useConversionFunnel(pipelineId: string | null, filters: ReportFi
 
       if (currentErr) throw currentErr
 
-      const allCounts = new Map<string, number>(stageCounts)
+      const stageCounts = new Map<string, number>()
       for (const row of current ?? []) {
         if (row.stage_id) {
-          allCounts.set(row.stage_id, (allCounts.get(row.stage_id) ?? 0) + 1)
+          stageCounts.set(row.stage_id, (stageCounts.get(row.stage_id) ?? 0) + 1)
         }
       }
 
-      const result: ConversionStep[] = stages.map((stage, i) => {
-        const count = allCounts.get(stage.id) ?? 0
-        const prevCount = i === 0 ? count : (allCounts.get(stages[i - 1].id) ?? 0)
-        const rate = prevCount > 0 ? Math.round((count / prevCount) * 100) : 0
+      const totalInPipeline = (current ?? []).length
+
+      // Separate normal vs lost stages
+      const normalStages = stages.filter((s) => !s.is_lost)
+      const lostStages = stages.filter((s) => s.is_lost)
+
+      // Cumulative counts for normal stages: count(i) = contacts at stage i + all subsequent normal stages
+      const normalCounts: number[] = normalStages.map((_, i) =>
+        normalStages.slice(i).reduce((sum, s) => sum + (stageCounts.get(s.id) ?? 0), 0)
+      )
+      const normalTotal = normalCounts[0] ?? 0
+
+      const normalSteps: ConversionStep[] = normalStages.map((stage, i) => ({
+        stageId: stage.id,
+        stageName: stage.name,
+        stageColor: stage.color,
+        count: normalCounts[i],
+        rate: normalTotal > 0 ? (i === 0 ? 100 : Math.round((normalCounts[i] / normalTotal) * 100)) : 0,
+        isLost: false,
+      }))
+
+      // Lost stages: individual counts, rate = count / totalInPipeline
+      const lostSteps: ConversionStep[] = lostStages.map((stage) => {
+        const count = stageCounts.get(stage.id) ?? 0
         return {
           stageId: stage.id,
           stageName: stage.name,
           stageColor: stage.color,
           count,
-          rate: i === 0 ? 100 : rate,
+          rate: totalInPipeline > 0 ? Math.round((count / totalInPipeline) * 100) : 0,
+          isLost: true,
         }
       })
 
-      return result
+      return [...normalSteps, ...lostSteps]
     },
     enabled: !!pipelineId,
     staleTime: 60_000,

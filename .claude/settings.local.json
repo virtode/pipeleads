@@ -39,7 +39,8 @@
       "WebFetch(domain:www.supascale.app)",
       "Bash(grep -E \"\\\\.\\(ts|tsx\\)$\")",
       "Bash(scp:*)",
-      "Bash(grep -v \"^$\")"
+      "Bash(grep -v \"^$\")",
+      "mcp__claude_ai_Supabase__list_projects"
     ]
   }
 }

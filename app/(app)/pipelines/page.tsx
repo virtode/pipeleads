@@ -115,12 +115,15 @@ export default function PipelinesPage() {
                     {pipeline.pipeline_stages.map((stage) => (
                       <Badge
                         key={stage.id}
-                        style={{
-                          backgroundColor: stage.color + '22',
-                          color: stage.color,
-                        }}
+                        style={
+                          stage.is_lost
+                            ? { backgroundColor: '#94a3b822', color: '#64748b' }
+                            : { backgroundColor: stage.color + '22', color: stage.color }
+                        }
                         className="border-0 text-xs"
+                        title={stage.is_lost ? 'Étape de clôture négative' : undefined}
                       >
+                        {stage.is_lost && <span className="mr-1 opacity-60">✕</span>}
                         {stage.name}
                       </Badge>
                     ))}

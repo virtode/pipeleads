@@ -1,0 +1,1 @@
+ALTER TABLE pipeline_stages ADD COLUMN IF NOT EXISTS is_lost BOOLEAN NOT NULL DEFAULT false;

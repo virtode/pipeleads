@@ -127,6 +127,7 @@ export interface Database {
           name: string
           color: string
           position: number
+          is_lost: boolean
           created_at: string
         }
         Insert: {
@@ -136,6 +137,7 @@ export interface Database {
           name: string
           color?: string
           position: number
+          is_lost?: boolean
           created_at?: string
         }
         Update: {
@@ -145,6 +147,7 @@ export interface Database {
           name?: string
           color?: string
           position?: number
+          is_lost?: boolean
         }
         Relationships: [
           {
