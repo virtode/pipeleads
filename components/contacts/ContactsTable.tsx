@@ -382,9 +382,9 @@ export function ContactsTable({
       </div>
 
       {/* Pagination */}
-      <div className="shrink-0 flex items-center px-1 py-1 text-sm text-muted-foreground border-t">
+      <div className="shrink-0 flex items-center gap-3 px-1 py-1 text-sm text-muted-foreground border-t">
         {/* Sélecteur taille + compteur — masqués sur mobile */}
-        <div className="hidden md:flex items-center gap-2">
+        <div className="hidden md:flex items-center gap-3">
           <span>Contacts par page</span>
           <Select
             value={String(pageSize)}
@@ -409,7 +409,7 @@ export function ContactsTable({
           </span>
         </div>
         {/* Navigation — centrée sur mobile, alignée à droite sur desktop */}
-        <div className={`${totalPages <= 1 ? 'hidden md:flex' : 'flex'} flex-1 md:flex-none items-center justify-center md:justify-end gap-1`}>
+        <div className={`${totalPages <= 1 ? 'hidden md:flex' : 'flex'} flex-1 md:flex-none items-center justify-center md:justify-end gap-3`}>
           <Button
             variant="outline"
             size="icon"
