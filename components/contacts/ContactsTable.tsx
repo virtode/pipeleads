@@ -409,7 +409,7 @@ export function ContactsTable({
           </span>
         </div>
         {/* Navigation — centrée sur mobile, alignée à droite sur desktop */}
-        <div className="flex flex-1 md:flex-none items-center justify-center md:justify-end gap-1">
+        <div className={`${totalPages <= 1 ? 'hidden md:flex' : 'flex'} flex-1 md:flex-none items-center justify-center md:justify-end gap-1`}>
           <Button
             variant="outline"
             size="icon"
