@@ -73,6 +73,7 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
   const [mounted, setMounted] = useState(false)
   const formRef = useRef<ContactFormHandle>(null)
   const sheetRef = useRef<HTMLDivElement>(null)
+  const tabBarRef = useRef<HTMLDivElement>(null)
   const onCloseRef = useRef(onClose)
   const CLOSE_THRESHOLD = 120
 
@@ -111,15 +112,19 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
     let startY = 0
     let currentDragX = 0
     let committed = false
+    let noClose = false
 
     const onStart = (e: TouchEvent) => {
       startX = e.touches[0].clientX
       startY = e.touches[0].clientY
       currentDragX = 0
       committed = false
+      // Touch originated inside the tab bar — let it scroll natively, don't intercept
+      noClose = !!(tabBarRef.current && tabBarRef.current.contains(e.target as Node))
     }
 
     const onMove = (e: TouchEvent) => {
+      if (noClose) return // tab bar is handling this scroll
       const dx = e.touches[0].clientX - startX
       const dy = e.touches[0].clientY - startY
 
@@ -358,9 +363,8 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
             {/* Tabbed content (view mode only) */}
             {mode === 'view' && <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden min-h-0 gap-0">
               <div
+                ref={tabBarRef}
                 className="shrink-0 overflow-x-auto scrollbar-hide touch-pan-x overscroll-x-contain border-b pb-[3px]"
-                onTouchStart={(e) => e.stopPropagation()}
-                onTouchMove={(e) => e.stopPropagation()}
               >
                 <TabsList
                   variant="line"
