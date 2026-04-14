@@ -364,18 +364,18 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
               >
                 <TabsList
                   variant="line"
-                  className="min-w-max w-full justify-start rounded-none border-0 px-6 gap-4 !h-auto py-0"
+                  className="min-w-max w-full justify-start rounded-none border-0 px-2 !h-auto py-0"
                 >
-                  <TabsTrigger value="info" className="relative rounded-none pb-3 pt-2.5 px-0 h-auto flex-shrink-0 whitespace-nowrap !border-b-[3px] border-transparent data-[state=active]:border-primary">
+                  <TabsTrigger value="info" className="relative rounded-none pb-3 pt-2.5 px-4 h-auto flex-shrink-0 whitespace-nowrap !border-b-[3px] border-transparent data-[state=active]:border-primary">
                     Informations
                   </TabsTrigger>
-                  <TabsTrigger value="pipelines" className="relative rounded-none pb-3 pt-2.5 px-0 h-auto flex-shrink-0 whitespace-nowrap !border-b-[3px] border-transparent data-[state=active]:border-primary">
+                  <TabsTrigger value="pipelines" className="relative rounded-none pb-3 pt-2.5 px-4 h-auto flex-shrink-0 whitespace-nowrap !border-b-[3px] border-transparent data-[state=active]:border-primary">
                     Pipelines
                   </TabsTrigger>
-                  <TabsTrigger value="ai" className="relative rounded-none pb-3 pt-2.5 px-0 h-auto flex-shrink-0 whitespace-nowrap !border-b-[3px] border-transparent data-[state=active]:border-primary">
+                  <TabsTrigger value="ai" className="relative rounded-none pb-3 pt-2.5 px-4 h-auto flex-shrink-0 whitespace-nowrap !border-b-[3px] border-transparent data-[state=active]:border-primary">
                     IA
                   </TabsTrigger>
-                  <TabsTrigger value="notes" className="relative rounded-none pb-3 pt-2.5 px-0 h-auto flex-shrink-0 whitespace-nowrap !border-b-[3px] border-transparent data-[state=active]:border-primary">
+                  <TabsTrigger value="notes" className="relative rounded-none pb-3 pt-2.5 px-4 h-auto flex-shrink-0 whitespace-nowrap !border-b-[3px] border-transparent data-[state=active]:border-primary">
                     <span className="relative">
                       Notes
                       {contact.notes && (
@@ -383,7 +383,7 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
                       )}
                     </span>
                   </TabsTrigger>
-                  <TabsTrigger value="documents" className="relative rounded-none pb-3 pt-2.5 px-0 h-auto flex-shrink-0 whitespace-nowrap !border-b-[3px] border-transparent data-[state=active]:border-primary">
+                  <TabsTrigger value="documents" className="relative rounded-none pb-3 pt-2.5 px-4 h-auto flex-shrink-0 whitespace-nowrap !border-b-[3px] border-transparent data-[state=active]:border-primary">
                     <Paperclip className="mr-1 h-3.5 w-3.5" />
                     Documents{fileCount > 0 && ` (${fileCount})`}
                   </TabsTrigger>
