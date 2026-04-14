@@ -41,7 +41,9 @@
       "Bash(scp:*)",
       "Bash(grep -v \"^$\")",
       "mcp__claude_ai_Supabase__list_projects",
-      "Bash(gh api:*)"
+      "Bash(gh api:*)",
+      "Bash(identify /Users/matey/Virtode/pipeleads/public/icon-dark.png /Users/matey/Virtode/pipeleads/public/icon-light.png /Users/matey/Virtode/pipeleads/public/logo.png)",
+      "Bash(sips -g pixelWidth -g pixelHeight /Users/matey/Virtode/pipeleads/public/icon-dark.png /Users/matey/Virtode/pipeleads/public/icon-light.png /Users/matey/Virtode/pipeleads/public/logo.png)"
     ]
   }
 }
