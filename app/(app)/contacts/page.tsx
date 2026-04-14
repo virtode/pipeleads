@@ -29,7 +29,7 @@ import { useDebounce } from '@/hooks/useDebounce'
 import { useSupabaseClient } from '@/lib/supabase/context'
 import type { Contact, ContactFilters as Filters, ContactSortField } from '@/types'
 
-const EMPTY_FILTERS: Filters = { search: '', tags: [], company: '' }
+const EMPTY_FILTERS: Filters = { search: '', tags: [] }
 
 function ContactsPageContent() {
   const supabase = useSupabaseClient()
@@ -69,7 +69,7 @@ function ContactsPageContent() {
   }, [searchParams, router])
 
   const isFiltered =
-    !!filters.search || (filters.tags?.length ?? 0) > 0 || !!filters.company
+    !!filters.search || (filters.tags?.length ?? 0) > 0
 
   useEffect(() => {
     localStorage.setItem('contacts_page_size', String(pageSize))
@@ -140,8 +140,8 @@ function ContactsPageContent() {
           </p>
         </div>
         <div className="flex flex-col gap-2 md:flex-row">
-          {/* Import + Export sur la même ligne en mobile */}
-          <div className="grid grid-cols-2 gap-2 md:flex md:gap-2">
+          {/* Import + Export — masqués sur mobile */}
+          <div className="hidden md:flex md:gap-2">
             {/* Import dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -179,7 +179,6 @@ function ContactsPageContent() {
         <ContactFilters
           filters={filters}
           onChange={handleFiltersChange}
-          onReset={() => { setFilters(EMPTY_FILTERS); setPage(0) }}
         />
       </div>
 

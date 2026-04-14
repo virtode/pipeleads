@@ -240,14 +240,6 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
         }}
       >
 
-        {/* Bouton fermer */}
-        <button
-          onClick={onClose}
-          className="absolute right-4 top-4 rounded-full p-1 hover:bg-muted transition-colors"
-        >
-          <X className="h-4 w-4" />
-        </button>
-
         {isLoading || !contact ? (
           <div className="flex flex-1 flex-col gap-4 p-6">
             <div className="flex items-center gap-3">
@@ -265,13 +257,20 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
           <>
             {/* Header */}
             {mode === 'edit' ? (
-              <div className="shrink-0 border-b px-6 py-4">
-                <h2 className="text-base font-semibold">Modifier le contact</h2>
+              <div className="shrink-0 border-b px-4 py-2 flex items-center justify-between">
+                <h2 className="pl-2 text-base font-semibold">Modifier le contact</h2>
+                <button
+                  onClick={onClose}
+                  className="flex h-11 w-11 items-center justify-center rounded-full hover:bg-muted transition-colors"
+                  aria-label="Fermer"
+                >
+                  <X className="h-4 w-4" />
+                </button>
               </div>
             ) : (
-              <div className="shrink-0 border-b px-6 py-4">
+              <div className="shrink-0 border-b px-4 py-3">
                 <div className="flex items-center gap-3">
-                  <Avatar className="h-12 w-12">
+                  <Avatar className="h-12 w-12 shrink-0">
                     <AvatarImage src={contact.photo_url ?? undefined} />
                     <AvatarFallback>
                       {getInitials(contact.first_name, contact.last_name)}
@@ -286,6 +285,54 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
                         {[contact.job_title, contact.company].filter(Boolean).join(' · ')}
                       </p>
                     )}
+                  </div>
+                  {/* Actions header */}
+                  <div className="flex items-center shrink-0">
+                    <button
+                      onClick={() => setMode('edit')}
+                      className="flex h-11 w-11 items-center justify-center rounded-full hover:bg-muted transition-colors"
+                      aria-label="Modifier"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <button
+                          className="flex h-11 w-11 items-center justify-center rounded-full hover:bg-muted transition-colors text-destructive disabled:opacity-50"
+                          disabled={deleteMutation.isPending}
+                          aria-label="Supprimer"
+                        >
+                          {deleteMutation.isPending
+                            ? <Loader2 className="h-4 w-4 animate-spin" />
+                            : <Trash2 className="h-4 w-4" />}
+                        </button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Supprimer ce contact ?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            {contact.first_name} {contact.last_name} sera définitivement supprimé
+                            avec tout son historique pipeline.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Annuler</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={handleDelete}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            Supprimer
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                    <button
+                      onClick={onClose}
+                      className="flex h-11 w-11 items-center justify-center rounded-full hover:bg-muted transition-colors"
+                      aria-label="Fermer"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
                   </div>
                 </div>
               </div>
@@ -323,10 +370,10 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
                     Informations
                   </TabsTrigger>
                   <TabsTrigger value="pipelines" className="relative rounded-none pb-3 pt-2.5 px-0 h-auto flex-shrink-0 whitespace-nowrap !border-b-[3px] border-transparent data-[state=active]:border-primary">
-                    Pipelines{contactPipelines.length > 0 && ` (${contactPipelines.length})`}
+                    Pipelines
                   </TabsTrigger>
                   <TabsTrigger value="ai" className="relative rounded-none pb-3 pt-2.5 px-0 h-auto flex-shrink-0 whitespace-nowrap !border-b-[3px] border-transparent data-[state=active]:border-primary">
-                    IA{enrichments.length > 0 && ` (${enrichments.length})`}
+                    IA
                   </TabsTrigger>
                   <TabsTrigger value="notes" className="relative rounded-none pb-3 pt-2.5 px-0 h-auto flex-shrink-0 whitespace-nowrap !border-b-[3px] border-transparent data-[state=active]:border-primary">
                     <span className="relative">
@@ -646,61 +693,17 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
               </div>
             </Tabs>}
 
-            {/* Barre d'actions sticky en bas */}
-            <div className="shrink-0 border-t bg-background p-4 flex gap-2" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
-              {mode === 'edit' ? (
-                <>
-                  <Button type="button" variant="outline" className="flex-1 h-12" onClick={() => setMode('view')}>
-                    Annuler
-                  </Button>
-                  <Button type="button" className="flex-1 h-12" onClick={() => formRef.current?.submit()}>
-                    Enregistrer
-                  </Button>
-                </>
-              ) : (
-                <>
-                  {/* Supprimer — à gauche, destructif */}
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="destructive" size="sm" className="h-12 px-4" disabled={deleteMutation.isPending}>
-                        {deleteMutation.isPending ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Trash2 className="h-4 w-4" />
-                        )}
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Supprimer ce contact ?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          {contact.first_name} {contact.last_name} sera définitivement supprimé
-                          avec tout son historique pipeline.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Annuler</AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={handleDelete}
-                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                        >
-                          Supprimer
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-
-                  {/* Modifier — au centre */}
-                  <Button variant="outline" className="flex-1 h-12" onClick={() => setMode('edit')}>
-                    <Pencil className="mr-1.5 h-4 w-4" />
-                    Modifier
-                  </Button>
-
-                  {/* Fermer — à droite */}
-                  <Button className="flex-1 h-12" onClick={onClose}>Fermer</Button>
-                </>
-              )}
-            </div>
+            {/* Barre d'actions — mode édition uniquement */}
+            {mode === 'edit' && (
+              <div className="shrink-0 border-t bg-background p-4 flex gap-2" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
+                <Button type="button" variant="outline" className="flex-1 h-12" onClick={() => setMode('view')}>
+                  Annuler
+                </Button>
+                <Button type="button" className="flex-1 h-12" onClick={() => formRef.current?.submit()}>
+                  Enregistrer
+                </Button>
+              </div>
+            )}
           </>
         )}
 

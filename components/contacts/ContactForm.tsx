@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useImperativeHandle, forwardRef } from 'react'
+import { useEffect, useImperativeHandle, forwardRef, useState } from 'react'
 import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Separator } from '@/components/ui/separator'
-import { useCreateContact, useUpdateContact } from '@/hooks/useContacts'
+import { useCreateContact, useUpdateContact, useContactTags } from '@/hooks/useContacts'
 import type { Contact } from '@/types'
 
 // ---------------------------------------------------------------------------
@@ -91,6 +91,8 @@ function ContactForm({ contact, onSuccess, onCancel, hideActions }, ref) {
   const createMutation = useCreateContact()
   const updateMutation = useUpdateContact()
   const isPending = createMutation.isPending || updateMutation.isPending
+  const { data: allTags = [] } = useContactTags()
+  const [hiddenTags, setHiddenTags] = useState<string[]>([])
 
   const form = useForm<ContactFormValues>({
     resolver: zodResolver(contactFormSchema),
@@ -109,6 +111,11 @@ function ContactForm({ contact, onSuccess, onCancel, hideActions }, ref) {
   useImperativeHandle(ref, () => ({
     submit: () => { form.handleSubmit(onSubmit)() },
   }))
+
+  const currentTagValues = form.watch('tags').map((t) => t.value)
+  const tagSuggestions = allTags.filter(
+    (tag) => !hiddenTags.includes(tag) && !currentTagValues.includes(tag)
+  )
 
   async function onSubmit(values: ContactFormValues) {
     const payload = {
@@ -321,6 +328,7 @@ function ContactForm({ contact, onSuccess, onCancel, hideActions }, ref) {
         <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
           Tags
         </h3>
+        {/* Tags sélectionnés */}
         <div className="flex flex-wrap gap-1.5">
           {tagFields.fields.map((field, index) => (
             <div key={field.id} className="flex items-center gap-1 rounded-full border bg-muted px-2 py-0.5 text-sm">
@@ -344,6 +352,30 @@ function ContactForm({ contact, onSuccess, onCancel, hideActions }, ref) {
             <Plus className="h-3.5 w-3.5" />
           </Button>
         </div>
+        {/* Suggestions */}
+        {tagSuggestions.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {tagSuggestions.map((tag) => (
+              <button
+                key={tag}
+                type="button"
+                className="flex items-center gap-1 rounded-full border border-dashed px-2 py-0.5 text-xs text-muted-foreground transition-colors hover:border-solid hover:bg-muted hover:text-foreground"
+                onClick={() => tagFields.append({ value: tag })}
+              >
+                {tag}
+                <span
+                  role="button"
+                  tabIndex={0}
+                  className="rounded-full hover:text-destructive"
+                  onClick={(e) => { e.stopPropagation(); setHiddenTags((prev) => [...prev, tag]) }}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); setHiddenTags((prev) => [...prev, tag]) } }}
+                >
+                  <X className="h-3 w-3" />
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
       </section>
 
       <Separator />

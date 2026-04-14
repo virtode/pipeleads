@@ -40,7 +40,8 @@
       "Bash(grep -E \"\\\\.\\(ts|tsx\\)$\")",
       "Bash(scp:*)",
       "Bash(grep -v \"^$\")",
-      "mcp__claude_ai_Supabase__list_projects"
+      "mcp__claude_ai_Supabase__list_projects",
+      "Bash(gh api:*)"
     ]
   }
 }
