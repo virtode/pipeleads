@@ -21,9 +21,10 @@ export function ConversionFunnel({ data, isLoading }: ConversionFunnelProps) {
     )
   }
 
-  const normalSteps = data.filter((s) => !s.isLost && !s.isReferral)
+  const normalSteps = data.filter((s) => !s.isLost && !s.isReferral && !s.isWon)
   const lostSteps = data.filter((s) => s.isLost)
   const referralSteps = data.filter((s) => s.isReferral)
+  const wonSteps = data.filter((s) => s.isWon)
 
   const maxNormalCount = Math.max(...normalSteps.map((s) => s.count), 1)
 
@@ -166,6 +167,51 @@ export function ConversionFunnel({ data, isLoading }: ConversionFunnelProps) {
 
           <p className="text-right text-xs text-muted-foreground">
             Taux de referral
+          </p>
+        </>
+      )}
+
+      {/* Won stages — Clôtures positives */}
+      {wonSteps.length > 0 && (
+        <>
+          <div className="mt-1 flex items-center gap-2">
+            <div className="h-px flex-1 bg-border" />
+            <span className="text-xs font-medium text-green-600 dark:text-green-400">Clôtures positives</span>
+            <div className="h-px flex-1 bg-border" />
+          </div>
+
+          {wonSteps.map((step) => (
+            <div key={step.stageId} className="flex items-center gap-3">
+              <span className="w-4 shrink-0" />
+
+              <div className="flex-1 relative h-7 rounded-md bg-green-50 dark:bg-green-950/30 overflow-hidden border border-green-200 dark:border-green-900">
+                <div
+                  className="absolute inset-y-0 left-0 rounded-md transition-all duration-500"
+                  style={{
+                    width: `${Math.max(step.count > 0 ? (step.count / maxNormalCount) * 100 : 0, step.count > 0 ? 4 : 0)}%`,
+                    backgroundColor: '#22c55e66',
+                  }}
+                />
+                <div className="relative flex items-center h-full px-2 gap-2">
+                  <span className="text-xs font-medium truncate text-green-700 dark:text-green-400">
+                    {step.stageName}
+                  </span>
+                  <span className="ml-auto text-xs font-semibold tabular-nums shrink-0 text-green-700 dark:text-green-400">
+                    {step.count}
+                  </span>
+                </div>
+              </div>
+
+              <div className="w-12 shrink-0 text-right">
+                <span className="text-xs font-semibold tabular-nums text-green-600 dark:text-green-400">
+                  {step.rate}%
+                </span>
+              </div>
+            </div>
+          ))}
+
+          <p className="text-right text-xs text-muted-foreground">
+            Taux de conversion
           </p>
         </>
       )}

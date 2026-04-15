@@ -18,7 +18,7 @@ import {
 } from '@dnd-kit/sortable'
 import { KeyboardSensor } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
-import { GripVertical, Plus, Trash2, Loader2, XCircle, ArrowUpRight } from 'lucide-react'
+import { GripVertical, Plus, Trash2, Loader2, XCircle, ArrowUpRight, CheckCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -106,15 +106,17 @@ interface StageRowProps {
   color: string
   isLost: boolean
   isReferral: boolean
+  isWon: boolean
   onNameChange: (v: string) => void
   onColorChange: (v: string) => void
   onIsLostChange: (v: boolean) => void
   onIsReferralChange: (v: boolean) => void
+  onIsWonChange: (v: boolean) => void
   onDelete: () => void
   canDelete: boolean
 }
 
-function StageRow({ id, name, color, isLost, isReferral, onNameChange, onColorChange, onIsLostChange, onIsReferralChange, onDelete, canDelete }: StageRowProps) {
+function StageRow({ id, name, color, isLost, isReferral, isWon, onNameChange, onColorChange, onIsLostChange, onIsReferralChange, onIsWonChange, onDelete, canDelete }: StageRowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id })
 
@@ -156,7 +158,7 @@ function StageRow({ id, name, color, isLost, isReferral, onNameChange, onColorCh
           value={name}
           onChange={(e) => onNameChange(e.target.value)}
           placeholder="Nom de l'étape"
-          className={`h-8 flex-1 text-sm ${isLost ? 'border-red-300 dark:border-red-800' : isReferral ? 'border-orange-300 dark:border-orange-800' : ''}`}
+          className={`h-8 flex-1 text-sm ${isLost ? 'border-red-300 dark:border-red-800' : isReferral ? 'border-orange-300 dark:border-orange-800' : isWon ? 'border-green-300 dark:border-green-800' : ''}`}
         />
 
         {/* Delete */}
@@ -193,6 +195,19 @@ function StageRow({ id, name, color, isLost, isReferral, onNameChange, onColorCh
         }
         hint="— sortie latérale positive"
       />
+
+      <StageToggle
+        checked={isWon}
+        onChange={onIsWonChange}
+        activeColor="bg-green-500"
+        label={
+          <span className={isWon ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}>
+            <CheckCircle className="inline h-3 w-3 mr-0.5" />
+            Étape de clôture positive — objectif atteint
+          </span>
+        }
+        hint="— exclue de l'entonnoir"
+      />
     </div>
   )
 }
@@ -209,6 +224,7 @@ interface DraftStage {
   position: number
   isLost: boolean
   isReferral: boolean
+  isWon: boolean
   isNew: boolean
 }
 
@@ -221,6 +237,7 @@ function buildDrafts(stages: PipelineWithStages['pipeline_stages']): DraftStage[
     position: s.position,
     isLost: s.is_lost,
     isReferral: s.is_referral,
+    isWon: s.is_won,
     isNew: false,
   }))
 }
@@ -278,6 +295,7 @@ export function PipelineEditor({ pipeline, onSuccess, onCancel }: PipelineEditor
         position: maxPos + 1,
         isLost: false,
         isReferral: false,
+        isWon: false,
         isNew: true,
       },
     ])
@@ -327,7 +345,7 @@ export function PipelineEditor({ pipeline, onSuccess, onCancel }: PipelineEditor
       // 3. Upsert stages (insert new, update existing)
       for (let i = 0; i < stages.length; i++) {
         const s = stages[i]
-        const payload = { name: s.name || 'Étape', color: s.color, position: i, is_lost: s.isLost, is_referral: s.isReferral }
+        const payload = { name: s.name || 'Étape', color: s.color, position: i, is_lost: s.isLost, is_referral: s.isReferral, is_won: s.isWon }
 
         if (s.dbId) {
           // Update existing — uses mutation so tenant_id and cache invalidation are handled
@@ -405,6 +423,7 @@ export function PipelineEditor({ pipeline, onSuccess, onCancel }: PipelineEditor
                   color={stage.color}
                   isLost={stage.isLost}
                   isReferral={stage.isReferral}
+                  isWon={stage.isWon}
                   onNameChange={(v) =>
                     setStages((prev) =>
                       prev.map((s) => (s.localId === stage.localId ? { ...s, name: v } : s))
@@ -418,14 +437,21 @@ export function PipelineEditor({ pipeline, onSuccess, onCancel }: PipelineEditor
                   onIsLostChange={(v) =>
                     setStages((prev) =>
                       prev.map((s) =>
-                        s.localId === stage.localId ? { ...s, isLost: v, ...(v ? { isReferral: false } : {}) } : s
+                        s.localId === stage.localId ? { ...s, isLost: v, ...(v ? { isReferral: false, isWon: false } : {}) } : s
                       )
                     )
                   }
                   onIsReferralChange={(v) =>
                     setStages((prev) =>
                       prev.map((s) =>
-                        s.localId === stage.localId ? { ...s, isReferral: v, ...(v ? { isLost: false } : {}) } : s
+                        s.localId === stage.localId ? { ...s, isReferral: v, ...(v ? { isLost: false, isWon: false } : {}) } : s
+                      )
+                    )
+                  }
+                  onIsWonChange={(v) =>
+                    setStages((prev) =>
+                      prev.map((s) =>
+                        s.localId === stage.localId ? { ...s, isWon: v, ...(v ? { isLost: false, isReferral: false } : {}) } : s
                       )
                     )
                   }

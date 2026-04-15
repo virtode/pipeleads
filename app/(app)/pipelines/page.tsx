@@ -118,12 +118,18 @@ export default function PipelinesPage() {
                         style={
                           stage.is_lost
                             ? { backgroundColor: '#94a3b822', color: '#64748b' }
+                            : stage.is_won
+                            ? { backgroundColor: '#22c55e22', color: '#16a34a' }
                             : { backgroundColor: stage.color + '22', color: stage.color }
                         }
                         className="border-0 text-xs"
-                        title={stage.is_lost ? 'Étape de clôture négative' : undefined}
+                        title={
+                          stage.is_lost ? 'Étape de clôture négative' :
+                          stage.is_won ? 'Étape de clôture positive' : undefined
+                        }
                       >
                         {stage.is_lost && <span className="mr-1 opacity-60">✕</span>}
+                        {stage.is_won && <span className="mr-1 opacity-80">✓</span>}
                         {stage.name}
                       </Badge>
                     ))}

@@ -17,7 +17,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { useDroppable } from '@dnd-kit/core'
-import { ArrowUpRight } from 'lucide-react'
+import { ArrowUpRight, CheckCircle } from 'lucide-react'
 import { KanbanCard, KanbanCardOverlay } from './KanbanCard'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -35,22 +35,29 @@ interface KanbanColumnProps {
   cards: KanbanCardData[]
   onCardOpen: (contactId: string) => void
   isReferral?: boolean
+  isWon?: boolean
 }
 
-function KanbanColumn({ id, label, color, cards, onCardOpen, isReferral }: KanbanColumnProps) {
+function KanbanColumn({ id, label, color, cards, onCardOpen, isReferral, isWon }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id })
+
+  const headerBg = isWon ? '#22c55e18' : isReferral ? '#f9731618' : color + '18'
+  const bodyBg = isWon ? 'bg-green-500/5' : isReferral ? 'bg-orange-500/5' : 'bg-muted/30'
 
   return (
     <div className="flex flex-col w-72 shrink-0 h-full gap-2">
       {/* Header */}
       <div
         className="shrink-0 sticky top-0 z-10 flex items-center gap-2 rounded-lg px-3 py-2"
-        style={{ backgroundColor: (isReferral ? '#f97316' : color) + '18' }}
+        style={{ backgroundColor: headerBg }}
       >
         <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: color }} />
         <span className="flex-1 text-sm font-medium truncate">{label}</span>
         {isReferral && (
           <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-orange-500" />
+        )}
+        {isWon && (
+          <CheckCircle className="h-3.5 w-3.5 shrink-0 text-green-500" />
         )}
         <span className="text-xs text-muted-foreground tabular-nums">{cards.length}</span>
       </div>
@@ -59,12 +66,12 @@ function KanbanColumn({ id, label, color, cards, onCardOpen, isReferral }: Kanba
       <div
         ref={setNodeRef}
         className={`flex-1 overflow-y-auto space-y-2 rounded-lg p-1.5 pb-4 transition-colors ${
-          isOver ? 'bg-primary/5 ring-2 ring-primary/20' : isReferral ? 'bg-orange-500/5' : 'bg-muted/30'
+          isOver ? 'bg-primary/5 ring-2 ring-primary/20' : bodyBg
         }`}
       >
         <SortableContext items={cards.map((c) => c.cp_id)} strategy={verticalListSortingStrategy}>
           {cards.map((card) => (
-            <KanbanCard key={card.cp_id} card={card} onOpen={onCardOpen} dimmed={isReferral} />
+            <KanbanCard key={card.cp_id} card={card} onOpen={onCardOpen} dimmed={isReferral || isWon} />
           ))}
         </SortableContext>
         {cards.length === 0 && (
@@ -84,9 +91,10 @@ interface KanbanBoardProps {
   onCardOpen: (contactId: string) => void
   isLoading?: boolean
   showReferrals?: boolean
+  showWon?: boolean
 }
 
-export function KanbanBoard({ data, onCardOpen, isLoading, showReferrals = false }: KanbanBoardProps) {
+export function KanbanBoard({ data, onCardOpen, isLoading, showReferrals = false, showWon = false }: KanbanBoardProps) {
   const queryClient = useQueryClient()
   const moveContact = useMoveContactStage()
   const [activeCard, setActiveCard] = useState<KanbanCardData | null>(null)
@@ -105,9 +113,9 @@ export function KanbanBoard({ data, onCardOpen, isLoading, showReferrals = false
       : card.stage_id
   }
 
-  // Build columns with optimistic overrides applied, filtered by showReferrals
+  // Build columns with optimistic overrides applied, filtered by showReferrals / showWon
   const columns = data.columns
-    .filter((col) => !col.stage.is_referral || showReferrals)
+    .filter((col) => (!col.stage.is_referral || showReferrals) && (!col.stage.is_won || showWon))
     .map((col) => ({
       ...col,
       cards: [
@@ -243,6 +251,7 @@ export function KanbanBoard({ data, onCardOpen, isLoading, showReferrals = false
             cards={col.cards}
             onCardOpen={onCardOpen}
             isReferral={col.stage.is_referral}
+            isWon={col.stage.is_won}
           />
         ))}
 

@@ -20,6 +20,7 @@ export interface StageDistributionItem {
   count: number
   isLost: boolean
   isReferral: boolean
+  isWon: boolean
 }
 
 export interface TimelinePoint {
@@ -45,9 +46,10 @@ export interface ConversionStep {
   stageName: string
   stageColor: string
   count: number
-  rate: number   // cumulative % for normal stages, loss/referral rate for exit stages (0–100)
+  rate: number   // cumulative % for normal stages, loss/referral/won rate for exit stages (0–100)
   isLost: boolean
   isReferral: boolean
+  isWon: boolean
 }
 
 export interface KpiData {
@@ -103,7 +105,7 @@ export function useStageDistribution(filters: ReportFilters) {
       // Fetch stages for this pipeline
       const { data: stages, error: stagesErr } = await supabase
         .from('pipeline_stages')
-        .select('id, name, color, is_lost, is_referral')
+        .select('id, name, color, is_lost, is_referral, is_won')
         .eq('pipeline_id', filters.pipelineId)
         .order('position', { ascending: true })
 
@@ -130,6 +132,7 @@ export function useStageDistribution(filters: ReportFilters) {
         count: counts.get(stage.id) ?? 0,
         isLost: stage.is_lost,
         isReferral: stage.is_referral,
+        isWon: stage.is_won,
       }))
 
       // Add "unassigned" if any
@@ -142,6 +145,7 @@ export function useStageDistribution(filters: ReportFilters) {
           count: unassignedCount,
           isLost: false,
           isReferral: false,
+          isWon: false,
         })
       }
 
@@ -296,7 +300,7 @@ export function useConversionFunnel(pipelineId: string | null, filters: ReportFi
       // Fetch stages ordered
       const { data: stages, error: stagesErr } = await supabase
         .from('pipeline_stages')
-        .select('id, name, color, position, is_lost, is_referral')
+        .select('id, name, color, position, is_lost, is_referral, is_won')
         .eq('pipeline_id', pipelineId)
         .order('position', { ascending: true })
 
@@ -321,17 +325,22 @@ export function useConversionFunnel(pipelineId: string | null, filters: ReportFi
 
       const totalInPipeline = (current ?? []).length
 
-      // Separate normal vs lost vs referral stages
-      const normalStages = stages.filter((s) => !s.is_lost && !s.is_referral)
+      // Separate normal vs lost vs referral vs won stages
+      const normalStages = stages.filter((s) => !s.is_lost && !s.is_referral && !s.is_won)
       const lostStages = stages.filter((s) => s.is_lost)
       const referralStages = stages.filter((s) => s.is_referral)
+      const wonStages = stages.filter((s) => s.is_won)
 
-      // Referral contacts are excluded from the conversion/loss rate base
+      // Referral and won contacts are excluded from the conversion/loss rate base
       const referralContactCount = referralStages.reduce(
         (sum, s) => sum + (stageCounts.get(s.id) ?? 0),
         0
       )
-      const effectiveTotal = totalInPipeline - referralContactCount
+      const wonContactCount = wonStages.reduce(
+        (sum, s) => sum + (stageCounts.get(s.id) ?? 0),
+        0
+      )
+      const effectiveTotal = totalInPipeline - referralContactCount - wonContactCount
 
       // Cumulative counts for normal stages: count(i) = contacts at stage i + all subsequent normal stages
       const normalCounts: number[] = normalStages.map((_, i) =>
@@ -346,6 +355,7 @@ export function useConversionFunnel(pipelineId: string | null, filters: ReportFi
         rate: effectiveTotal > 0 ? (i === 0 ? 100 : Math.round((normalCounts[i] / effectiveTotal) * 100)) : 0,
         isLost: false,
         isReferral: false,
+        isWon: false,
       }))
 
       // Lost stages: individual counts, rate = count / effectiveTotal
@@ -359,6 +369,7 @@ export function useConversionFunnel(pipelineId: string | null, filters: ReportFi
           rate: effectiveTotal > 0 ? Math.round((count / effectiveTotal) * 100) : 0,
           isLost: true,
           isReferral: false,
+          isWon: false,
         }
       })
 
@@ -373,10 +384,26 @@ export function useConversionFunnel(pipelineId: string | null, filters: ReportFi
           rate: totalInPipeline > 0 ? Math.round((count / totalInPipeline) * 100) : 0,
           isLost: false,
           isReferral: true,
+          isWon: false,
         }
       })
 
-      return [...normalSteps, ...lostSteps, ...referralSteps]
+      // Won stages: individual counts, rate = count / totalInPipeline
+      const wonSteps: ConversionStep[] = wonStages.map((stage) => {
+        const count = stageCounts.get(stage.id) ?? 0
+        return {
+          stageId: stage.id,
+          stageName: stage.name,
+          stageColor: stage.color,
+          count,
+          rate: totalInPipeline > 0 ? Math.round((count / totalInPipeline) * 100) : 0,
+          isLost: false,
+          isReferral: false,
+          isWon: true,
+        }
+      })
+
+      return [...normalSteps, ...lostSteps, ...referralSteps, ...wonSteps]
     },
     enabled: !!pipelineId,
     staleTime: 60_000,

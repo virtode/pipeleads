@@ -132,6 +132,7 @@ export interface Database {
           position: number
           is_lost: boolean
           is_referral: boolean
+          is_won: boolean
           created_at: string
         }
         Insert: {
@@ -143,6 +144,7 @@ export interface Database {
           position: number
           is_lost?: boolean
           is_referral?: boolean
+          is_won?: boolean
           created_at?: string
         }
         Update: {
@@ -154,6 +156,7 @@ export interface Database {
           position?: number
           is_lost?: boolean
           is_referral?: boolean
+          is_won?: boolean
         }
         Relationships: [
           {

@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import {
   Mail, Phone, MapPin, Globe, Linkedin, Twitter,
-  Tag, FileText, Pencil, Trash2, ExternalLink, Loader2, GitBranch, Plus, X, Paperclip, ArrowUpRight,
+  Tag, FileText, Pencil, Trash2, ExternalLink, Loader2, GitBranch, Plus, X, Paperclip, ArrowUpRight, CheckCircle,
 } from 'lucide-react'
 import { getInitials } from '@/lib/utils'
 import type { PipelineStage } from '@/types'
@@ -586,6 +586,9 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
                                   />
                                   {s.is_referral && (
                                     <ArrowUpRight className="h-3 w-3 text-orange-500 shrink-0" />
+                                  )}
+                                  {s.is_won && (
+                                    <CheckCircle className="h-3 w-3 text-green-500 shrink-0" />
                                   )}
                                   {s.name}
                                 </span>

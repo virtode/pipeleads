@@ -40,6 +40,9 @@ function CustomTooltip({ active, payload }: { active?: boolean; payload?: Toolti
         {item.isReferral && (
           <span className="text-xs text-orange-500">(referral)</span>
         )}
+        {item.isWon && (
+          <span className="text-xs text-green-600 dark:text-green-400">(gagné)</span>
+        )}
       </div>
       <p className="mt-1 text-muted-foreground">
         {item.count} contact{item.count !== 1 ? 's' : ''}
@@ -117,8 +120,8 @@ export function DistributionChart({ data, isLoading }: DistributionChartProps) {
           {data.map((item, i) => (
             <Cell
               key={i}
-              fill={item.isLost ? '#94a3b8' : item.stageColor}
-              opacity={item.isLost ? 0.6 : item.isReferral ? 0.75 : 1}
+              fill={item.isLost ? '#94a3b8' : item.isWon ? '#22c55e' : item.stageColor}
+              opacity={item.isLost ? 0.6 : item.isReferral || item.isWon ? 0.75 : 1}
             />
           ))}
         </Bar>

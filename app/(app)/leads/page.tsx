@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { UserPlus, Settings, Layers, ArrowUpRight } from 'lucide-react'
+import { UserPlus, Settings, Layers, ArrowUpRight, CheckCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Select,
@@ -31,6 +31,7 @@ export default function LeadsPage() {
   const [isSheetOpen, setIsSheetOpen] = useState(false)
   const [isPickerOpen, setIsPickerOpen] = useState(false)
   const [showReferrals, setShowReferrals] = useState(false)
+  const [showWon, setShowWon] = useState(false)
 
   const assignContact = useAssignContactToPipeline()
 
@@ -43,6 +44,7 @@ export default function LeadsPage() {
 
   const selectedPipeline = pipelines?.find((p) => p.id === pipelineId)
   const hasReferralStages = selectedPipeline?.pipeline_stages?.some((s) => s.is_referral) ?? false
+  const hasWonStages = selectedPipeline?.pipeline_stages?.some((s) => s.is_won) ?? false
 
   function handleCardOpen(contactId: string) {
     setSheetContactId(contactId)
@@ -128,6 +130,19 @@ export default function LeadsPage() {
               </Button>
             )}
 
+            {/* Won filter — shown only when the pipeline has won stages */}
+            {hasWonStages && (
+              <Button
+                size="sm"
+                variant={showWon ? 'secondary' : 'outline'}
+                className="w-full md:w-auto"
+                onClick={() => setShowWon((v) => !v)}
+              >
+                <CheckCircle className="mr-1.5 h-4 w-4" />
+                {showWon ? 'Masquer clôtures positives' : 'Afficher clôtures positives'}
+              </Button>
+            )}
+
             {/* Manage pipelines */}
             <Button size="sm" variant="ghost" className="w-full md:w-auto" asChild>
               <Link href="/pipelines">
@@ -147,6 +162,7 @@ export default function LeadsPage() {
             onCardOpen={handleCardOpen}
             isLoading={kanbanLoading}
             showReferrals={showReferrals}
+            showWon={showWon}
           />
         </div>
       ) : kanbanLoading ? (
