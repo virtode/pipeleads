@@ -1,8 +1,10 @@
 'use client'
 
+import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import { ArrowLeft, Loader2, Plus, Search } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -14,14 +16,17 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Loader2 } from 'lucide-react'
-import { useCreateContact } from '@/hooks/useContacts'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
+import { useCreateContact, useUpdateContact, useContacts } from '@/hooks/useContacts'
 import { useAssignContactToPipeline } from '@/hooks/usePipelines'
+import { useDebounce } from '@/hooks/useDebounce'
 import { getFullName } from '@/lib/utils'
-import type { PipelineStage } from '@/types'
+import type { Contact, PipelineStage } from '@/types'
 
 // ---------------------------------------------------------------------------
-// Schema
+// Schema (Mode B — create)
 // ---------------------------------------------------------------------------
 
 const schema = z.object({
@@ -59,6 +64,14 @@ interface ReferralContactModalProps {
 }
 
 // ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function getInitials(first: string, last?: string | null) {
+  return `${first.charAt(0)}${last ? last.charAt(0) : ''}`.toUpperCase()
+}
+
+// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
@@ -71,159 +84,346 @@ export function ReferralContactModal({
   firstStage,
   onSuccess,
 }: ReferralContactModalProps) {
+  const queryClient = useQueryClient()
   const createContact = useCreateContact()
+  const updateContact = useUpdateContact()
   const assignContact = useAssignContactToPipeline()
+
+  const [mode, setMode] = useState<'search' | 'create'>('search')
+  const [search, setSearch] = useState('')
+  const debouncedSearch = useDebounce(search, 300)
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: { first_name: '', last_name: '', company: '', email: '', phone: '' },
   })
 
-  const isPending = createContact.isPending || assignContact.isPending
+  const isPending = createContact.isPending || updateContact.isPending || assignContact.isPending
 
   const sourceFullName = getFullName(sourceContact.first_name, sourceContact.last_name)
+  const notesRef = `Referral de ${sourceFullName}${
+    sourceContact.company ? ` (${sourceContact.company})` : ''
+  }`
 
-  async function handleSubmit(values: FormValues) {
-    const notesRef = `Referral de ${sourceFullName}${
-      sourceContact.company ? ` (${sourceContact.company})` : ''
-    }`
+  // Search results — only shown when a query has been typed
+  const { data: searchData, isFetching: isSearching } = useContacts({
+    filters: { search: debouncedSearch },
+    page: 0,
+    pageSize: 5,
+  })
+  const results = debouncedSearch.trim() ? (searchData?.contacts ?? []).slice(0, 5) : []
 
-    // 1. Create the new follow-up contact
-    const newContact = await createContact.mutateAsync({
-      first_name: values.first_name,
-      last_name: values.last_name || null,
-      company: values.company || null,
-      email: values.email ? [values.email] : null,
-      phone: values.phone ? [values.phone] : null,
-      notes: notesRef,
-    })
+  // ---------------------------------------------------------------------------
+  // Shared cache flush — called on every success path
+  // ---------------------------------------------------------------------------
 
-    // Assign both contacts simultaneously — independent rows, no data dependency
-    await Promise.all([
-      assignContact.mutateAsync({ contactId: sourceContact.id, pipelineId, stageId: referralStageId }),
-      assignContact.mutateAsync({ contactId: newContact.id, pipelineId, stageId: firstStage?.id ?? null }),
-    ])
+  function flushCaches() {
+    queryClient.invalidateQueries({ queryKey: ['contacts'] })
+    queryClient.invalidateQueries({ queryKey: ['pipelines'] })
+  }
 
-    form.reset()
-    onSuccess()
+  // ---------------------------------------------------------------------------
+  // Mode transitions
+  // ---------------------------------------------------------------------------
+
+  function switchToCreate() {
+    const trimmed = search.trim()
+    if (trimmed) {
+      const [first = '', ...rest] = trimmed.split(/\s+/)
+      form.reset({ first_name: first, last_name: rest.join(' '), company: '', email: '', phone: '' })
+    } else {
+      form.reset({ first_name: '', last_name: '', company: '', email: '', phone: '' })
+    }
+    setMode('create')
+  }
+
+  function switchToSearch() {
+    form.reset({ first_name: '', last_name: '', company: '', email: '', phone: '' })
+    setMode('search')
   }
 
   function handleOpenChange(open: boolean) {
     if (!open && !isPending) {
       form.reset()
+      setSearch('')
+      setMode('search')
       onClose()
     }
   }
+
+  // ---------------------------------------------------------------------------
+  // Mode A — pick an existing contact
+  // ---------------------------------------------------------------------------
+
+  async function handlePickExisting(contact: Contact) {
+    // Append the referral note to the contact's existing notes
+    const updatedNotes = contact.notes
+      ? `${contact.notes}\n${notesRef}`
+      : notesRef
+
+    try {
+      await updateContact.mutateAsync({ id: contact.id, data: { notes: updatedNotes } })
+    } catch {
+      // useUpdateContact.onError already logs + shows a toast
+      return
+    }
+
+    // Move source to referral stage, picked contact to first active stage
+    try {
+      await Promise.all([
+        assignContact.mutateAsync({ contactId: sourceContact.id, pipelineId, stageId: referralStageId }),
+        assignContact.mutateAsync({ contactId: contact.id, pipelineId, stageId: firstStage?.id ?? null }),
+      ])
+    } catch {
+      // Assignment failed but note was saved — still flush so the note is visible
+      flushCaches()
+      return
+    }
+
+    flushCaches()
+    toast.success(`${getFullName(contact.first_name, contact.last_name)} ajouté comme referral`)
+    onSuccess()
+  }
+
+  // ---------------------------------------------------------------------------
+  // Mode B — create a new contact
+  // ---------------------------------------------------------------------------
+
+  async function handleCreate(values: FormValues) {
+    let newContact: Awaited<ReturnType<typeof createContact.mutateAsync>>
+    try {
+      newContact = await createContact.mutateAsync({
+        first_name: values.first_name,
+        last_name: values.last_name || null,
+        company: values.company || null,
+        email: values.email ? [values.email] : null,
+        phone: values.phone ? [values.phone] : null,
+        notes: notesRef,
+      })
+    } catch {
+      // useCreateContact.onError already logs + shows a toast
+      return
+    }
+
+    try {
+      await Promise.all([
+        assignContact.mutateAsync({ contactId: sourceContact.id, pipelineId, stageId: referralStageId }),
+        assignContact.mutateAsync({ contactId: newContact.id, pipelineId, stageId: firstStage?.id ?? null }),
+      ])
+    } catch {
+      // Assignment failed but contact was created — flush so it appears in the list
+      flushCaches()
+      return
+    }
+
+    flushCaches()
+    form.reset()
+    onSuccess()
+  }
+
+  // ---------------------------------------------------------------------------
+  // Render
+  // ---------------------------------------------------------------------------
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>
-            Créer le contact de suivi (referral de {sourceFullName})
+            {mode === 'search' ? 'Ajouter un referral' : 'Créer un nouveau contact'}
           </DialogTitle>
           <DialogDescription>
-            Renseigne les informations du nouveau contact à prospecter.
+            {mode === 'search'
+              ? 'Recherchez un contact existant ou créez-en un nouveau.'
+              : 'Renseigne les informations du nouveau contact à prospecter.'}
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-3">
-          {/* Referral de (lecture seule) */}
-          <div className="space-y-1">
-            <Label className="text-xs text-muted-foreground">Referral de</Label>
-            <div className="rounded-md border bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
-              {sourceFullName}
-              {sourceContact.company ? ` (${sourceContact.company})` : ''}
+        {/* Source contact — read-only, visible in both modes */}
+        <div className="space-y-1">
+          <Label className="text-xs text-muted-foreground">Referral de</Label>
+          <div className="rounded-md border bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
+            {sourceFullName}
+            {sourceContact.company ? ` (${sourceContact.company})` : ''}
+          </div>
+        </div>
+
+        {/* ------------------------------------------------------------------ */}
+        {/* MODE A — search                                                     */}
+        {/* ------------------------------------------------------------------ */}
+        {mode === 'search' && (
+          <div className="space-y-3">
+            {/* Search input */}
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              {isSearching && debouncedSearch.trim() && (
+                <Loader2 className="absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 animate-spin text-muted-foreground" />
+              )}
+              <Input
+                autoFocus
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Rechercher un contact existant..."
+                className="pl-9 pr-8"
+              />
             </div>
-          </div>
 
-          {/* Prénom */}
-          <div className="space-y-1">
-            <Label htmlFor="ref-first-name">
-              Prénom <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              id="ref-first-name"
-              {...form.register('first_name')}
-              placeholder="Prénom"
-              autoFocus
-            />
-            {form.formState.errors.first_name && (
-              <p className="text-xs text-destructive">
-                {form.formState.errors.first_name.message}
-              </p>
+            {/* Results list */}
+            {results.length > 0 && (
+              <div className="divide-y overflow-hidden rounded-md border">
+                {results.map((contact) => (
+                  <button
+                    key={contact.id}
+                    type="button"
+                    disabled={isPending}
+                    onClick={() => handlePickExisting(contact)}
+                    className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left transition-colors hover:bg-muted disabled:opacity-50"
+                  >
+                    <Avatar size="sm">
+                      <AvatarImage src={contact.photo_url ?? undefined} />
+                      <AvatarFallback>
+                        {getInitials(contact.first_name, contact.last_name)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium">
+                        {contact.first_name} {contact.last_name}
+                      </p>
+                      {contact.company && (
+                        <p className="truncate text-xs text-muted-foreground">{contact.company}</p>
+                      )}
+                    </div>
+                    {isPending && (
+                      <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-muted-foreground" />
+                    )}
+                  </button>
+                ))}
+              </div>
             )}
-          </div>
 
-          {/* Nom */}
-          <div className="space-y-1">
-            <Label htmlFor="ref-last-name">
-              Nom <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              id="ref-last-name"
-              {...form.register('last_name')}
-              placeholder="Nom"
-            />
-            {form.formState.errors.last_name && (
-              <p className="text-xs text-destructive">
-                {form.formState.errors.last_name.message}
-              </p>
-            )}
-          </div>
-
-          {/* Entreprise */}
-          <div className="space-y-1">
-            <Label htmlFor="ref-company">Entreprise</Label>
-            <Input
-              id="ref-company"
-              {...form.register('company')}
-              placeholder="Entreprise (optionnel)"
-            />
-          </div>
-
-          {/* Email */}
-          <div className="space-y-1">
-            <Label htmlFor="ref-email">Email</Label>
-            <Input
-              id="ref-email"
-              {...form.register('email')}
-              type="email"
-              placeholder="email@exemple.com (optionnel)"
-            />
-            {form.formState.errors.email && (
-              <p className="text-xs text-destructive">
-                {form.formState.errors.email.message}
-              </p>
-            )}
-          </div>
-
-          {/* Téléphone */}
-          <div className="space-y-1">
-            <Label htmlFor="ref-phone">Téléphone</Label>
-            <Input
-              id="ref-phone"
-              {...form.register('phone')}
-              type="tel"
-              placeholder="+33 6 00 00 00 00 (optionnel)"
-            />
-          </div>
-
-          <DialogFooter className="pt-2">
+            {/* Create CTA */}
             <Button
               type="button"
               variant="outline"
-              onClick={() => handleOpenChange(false)}
-              disabled={isPending}
+              size="sm"
+              className="w-full"
+              onClick={switchToCreate}
             >
-              Annuler
+              <Plus className="mr-1.5 h-4 w-4" />
+              Créer un nouveau contact
             </Button>
-            <Button type="submit" disabled={isPending}>
-              {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Créer le contact
-            </Button>
-          </DialogFooter>
-        </form>
+
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => handleOpenChange(false)}>
+                Annuler
+              </Button>
+            </DialogFooter>
+          </div>
+        )}
+
+        {/* ------------------------------------------------------------------ */}
+        {/* MODE B — create                                                     */}
+        {/* ------------------------------------------------------------------ */}
+        {mode === 'create' && (
+          <form onSubmit={form.handleSubmit(handleCreate)} className="space-y-3">
+            {/* Back link */}
+            <button
+              type="button"
+              onClick={switchToSearch}
+              className="flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" />
+              Retour à la recherche
+            </button>
+
+            {/* Prénom */}
+            <div className="space-y-1">
+              <Label htmlFor="ref-first-name">
+                Prénom <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="ref-first-name"
+                {...form.register('first_name')}
+                placeholder="Prénom"
+                autoFocus
+              />
+              {form.formState.errors.first_name && (
+                <p className="text-xs text-destructive">
+                  {form.formState.errors.first_name.message}
+                </p>
+              )}
+            </div>
+
+            {/* Nom */}
+            <div className="space-y-1">
+              <Label htmlFor="ref-last-name">
+                Nom <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="ref-last-name"
+                {...form.register('last_name')}
+                placeholder="Nom"
+              />
+              {form.formState.errors.last_name && (
+                <p className="text-xs text-destructive">
+                  {form.formState.errors.last_name.message}
+                </p>
+              )}
+            </div>
+
+            {/* Entreprise */}
+            <div className="space-y-1">
+              <Label htmlFor="ref-company">Entreprise</Label>
+              <Input
+                id="ref-company"
+                {...form.register('company')}
+                placeholder="Entreprise (optionnel)"
+              />
+            </div>
+
+            {/* Email */}
+            <div className="space-y-1">
+              <Label htmlFor="ref-email">Email</Label>
+              <Input
+                id="ref-email"
+                {...form.register('email')}
+                type="email"
+                placeholder="email@exemple.com (optionnel)"
+              />
+              {form.formState.errors.email && (
+                <p className="text-xs text-destructive">
+                  {form.formState.errors.email.message}
+                </p>
+              )}
+            </div>
+
+            {/* Téléphone */}
+            <div className="space-y-1">
+              <Label htmlFor="ref-phone">Téléphone</Label>
+              <Input
+                id="ref-phone"
+                {...form.register('phone')}
+                type="tel"
+                placeholder="+33 6 00 00 00 00 (optionnel)"
+              />
+            </div>
+
+            <DialogFooter className="pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => handleOpenChange(false)}
+                disabled={isPending}
+              >
+                Annuler
+              </Button>
+              <Button type="submit" disabled={isPending}>
+                {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Créer le contact
+              </Button>
+            </DialogFooter>
+          </form>
+        )}
       </DialogContent>
     </Dialog>
   )
