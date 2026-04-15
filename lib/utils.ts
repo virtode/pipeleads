@@ -9,6 +9,10 @@ export function getInitials(first: string, last?: string | null): string {
   return `${first.charAt(0)}${last ? last.charAt(0) : ''}`.toUpperCase()
 }
 
+export function getFullName(first: string, last?: string | null): string {
+  return [first, last].filter(Boolean).join(' ')
+}
+
 /** Date only: "01 janv. 2025" */
 export function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('fr-FR', {

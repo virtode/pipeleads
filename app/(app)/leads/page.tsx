@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { UserPlus, Settings, Layers } from 'lucide-react'
+import { UserPlus, Settings, Layers, ArrowUpRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Select,
@@ -30,6 +30,7 @@ export default function LeadsPage() {
   const [sheetContactId, setSheetContactId] = useState<string | null>(null)
   const [isSheetOpen, setIsSheetOpen] = useState(false)
   const [isPickerOpen, setIsPickerOpen] = useState(false)
+  const [showReferrals, setShowReferrals] = useState(false)
 
   const assignContact = useAssignContactToPipeline()
 
@@ -41,6 +42,7 @@ export default function LeadsPage() {
   const { data: kanban, isLoading: kanbanLoading } = useKanban(pipelineId)
 
   const selectedPipeline = pipelines?.find((p) => p.id === pipelineId)
+  const hasReferralStages = selectedPipeline?.pipeline_stages?.some((s) => s.is_referral) ?? false
 
   function handleCardOpen(contactId: string) {
     setSheetContactId(contactId)
@@ -113,6 +115,19 @@ export default function LeadsPage() {
               Ajouter un contact
             </Button>
 
+            {/* Referral filter — shown only when the pipeline has referral stages */}
+            {hasReferralStages && (
+              <Button
+                size="sm"
+                variant={showReferrals ? 'secondary' : 'outline'}
+                className="w-full md:w-auto"
+                onClick={() => setShowReferrals((v) => !v)}
+              >
+                <ArrowUpRight className="mr-1.5 h-4 w-4" />
+                {showReferrals ? 'Masquer referrals' : 'Afficher referrals'}
+              </Button>
+            )}
+
             {/* Manage pipelines */}
             <Button size="sm" variant="ghost" className="w-full md:w-auto" asChild>
               <Link href="/pipelines">
@@ -131,6 +146,7 @@ export default function LeadsPage() {
             data={kanban}
             onCardOpen={handleCardOpen}
             isLoading={kanbanLoading}
+            showReferrals={showReferrals}
           />
         </div>
       ) : kanbanLoading ? (

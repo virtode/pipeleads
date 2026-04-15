@@ -18,7 +18,7 @@ import {
 } from '@dnd-kit/sortable'
 import { KeyboardSensor } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
-import { GripVertical, Plus, Trash2, Loader2, XCircle } from 'lucide-react'
+import { GripVertical, Plus, Trash2, Loader2, XCircle, ArrowUpRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -52,6 +52,50 @@ const STAGE_COLORS = [
 ]
 
 // ---------------------------------------------------------------------------
+// Stage toggle (is_lost / is_referral)
+// ---------------------------------------------------------------------------
+
+function StageToggle({
+  checked,
+  onChange,
+  activeColor,
+  label,
+  hint,
+}: {
+  checked: boolean
+  onChange: (v: boolean) => void
+  activeColor: string   // Tailwind bg class, e.g. 'bg-red-500'
+  label: React.ReactNode
+  hint?: React.ReactNode
+}) {
+  return (
+    <div className="ml-6 flex items-center gap-2">
+      <button
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        onClick={() => onChange(!checked)}
+        className={`relative inline-flex h-4 w-7 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+          checked ? activeColor : 'bg-muted-foreground/30'
+        }`}
+      >
+        <span
+          className={`pointer-events-none inline-block h-3 w-3 rounded-full bg-white shadow-sm transition-transform ${
+            checked ? 'translate-x-3' : 'translate-x-0'
+          }`}
+        />
+      </button>
+      <span className="text-xs">
+        {label}
+        {checked && hint && (
+          <span className="ml-1 text-muted-foreground font-normal">{hint}</span>
+        )}
+      </span>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // Stage row (sortable)
 // ---------------------------------------------------------------------------
 
@@ -60,14 +104,16 @@ interface StageRowProps {
   name: string
   color: string
   isLost: boolean
+  isReferral: boolean
   onNameChange: (v: string) => void
   onColorChange: (v: string) => void
   onIsLostChange: (v: boolean) => void
+  onIsReferralChange: (v: boolean) => void
   onDelete: () => void
   canDelete: boolean
 }
 
-function StageRow({ id, name, color, isLost, onNameChange, onColorChange, onIsLostChange, onDelete, canDelete }: StageRowProps) {
+function StageRow({ id, name, color, isLost, isReferral, onNameChange, onColorChange, onIsLostChange, onIsReferralChange, onDelete, canDelete }: StageRowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id })
 
@@ -109,7 +155,7 @@ function StageRow({ id, name, color, isLost, onNameChange, onColorChange, onIsLo
           value={name}
           onChange={(e) => onNameChange(e.target.value)}
           placeholder="Nom de l'étape"
-          className={`h-8 flex-1 text-sm ${isLost ? 'border-red-300 dark:border-red-800' : ''}`}
+          className={`h-8 flex-1 text-sm ${isLost ? 'border-red-300 dark:border-red-800' : isReferral ? 'border-orange-300 dark:border-orange-800' : ''}`}
         />
 
         {/* Delete */}
@@ -126,32 +172,26 @@ function StageRow({ id, name, color, isLost, onNameChange, onColorChange, onIsLo
         </Button>
       </div>
 
-      {/* is_lost toggle */}
-      <div className="ml-6 flex items-center gap-2">
-        <button
-          type="button"
-          role="switch"
-          aria-checked={isLost}
-          onClick={() => onIsLostChange(!isLost)}
-          className={`relative inline-flex h-4 w-7 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-            isLost ? 'bg-red-500' : 'bg-muted-foreground/30'
-          }`}
-        >
-          <span
-            className={`pointer-events-none inline-block h-3 w-3 rounded-full bg-white shadow-sm transition-transform ${
-              isLost ? 'translate-x-3' : 'translate-x-0'
-            }`}
-          />
-        </button>
-        <span className={`text-xs ${isLost ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'}`}>
-          Étape de clôture négative
-          {isLost && (
-            <span className="ml-1 text-muted-foreground font-normal">
-              — exclue de l&apos;entonnoir
-            </span>
-          )}
-        </span>
-      </div>
+      <StageToggle
+        checked={isLost}
+        onChange={onIsLostChange}
+        activeColor="bg-red-500"
+        label={<span className={isLost ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'}>Étape de clôture négative</span>}
+        hint="— exclue de l'entonnoir"
+      />
+
+      <StageToggle
+        checked={isReferral}
+        onChange={onIsReferralChange}
+        activeColor="bg-orange-500"
+        label={
+          <span className={isReferral ? 'text-orange-600 dark:text-orange-400' : 'text-muted-foreground'}>
+            <ArrowUpRight className="inline h-3 w-3 mr-0.5" />
+            Étape de referral — génère un contact de suivi
+          </span>
+        }
+        hint="— sortie latérale positive"
+      />
     </div>
   )
 }
@@ -167,6 +207,7 @@ interface DraftStage {
   color: string
   position: number
   isLost: boolean
+  isReferral: boolean
   isNew: boolean
 }
 
@@ -178,6 +219,7 @@ function buildDrafts(stages: PipelineWithStages['pipeline_stages']): DraftStage[
     color: s.color,
     position: s.position,
     isLost: s.is_lost,
+    isReferral: s.is_referral,
     isNew: false,
   }))
 }
@@ -234,6 +276,7 @@ export function PipelineEditor({ pipeline, onSuccess, onCancel }: PipelineEditor
         color: STAGE_COLORS[stages.length % STAGE_COLORS.length],
         position: maxPos + 1,
         isLost: false,
+        isReferral: false,
         isNew: true,
       },
     ])
@@ -283,7 +326,7 @@ export function PipelineEditor({ pipeline, onSuccess, onCancel }: PipelineEditor
       // 3. Upsert stages (insert new, update existing)
       for (let i = 0; i < stages.length; i++) {
         const s = stages[i]
-        const payload = { name: s.name || 'Étape', color: s.color, position: i, is_lost: s.isLost }
+        const payload = { name: s.name || 'Étape', color: s.color, position: i, is_lost: s.isLost, is_referral: s.isReferral }
 
         if (s.dbId) {
           // Update existing — uses mutation so tenant_id and cache invalidation are handled
@@ -355,6 +398,7 @@ export function PipelineEditor({ pipeline, onSuccess, onCancel }: PipelineEditor
                   name={stage.name}
                   color={stage.color}
                   isLost={stage.isLost}
+                  isReferral={stage.isReferral}
                   onNameChange={(v) =>
                     setStages((prev) =>
                       prev.map((s) => (s.localId === stage.localId ? { ...s, name: v } : s))
@@ -367,7 +411,16 @@ export function PipelineEditor({ pipeline, onSuccess, onCancel }: PipelineEditor
                   }
                   onIsLostChange={(v) =>
                     setStages((prev) =>
-                      prev.map((s) => (s.localId === stage.localId ? { ...s, isLost: v } : s))
+                      prev.map((s) =>
+                        s.localId === stage.localId ? { ...s, isLost: v, ...(v ? { isReferral: false } : {}) } : s
+                      )
+                    )
+                  }
+                  onIsReferralChange={(v) =>
+                    setStages((prev) =>
+                      prev.map((s) =>
+                        s.localId === stage.localId ? { ...s, isReferral: v, ...(v ? { isLost: false } : {}) } : s
+                      )
                     )
                   }
                   onDelete={() => removeStage(stage.localId)}

@@ -21,8 +21,9 @@ export function ConversionFunnel({ data, isLoading }: ConversionFunnelProps) {
     )
   }
 
-  const normalSteps = data.filter((s) => !s.isLost)
+  const normalSteps = data.filter((s) => !s.isLost && !s.isReferral)
   const lostSteps = data.filter((s) => s.isLost)
+  const referralSteps = data.filter((s) => s.isReferral)
 
   const maxNormalCount = Math.max(...normalSteps.map((s) => s.count), 1)
 
@@ -120,6 +121,51 @@ export function ConversionFunnel({ data, isLoading }: ConversionFunnelProps) {
 
           <p className="text-right text-xs text-muted-foreground">
             Taux de perte
+          </p>
+        </>
+      )}
+
+      {/* Referral stages — Sorties latérales positives */}
+      {referralSteps.length > 0 && (
+        <>
+          <div className="mt-1 flex items-center gap-2">
+            <div className="h-px flex-1 bg-border" />
+            <span className="text-xs font-medium text-orange-500">Referrals</span>
+            <div className="h-px flex-1 bg-border" />
+          </div>
+
+          {referralSteps.map((step) => (
+            <div key={step.stageId} className="flex items-center gap-3">
+              <span className="w-4 shrink-0" />
+
+              <div className="flex-1 relative h-7 rounded-md bg-orange-50 dark:bg-orange-950/30 overflow-hidden border border-orange-200 dark:border-orange-900">
+                <div
+                  className="absolute inset-y-0 left-0 rounded-md transition-all duration-500"
+                  style={{
+                    width: `${Math.max(step.count > 0 ? (step.count / maxNormalCount) * 100 : 0, step.count > 0 ? 4 : 0)}%`,
+                    backgroundColor: '#f9731666',
+                  }}
+                />
+                <div className="relative flex items-center h-full px-2 gap-2">
+                  <span className="text-xs font-medium truncate text-orange-700 dark:text-orange-400">
+                    {step.stageName}
+                  </span>
+                  <span className="ml-auto text-xs font-semibold tabular-nums shrink-0 text-orange-700 dark:text-orange-400">
+                    {step.count}
+                  </span>
+                </div>
+              </div>
+
+              <div className="w-12 shrink-0 text-right">
+                <span className="text-xs font-semibold tabular-nums text-orange-500">
+                  {step.rate}%
+                </span>
+              </div>
+            </div>
+          ))}
+
+          <p className="text-right text-xs text-muted-foreground">
+            Taux de referral
           </p>
         </>
       )}

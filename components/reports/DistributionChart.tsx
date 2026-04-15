@@ -37,6 +37,9 @@ function CustomTooltip({ active, payload }: { active?: boolean; payload?: Toolti
         {item.isLost && (
           <span className="text-xs text-muted-foreground">(clôture négative)</span>
         )}
+        {item.isReferral && (
+          <span className="text-xs text-orange-500">(referral)</span>
+        )}
       </div>
       <p className="mt-1 text-muted-foreground">
         {item.count} contact{item.count !== 1 ? 's' : ''}
@@ -112,7 +115,11 @@ export function DistributionChart({ data, isLoading }: DistributionChartProps) {
         <Tooltip content={<CustomTooltip />} cursor={{ fill: 'hsl(var(--muted))' }} />
         <Bar dataKey="count" radius={[4, 4, 0, 0]} maxBarSize={48}>
           {data.map((item, i) => (
-            <Cell key={i} fill={item.isLost ? '#94a3b8' : item.stageColor} opacity={item.isLost ? 0.6 : 1} />
+            <Cell
+              key={i}
+              fill={item.isLost ? '#94a3b8' : item.stageColor}
+              opacity={item.isLost ? 0.6 : item.isReferral ? 0.75 : 1}
+            />
           ))}
         </Bar>
       </BarChart>

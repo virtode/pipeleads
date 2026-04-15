@@ -3,9 +3,10 @@
 import { useState, useEffect, useRef } from 'react'
 import {
   Mail, Phone, MapPin, Globe, Linkedin, Twitter,
-  Tag, FileText, Pencil, Trash2, ExternalLink, Loader2, GitBranch, Plus, X, Paperclip,
+  Tag, FileText, Pencil, Trash2, ExternalLink, Loader2, GitBranch, Plus, X, Paperclip, ArrowUpRight,
 } from 'lucide-react'
 import { getInitials } from '@/lib/utils'
+import type { PipelineStage } from '@/types'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -26,6 +27,7 @@ import {
 import { ContactForm, type ContactFormHandle } from './ContactForm'
 import { AIEnrichmentPanel } from './AIEnrichmentPanel'
 import { ContactFiles } from './ContactFiles'
+import { ReferralContactModal } from './ReferralContactModal'
 import { useQuery } from '@tanstack/react-query'
 import { useContact, useDeleteContact } from '@/hooks/useContacts'
 import { usePipelines, useAssignContactToPipeline, useRemoveContactFromPipeline } from '@/hooks/usePipelines'
@@ -68,6 +70,12 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
   const [mode, setMode] = useState<'view' | 'edit'>('view')
   const [activeTab, setActiveTab] = useState('info')
   const [addingPipelineId, setAddingPipelineId] = useState<string | null>(null)
+
+  const [referralPending, setReferralPending] = useState<{
+    stageId: string
+    pipelineId: string
+    stages: PipelineStage[]
+  } | null>(null)
   const [dragX, setDragX] = useState(0)
   const [isDragging, setIsDragging] = useState(false)
   const [mounted, setMounted] = useState(false)
@@ -223,6 +231,26 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
 
   return (
     <>
+      {/* Referral contact modal */}
+      {referralPending && contact && (
+        <ReferralContactModal
+          isOpen={true}
+          onClose={() => setReferralPending(null)}
+          sourceContact={{
+            id: contact.id,
+            first_name: contact.first_name,
+            last_name: contact.last_name,
+            company: contact.company,
+          }}
+          pipelineId={referralPending.pipelineId}
+          referralStageId={referralPending.stageId}
+          firstStage={
+            referralPending.stages.find((s) => !s.is_referral && !s.is_lost) ?? null
+          }
+          onSuccess={() => setReferralPending(null)}
+        />
+      )}
+
       {/* Overlay / backdrop */}
       <div
         className="fixed top-0 left-0 right-0 bottom-0 h-[100dvh] z-40 bg-black/50"
@@ -528,6 +556,15 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
                           onValueChange={async (v) => {
                             if (!contactId || !cp.pipeline?.id) return
                             const stageId = v === '__none__' ? null : v
+                            const selectedStage = stages.find((s) => s.id === stageId)
+                            if (selectedStage?.is_referral) {
+                              setReferralPending({
+                                stageId: stageId!,
+                                pipelineId: cp.pipeline.id,
+                                stages,
+                              })
+                              return
+                            }
                             await assignContact.mutateAsync({
                               contactId,
                               pipelineId: cp.pipeline.id,
@@ -547,6 +584,9 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
                                     className="inline-block h-2 w-2 rounded-full"
                                     style={{ backgroundColor: s.color }}
                                   />
+                                  {s.is_referral && (
+                                    <ArrowUpRight className="h-3 w-3 text-orange-500 shrink-0" />
+                                  )}
                                   {s.name}
                                 </span>
                               </SelectItem>

@@ -131,6 +131,7 @@ export interface Database {
           color: string
           position: number
           is_lost: boolean
+          is_referral: boolean
           created_at: string
         }
         Insert: {
@@ -141,6 +142,7 @@ export interface Database {
           color?: string
           position: number
           is_lost?: boolean
+          is_referral?: boolean
           created_at?: string
         }
         Update: {
@@ -151,6 +153,7 @@ export interface Database {
           color?: string
           position?: number
           is_lost?: boolean
+          is_referral?: boolean
         }
         Relationships: [
           {

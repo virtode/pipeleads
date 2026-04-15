@@ -9,13 +9,14 @@ import type { KanbanCardData } from '@/hooks/usePipelines'
 interface KanbanCardProps {
   card: KanbanCardData
   onOpen: (contactId: string) => void
+  dimmed?: boolean
 }
 
 function getInitials(first: string, last?: string | null) {
   return `${first.charAt(0)}${last ? last.charAt(0) : ''}`.toUpperCase()
 }
 
-export function KanbanCard({ card, onOpen }: KanbanCardProps) {
+export function KanbanCard({ card, onOpen, dimmed }: KanbanCardProps) {
   const { contact } = card
 
   const {
@@ -33,7 +34,7 @@ export function KanbanCard({ card, onOpen }: KanbanCardProps) {
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.4 : 1,
+    opacity: isDragging ? 0.4 : dimmed ? 0.5 : 1,
     zIndex: isDragging ? 999 : undefined,
   }
 
