@@ -343,15 +343,26 @@ export function PipelineEditor({ pipeline, onSuccess, onCancel }: PipelineEditor
       }
 
       // 3. Upsert stages (insert new, update existing)
+      // Pass 1: move all existing stages to temporary positions to avoid UNIQUE(pipeline_id, position)
+      // collisions when positions are reordered (e.g. swapping stage at pos 0 with stage at pos 1).
+      const existingStages = stages.filter((s) => s.dbId !== null)
+      for (let i = 0; i < existingStages.length; i++) {
+        const s = existingStages[i]
+        await updateStage.mutateAsync({
+          id: s.dbId!,
+          pipelineId,
+          data: { name: s.name || 'Étape', color: s.color, position: 10000 + i, is_lost: s.isLost, is_referral: s.isReferral, is_won: s.isWon },
+        })
+      }
+
+      // Pass 2: write final positions and insert new stages
       for (let i = 0; i < stages.length; i++) {
         const s = stages[i]
         const payload = { name: s.name || 'Étape', color: s.color, position: i, is_lost: s.isLost, is_referral: s.isReferral, is_won: s.isWon }
 
         if (s.dbId) {
-          // Update existing — uses mutation so tenant_id and cache invalidation are handled
           await updateStage.mutateAsync({ id: s.dbId, pipelineId, data: payload })
         } else {
-          // Insert new — uses mutation so tenant_id is injected and cache is invalidated
           await createStage.mutateAsync({ ...payload, pipeline_id: pipelineId })
         }
       }
