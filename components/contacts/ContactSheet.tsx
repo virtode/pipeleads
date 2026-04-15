@@ -241,6 +241,7 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
             first_name: contact.first_name,
             last_name: contact.last_name,
             company: contact.company,
+            notes: contact.notes ?? null,
           }}
           pipelineId={referralPending.pipelineId}
           referralStageId={referralPending.stageId}

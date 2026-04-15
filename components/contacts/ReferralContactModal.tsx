@@ -22,6 +22,7 @@ import { toast } from 'sonner'
 import { useCreateContact, useUpdateContact, useContacts } from '@/hooks/useContacts'
 import { useAssignContactToPipeline } from '@/hooks/usePipelines'
 import { useDebounce } from '@/hooks/useDebounce'
+import { useSupabaseClient, useTenantId } from '@/lib/supabase/context'
 import { getFullName } from '@/lib/utils'
 import type { Contact, PipelineStage } from '@/types'
 
@@ -56,6 +57,7 @@ interface ReferralContactModalProps {
     first_name: string
     last_name: string | null
     company: string | null
+    notes: string | null
   }
   pipelineId: string
   referralStageId: string
@@ -84,6 +86,8 @@ export function ReferralContactModal({
   firstStage,
   onSuccess,
 }: ReferralContactModalProps) {
+  const supabase = useSupabaseClient()
+  const tenantId = useTenantId()
   const queryClient = useQueryClient()
   const createContact = useCreateContact()
   const updateContact = useUpdateContact()
@@ -104,6 +108,32 @@ export function ReferralContactModal({
   const notesRef = `Referral de ${sourceFullName}${
     sourceContact.company ? ` (${sourceContact.company})` : ''
   }`
+
+  // ---------------------------------------------------------------------------
+  // Add a "Renvoi vers …" note on the source contact (A) silently
+  // ---------------------------------------------------------------------------
+
+  async function addNoteToSource(targetFirstName: string, targetLastName: string | null | undefined, targetCompany: string | null | undefined) {
+    const targetFullName = getFullName(targetFirstName, targetLastName ?? null)
+    const date = new Date().toLocaleDateString('fr-FR')
+    const line = `Renvoi vers ${targetFullName}${targetCompany ? ` (${targetCompany})` : ''} — ${date}`
+    const updatedNotes = sourceContact.notes ? `${sourceContact.notes}\n${line}` : line
+
+    const baseQuery = supabase
+      .from('contacts')
+      .update({ notes: updatedNotes })
+      .eq('id', sourceContact.id)
+
+    const { error } = await (tenantId ? baseQuery.eq('tenant_id', tenantId) : baseQuery)
+
+    if (error) {
+      console.error('[addNoteToSource]', error)
+      // Non-blocking — don't abort the whole flow for the source note
+    }
+
+    queryClient.invalidateQueries({ queryKey: ['contact', sourceContact.id] })
+    queryClient.invalidateQueries({ queryKey: ['contacts'] })
+  }
 
   // Search results — only shown when a query has been typed
   const { data: searchData, isFetching: isSearching } = useContacts({
@@ -168,11 +198,12 @@ export function ReferralContactModal({
       return
     }
 
-    // Move source to referral stage, picked contact to first active stage
+    // Move source to referral stage, picked contact to first active stage, note source A
     try {
       await Promise.all([
         assignContact.mutateAsync({ contactId: sourceContact.id, pipelineId, stageId: referralStageId }),
         assignContact.mutateAsync({ contactId: contact.id, pipelineId, stageId: firstStage?.id ?? null }),
+        addNoteToSource(contact.first_name, contact.last_name, contact.company),
       ])
     } catch {
       // Assignment failed but note was saved — still flush so the note is visible
@@ -209,6 +240,7 @@ export function ReferralContactModal({
       await Promise.all([
         assignContact.mutateAsync({ contactId: sourceContact.id, pipelineId, stageId: referralStageId }),
         assignContact.mutateAsync({ contactId: newContact.id, pipelineId, stageId: firstStage?.id ?? null }),
+        addNoteToSource(values.first_name, values.last_name, values.company),
       ])
     } catch {
       // Assignment failed but contact was created — flush so it appears in the list
