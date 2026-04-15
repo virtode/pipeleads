@@ -26,11 +26,12 @@ import { Textarea } from '@/components/ui/textarea'
 import {
   useCreatePipeline,
   useUpdatePipeline,
+  useCreateStage,
+  useUpdateStage,
   useDeleteStage,
   useReorderStages,
   type PipelineWithStages,
 } from '@/hooks/usePipelines'
-import { useSupabaseClient } from '@/lib/supabase/context'
 import { useQueryClient } from '@tanstack/react-query'
 
 // ---------------------------------------------------------------------------
@@ -192,10 +193,11 @@ interface PipelineEditorProps {
 }
 
 export function PipelineEditor({ pipeline, onSuccess, onCancel }: PipelineEditorProps) {
-  const supabase = useSupabaseClient()
   const queryClient = useQueryClient()
   const createPipeline = useCreatePipeline()
   const updatePipeline = useUpdatePipeline()
+  const createStage = useCreateStage()
+  const updateStage = useUpdateStage()
   const deleteStage = useDeleteStage()
   const reorderStages = useReorderStages()
 
@@ -284,21 +286,15 @@ export function PipelineEditor({ pipeline, onSuccess, onCancel }: PipelineEditor
         const payload = { name: s.name || 'Étape', color: s.color, position: i, is_lost: s.isLost }
 
         if (s.dbId) {
-          // Update existing
-          await supabase
-            .from('pipeline_stages')
-            .update(payload)
-            .eq('id', s.dbId)
+          // Update existing — uses mutation so tenant_id and cache invalidation are handled
+          await updateStage.mutateAsync({ id: s.dbId, pipelineId, data: payload })
         } else {
-          // Insert new
-          await supabase
-            .from('pipeline_stages')
-            .insert({ ...payload, pipeline_id: pipelineId })
+          // Insert new — uses mutation so tenant_id is injected and cache is invalidated
+          await createStage.mutateAsync({ ...payload, pipeline_id: pipelineId })
         }
       }
 
-      queryClient.invalidateQueries({ queryKey: ['pipelines'] })
-      queryClient.invalidateQueries({ queryKey: ['pipeline', pipelineId] })
+      // Invalidate kanban separately (useCreateStage onSuccess doesn't cover it)
       queryClient.invalidateQueries({ queryKey: ['kanban', pipelineId] })
 
       onSuccess()
