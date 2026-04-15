@@ -22,7 +22,7 @@ import { toast } from 'sonner'
 import { useCreateContact, useUpdateContact, useContacts } from '@/hooks/useContacts'
 import { useAssignContactToPipeline } from '@/hooks/usePipelines'
 import { useDebounce } from '@/hooks/useDebounce'
-import { useSupabaseClient, useTenantId } from '@/lib/supabase/context'
+import { useSupabaseClient } from '@/lib/supabase/context'
 import { getFullName } from '@/lib/utils'
 import type { Contact, PipelineStage } from '@/types'
 
@@ -87,7 +87,6 @@ export function ReferralContactModal({
   onSuccess,
 }: ReferralContactModalProps) {
   const supabase = useSupabaseClient()
-  const tenantId = useTenantId()
   const queryClient = useQueryClient()
   const createContact = useCreateContact()
   const updateContact = useUpdateContact()
@@ -119,12 +118,15 @@ export function ReferralContactModal({
     const line = `Renvoi vers ${targetFullName}${targetCompany ? ` (${targetCompany})` : ''} — ${date}`
     const updatedNotes = sourceContact.notes ? `${sourceContact.notes}\n${line}` : line
 
-    const baseQuery = supabase
+    // Align with useUpdateContact: filter by id only, let RLS handle tenant isolation.
+    // Using .select().single() so a 0-row-affected update surfaces as an error instead
+    // of silently returning { data: null, error: null }.
+    const { error } = await supabase
       .from('contacts')
       .update({ notes: updatedNotes })
       .eq('id', sourceContact.id)
-
-    const { error } = await (tenantId ? baseQuery.eq('tenant_id', tenantId) : baseQuery)
+      .select()
+      .single()
 
     if (error) {
       console.error('[addNoteToSource]', error)
@@ -198,12 +200,15 @@ export function ReferralContactModal({
       return
     }
 
-    // Move source to referral stage, picked contact to first active stage, note source A
+    // Write source note first so it's committed before assignContact.onSuccess
+    // triggers a cache refetch — avoids a race where the refetch races the write.
+    await addNoteToSource(contact.first_name, contact.last_name, contact.company)
+
+    // Move source to referral stage, picked contact to first active stage
     try {
       await Promise.all([
         assignContact.mutateAsync({ contactId: sourceContact.id, pipelineId, stageId: referralStageId }),
         assignContact.mutateAsync({ contactId: contact.id, pipelineId, stageId: firstStage?.id ?? null }),
-        addNoteToSource(contact.first_name, contact.last_name, contact.company),
       ])
     } catch {
       // Assignment failed but note was saved — still flush so the note is visible
@@ -236,11 +241,13 @@ export function ReferralContactModal({
       return
     }
 
+    // Write source note first — same reason as handlePickExisting (race condition)
+    await addNoteToSource(values.first_name, values.last_name, values.company)
+
     try {
       await Promise.all([
         assignContact.mutateAsync({ contactId: sourceContact.id, pipelineId, stageId: referralStageId }),
         assignContact.mutateAsync({ contactId: newContact.id, pipelineId, stageId: firstStage?.id ?? null }),
-        addNoteToSource(values.first_name, values.last_name, values.company),
       ])
     } catch {
       // Assignment failed but contact was created — flush so it appears in the list
