@@ -33,6 +33,7 @@ import {
   type PipelineWithStages,
 } from '@/hooks/usePipelines'
 import { useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
 
 // ---------------------------------------------------------------------------
 // Palette de couleurs pour les étapes
@@ -340,7 +341,12 @@ export function PipelineEditor({ pipeline, onSuccess, onCancel }: PipelineEditor
       // Invalidate kanban separately (useCreateStage onSuccess doesn't cover it)
       queryClient.invalidateQueries({ queryKey: ['kanban', pipelineId] })
 
+      toast.success(pipeline ? 'Pipeline mis à jour' : 'Pipeline créé')
       onSuccess()
+    } catch (err) {
+      console.error('[PipelineEditor.handleSave]', err)
+      const msg = (err as { message?: string })?.message ?? 'Erreur inconnue'
+      toast.error(`Erreur lors de la sauvegarde : ${msg}`)
     } finally {
       setIsSaving(false)
     }

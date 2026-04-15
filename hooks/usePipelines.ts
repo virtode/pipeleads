@@ -158,7 +158,6 @@ export function useCreatePipeline() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pipelines'] })
-      toast.success('Pipeline créé')
     },
     onError: (err) => {
       console.error('[useCreatePipeline]', err)
@@ -186,7 +185,6 @@ export function useUpdatePipeline() {
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: ['pipelines'] })
       queryClient.invalidateQueries({ queryKey: ['pipeline', id] })
-      toast.success('Pipeline mis à jour')
     },
     onError: (err) => {
       console.error('[useUpdatePipeline]', err)
@@ -240,6 +238,11 @@ export function useCreateStage() {
     onSuccess: (_, input) => {
       queryClient.invalidateQueries({ queryKey: ['pipelines'] })
       queryClient.invalidateQueries({ queryKey: ['pipeline', input.pipeline_id] })
+    },
+    onError: (err) => {
+      console.error('[useCreateStage]', err)
+      const msg = (err as { message?: string })?.message ?? String(err)
+      toast.error(`Erreur création étape : ${msg}`)
     },
   })
 }
