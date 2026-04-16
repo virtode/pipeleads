@@ -281,12 +281,12 @@ function ContactForm({ contact, onSuccess, onCancel, hideActions }, ref) {
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
-            <Label htmlFor="city">Ville</Label>
-            <Input id="city" {...form.register('city')} />
-          </div>
-          <div className="space-y-1.5">
             <Label htmlFor="postal_code">Code postal</Label>
             <Input id="postal_code" {...form.register('postal_code')} />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="city">Ville</Label>
+            <Input id="city" {...form.register('city')} />
           </div>
         </div>
         <div className="space-y-1.5">
