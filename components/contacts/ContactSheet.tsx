@@ -446,12 +446,17 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
                     </InfoRow>
                   ))}
 
-                  {(contact.city || contact.postal_code || contact.country) && (
+                  {(contact.address || contact.city || contact.postal_code || contact.country) && (
                     <InfoRow icon={MapPin}>
-                      {[
-                        [contact.postal_code, contact.city].filter(Boolean).join(' ') || null,
-                        contact.country,
-                      ].filter(Boolean).join(', ')}
+                      <span className="flex flex-col">
+                        {contact.address && <span>{contact.address}</span>}
+                        <span>
+                          {[
+                            [contact.postal_code, contact.city].filter(Boolean).join(' ') || null,
+                            contact.country,
+                          ].filter(Boolean).join(', ')}
+                        </span>
+                      </span>
                     </InfoRow>
                   )}
                 </section>
