@@ -448,7 +448,12 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
 
                   {(contact.address || contact.city || contact.postal_code || contact.country) && (
                     <InfoRow icon={MapPin}>
-                      <span className="flex flex-col">
+                      <a
+                        href={`https://maps.google.com/maps?q=${encodeURIComponent([contact.address, [contact.postal_code, contact.city].filter(Boolean).join(' ') || null, contact.country].filter(Boolean).join(', '))}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex flex-col hover:underline"
+                      >
                         {contact.address && <span>{contact.address}</span>}
                         <span>
                           {[
@@ -456,7 +461,7 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
                             contact.country,
                           ].filter(Boolean).join(', ')}
                         </span>
-                      </span>
+                      </a>
                     </InfoRow>
                   )}
                 </section>
