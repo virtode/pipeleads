@@ -28,9 +28,11 @@ import { ContactForm, type ContactFormHandle } from './ContactForm'
 import { AIEnrichmentPanel } from './AIEnrichmentPanel'
 import { ContactFiles } from './ContactFiles'
 import { ReferralContactModal } from './ReferralContactModal'
+import { ContactTimeline } from './ContactTimeline'
 import { useQuery } from '@tanstack/react-query'
 import { useContact, useDeleteContact } from '@/hooks/useContacts'
 import { usePipelines, useAssignContactToPipeline, useRemoveContactFromPipeline } from '@/hooks/usePipelines'
+import { useInteractionCount } from '@/hooks/useInteractions'
 import {
   Select,
   SelectContent,
@@ -69,6 +71,8 @@ interface ContactSheetProps {
 export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactSheetProps) {
   const [mode, setMode] = useState<'view' | 'edit'>('view')
   const [activeTab, setActiveTab] = useState('info')
+  const [defaultTabSet, setDefaultTabSet] = useState(false)
+  const [focusTimeline, setFocusTimeline] = useState(false)
   const [addingPipelineId, setAddingPipelineId] = useState<string | null>(null)
 
   const [referralPending, setReferralPending] = useState<{
@@ -178,16 +182,26 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
   }, [isOpen])
 
   const { data: contact, isLoading } = useContact(contactId)
+  const { data: interactionCount } = useInteractionCount(contactId)
   const deleteMutation = useDeleteContact()
   const { data: allPipelines } = usePipelines()
   const assignContact = useAssignContactToPipeline()
   const removeContact = useRemoveContactFromPipeline()
 
-  // Repasse en mode vue quand on change de contact
+  // Repasse en mode vue quand on change de contact + reset onglet par défaut
   useEffect(() => {
     setMode('view')
     setAddingPipelineId(null)
+    setDefaultTabSet(false)
+    setActiveTab('info')
   }, [contactId])
+
+  // Onglet par défaut conditionnel : Timeline si interactions ≥ 1
+  useEffect(() => {
+    if (defaultTabSet || interactionCount === undefined) return
+    setDefaultTabSet(true)
+    setActiveTab(interactionCount > 0 ? 'timeline' : 'info')
+  }, [interactionCount, defaultTabSet])
 
   // pipelines already containing this contact
   const contactPipelines = ('contact_pipeline' in (contact ?? {}) && Array.isArray((contact as { contact_pipeline?: unknown[] }).contact_pipeline))
@@ -402,6 +416,14 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
                   <TabsTrigger value="info" className="relative rounded-none pb-3 pt-2.5 px-4 h-auto flex-shrink-0 whitespace-nowrap !border-b-[3px] border-transparent data-[state=active]:border-primary">
                     Informations
                   </TabsTrigger>
+                  <TabsTrigger value="timeline" className="relative rounded-none pb-3 pt-2.5 px-4 h-auto flex-shrink-0 whitespace-nowrap !border-b-[3px] border-transparent data-[state=active]:border-primary">
+                    <span className="relative">
+                      Timeline
+                      {(interactionCount ?? 0) > 0 && (
+                        <span className="absolute -top-0.5 -right-2.5 h-1.5 w-1.5 rounded-full bg-primary" />
+                      )}
+                    </span>
+                  </TabsTrigger>
                   <TabsTrigger value="pipelines" className="relative rounded-none pb-3 pt-2.5 px-4 h-auto flex-shrink-0 whitespace-nowrap !border-b-[3px] border-transparent data-[state=active]:border-primary">
                     Pipelines
                   </TabsTrigger>
@@ -508,6 +530,20 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
                   </>
                 )}
 
+                {/* Invite timeline — visible uniquement si 0 interaction */}
+                {interactionCount === 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveTab('timeline')
+                      setFocusTimeline(true)
+                    }}
+                    className="text-sm text-primary hover:underline text-left"
+                  >
+                    Aucune interaction pour l&apos;instant. Ajouter une note ou un rappel →
+                  </button>
+                )}
+
                 {/* Notes */}
                 {contact.notes && (
                   <>
@@ -519,6 +555,20 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
                     </section>
                   </>
                 )}
+              </TabsContent>
+
+              {/* Timeline */}
+              <TabsContent
+                value="timeline"
+                className="h-full overflow-hidden flex flex-col"
+                onTouchStart={(e) => e.stopPropagation()}
+                onTouchMove={(e) => e.stopPropagation()}
+              >
+                <ContactTimeline
+                  contactId={contact.id}
+                  autoFocus={focusTimeline}
+                  onFocused={() => setFocusTimeline(false)}
+                />
               </TabsContent>
 
               {/* Pipelines */}
