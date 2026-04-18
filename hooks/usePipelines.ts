@@ -294,11 +294,19 @@ export function useReorderStages() {
 
   return useMutation({
     mutationFn: async ({ pipelineId, stages }: { pipelineId: string; stages: { id: string; position: number }[] }) => {
-      await Promise.all(
+      const results = await Promise.all(
         stages.map(({ id, position }) =>
           supabase.from('pipeline_stages').update({ position }).eq('id', id)
         )
       )
+      const failed = results.find(({ error }) => error)
+      if (failed?.error) throw failed.error
+    },
+    onError: (_, { pipelineId }) => {
+      // Refetch from DB to visually restore the correct order after a partial failure
+      queryClient.invalidateQueries({ queryKey: ['pipelines'] })
+      queryClient.invalidateQueries({ queryKey: ['pipeline', pipelineId] })
+      queryClient.invalidateQueries({ queryKey: ['kanban', pipelineId] })
     },
     onSuccess: (_, { pipelineId }) => {
       queryClient.invalidateQueries({ queryKey: ['pipelines'] })

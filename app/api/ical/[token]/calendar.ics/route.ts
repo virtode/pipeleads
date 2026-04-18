@@ -122,25 +122,35 @@ export async function GET(
   const appUrl   = `https://${process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? 'pipeleads.app'}`
 
   // Fetch pending reminders for this user's contacts
-  const { data: contacts } = await admin
+  const { data: contacts, error: contactsErr } = await admin
     .from('contacts')
     .select('id')
     .eq('user_id', profile.id)
 
+  if (contactsErr) {
+    console.error('[ical] contacts query error:', contactsErr.message)
+    return new NextResponse('Internal Server Error', { status: 500 })
+  }
+
   const contactIds = (contacts ?? []).map((c) => c.id)
 
-  const reminders =
-    contactIds.length > 0
-      ? await admin
-          .from('interactions')
-          .select('id, contact_id, content, action_template, date, contact:contacts(first_name, last_name)')
-          .in('contact_id', contactIds)
-          .eq('status', 'pending')
-          .order('date', { ascending: true })
-          .then(({ data }) => data ?? [])
-      : []
+  let reminders: Parameters<typeof buildIcs>[0] = []
+  if (contactIds.length > 0) {
+    const { data, error: remindersErr } = await admin
+      .from('interactions')
+      .select('id, contact_id, content, action_template, date, contact:contacts(first_name, last_name)')
+      .in('contact_id', contactIds)
+      .eq('status', 'pending')
+      .order('date', { ascending: true })
 
-  const ics = buildIcs(reminders as Parameters<typeof buildIcs>[0], timezone, appUrl)
+    if (remindersErr) {
+      console.error('[ical] interactions query error:', remindersErr.message)
+      return new NextResponse('Internal Server Error', { status: 500 })
+    }
+    reminders = (data ?? []) as Parameters<typeof buildIcs>[0]
+  }
+
+  const ics = buildIcs(reminders, timezone, appUrl)
 
   return new NextResponse(ics, {
     status: 200,

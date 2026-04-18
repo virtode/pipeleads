@@ -79,6 +79,11 @@ export function useKpis() {
         supabase.from('contact_pipeline').select('id', { count: 'exact', head: true }).is('stage_id', null),
       ])
 
+      if (contactsRes.error) throw contactsRes.error
+      if (addedRes.error)    throw addedRes.error
+      if (pipelinesRes.error) throw pipelinesRes.error
+      if (noStageRes.error)  throw noStageRes.error
+
       return {
         totalContacts: contactsRes.count ?? 0,
         addedThisMonth: addedRes.count ?? 0,

@@ -28,19 +28,27 @@ export async function GET(req: NextRequest) {
   const master = createMasterAdminClient()
 
   // Resolve tenant
-  const { data: tenant } = await master
+  const { data: tenant, error: tenantErr } = await master
     .from('tenants')
     .select('id, name')
     .eq('slug', tenantSlug)
-    .single()
+    .maybeSingle()
 
+  if (tenantErr) {
+    console.error('[carddav/config] tenant query error:', tenantErr.message)
+    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
+  }
   if (!tenant) {
     return NextResponse.json({ error: 'Tenant introuvable' }, { status: 404 })
   }
 
   // Resolve the target user in master auth
-  const { data: { users: authUsers } } = await master.auth.admin.listUsers()
-  const targetUser = authUsers.find((u) => u.email === userEmail)
+  const { data: usersData, error: listUsersErr } = await master.auth.admin.listUsers()
+  if (listUsersErr) {
+    console.error('[carddav/config] listUsers error:', listUsersErr.message)
+    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
+  }
+  const targetUser = usersData.users.find((u) => u.email === userEmail)
 
   if (!targetUser) {
     return NextResponse.json({ error: 'Utilisateur introuvable' }, { status: 404 })
@@ -52,13 +60,17 @@ export async function GET(req: NextRequest) {
   }
 
   // Verify the user belongs to this tenant
-  const { data: tenantUser } = await master
+  const { data: tenantUser, error: tenantUserErr } = await master
     .from('tenant_users')
     .select('id, carddav_password')
     .eq('tenant_id', tenant.id)
     .eq('user_id', targetUser.id)
-    .single()
+    .maybeSingle()
 
+  if (tenantUserErr) {
+    console.error('[carddav/config] tenantUser query error:', tenantUserErr.message)
+    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
+  }
   if (!tenantUser) {
     return NextResponse.json(
       { error: 'Cet utilisateur n\'appartient pas à ce tenant' },
