@@ -10,16 +10,14 @@ export async function getUserRole(
   supabase: SupabaseClient<Database>,
   userId: string
 ): Promise<TenantRole | null> {
-  // tenant_users is not in the generated types yet — use any cast
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (supabase as any)
+  const { data, error } = await supabase
     .from('tenant_users')
     .select('role')
     .eq('user_id', userId)
     .single()
 
   if (error || !data) return null
-  return (data as { role: string }).role as TenantRole
+  return data.role as TenantRole
 }
 
 /**

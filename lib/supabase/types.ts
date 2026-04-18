@@ -367,22 +367,28 @@ export interface Database {
         Row: {
           id: string
           user_id: string
+          tenant_id: string | null
           role: 'manager' | 'member'
           invited_by: string | null
+          carddav_password: string | null
           created_at: string
         }
         Insert: {
           id?: string
           user_id: string
+          tenant_id?: string | null
           role: 'manager' | 'member'
           invited_by?: string | null
+          carddav_password?: string | null
           created_at?: string
         }
         Update: {
           id?: string
           user_id?: string
+          tenant_id?: string | null
           role?: 'manager' | 'member'
           invited_by?: string | null
+          carddav_password?: string | null
         }
         Relationships: []
       }
