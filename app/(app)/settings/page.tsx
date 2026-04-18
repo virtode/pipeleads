@@ -21,6 +21,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
+import { TimezoneSection } from '@/components/settings/TimezoneSection'
 
 // ---------------------------------------------------------------------------
 // CRM field options for mapping
@@ -315,6 +316,14 @@ export default function SettingsPage() {
           Configure les intégrations et ton compte.
         </p>
       </div>
+
+      {/* ================================================================ */}
+      {/* Préférences                                                       */}
+      {/* ================================================================ */}
+
+      <TimezoneSection />
+
+      <Separator />
 
       {/* ================================================================ */}
       {/* Notion Integration                                                */}
