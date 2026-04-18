@@ -386,6 +386,100 @@ export interface Database {
         }
         Relationships: []
       }
+      profiles: {
+        Row: {
+          id: string
+          timezone: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id: string
+          timezone?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          timezone?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'profiles_id_fkey'
+            columns: ['id']
+            isOneToOne: true
+            referencedRelation: 'users'
+            referencedColumns: ['id']
+          }
+        ]
+      }
+      interactions: {
+        Row: {
+          id: string
+          tenant_id: string
+          contact_id: string
+          type: 'note' | 'reminder'
+          date: string
+          content: string
+          action_template: 'email_followup' | 'call' | 'linkedin_message' | 'propose_meeting' | 'send_document' | 'other' | null
+          status: 'pending' | 'done' | null
+          completed_at: string | null
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          tenant_id: string
+          contact_id: string
+          type: 'note' | 'reminder'
+          date: string
+          content: string
+          action_template?: 'email_followup' | 'call' | 'linkedin_message' | 'propose_meeting' | 'send_document' | 'other' | null
+          status?: 'pending' | 'done' | null
+          completed_at?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          contact_id?: string
+          type?: 'note' | 'reminder'
+          date?: string
+          content?: string
+          action_template?: 'email_followup' | 'call' | 'linkedin_message' | 'propose_meeting' | 'send_document' | 'other' | null
+          status?: 'pending' | 'done' | null
+          completed_at?: string | null
+          created_by?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'interactions_tenant_id_fkey'
+            columns: ['tenant_id']
+            isOneToOne: false
+            referencedRelation: 'tenants'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'interactions_contact_id_fkey'
+            columns: ['contact_id']
+            isOneToOne: false
+            referencedRelation: 'contacts'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'interactions_created_by_fkey'
+            columns: ['created_by']
+            isOneToOne: false
+            referencedRelation: 'users'
+            referencedColumns: ['id']
+          }
+        ]
+      }
       notion_config: {
         Row: {
           id: string
