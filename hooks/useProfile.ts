@@ -14,11 +14,14 @@ export function useProfile() {
 
       const { data } = await supabase
         .from('profiles')
-        .select('timezone')
+        .select('timezone, daily_digest_enabled')
         .eq('id', user.id)
         .maybeSingle()
 
-      return { timezone: data?.timezone ?? 'Europe/Paris' }
+      return {
+        timezone:             data?.timezone             ?? 'Europe/Paris',
+        daily_digest_enabled: data?.daily_digest_enabled ?? true,
+      }
     },
     staleTime: 10 * 60_000,
   })

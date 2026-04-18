@@ -390,18 +390,21 @@ export interface Database {
         Row: {
           id: string
           timezone: string
+          daily_digest_enabled: boolean
           created_at: string
           updated_at: string
         }
         Insert: {
           id: string
           timezone?: string
+          daily_digest_enabled?: boolean
           created_at?: string
           updated_at?: string
         }
         Update: {
           id?: string
           timezone?: string
+          daily_digest_enabled?: boolean
           updated_at?: string
         }
         Relationships: [
@@ -479,6 +482,27 @@ export interface Database {
             referencedColumns: ['id']
           }
         ]
+      }
+      digest_sent: {
+        Row: {
+          id: string
+          user_id: string
+          local_date: string
+          sent_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          local_date: string
+          sent_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          local_date?: string
+          sent_at?: string
+        }
+        Relationships: []
       }
       notion_config: {
         Row: {
