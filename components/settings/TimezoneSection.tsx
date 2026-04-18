@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { Globe, Check, ChevronsUpDown, Mail } from 'lucide-react'
+import { Globe, Check, Mail } from 'lucide-react'
 import { toast } from 'sonner'
 import { useQueryClient } from '@tanstack/react-query'
 import { useSupabaseClient } from '@/lib/supabase/context'
@@ -20,6 +20,13 @@ import {
   CommandItem,
   CommandList,
 } from '@/components/ui/command'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 
 // ---------------------------------------------------------------------------
@@ -179,41 +186,45 @@ export function TimezoneSection() {
             Utilisé pour afficher les dates et grouper les rappels dans l&apos;agenda.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-1">
-          {/* Common timezone list */}
-          {COMMON_TZ.map((tz) => (
-            <button
-              key={tz}
-              type="button"
-              onClick={() => { if (tz !== currentTz) saveTimezone(tz) }}
-              className={cn(
-                'flex w-full items-center justify-between rounded-md px-3 py-2 text-sm transition-colors text-left',
-                currentTz === tz
-                  ? 'bg-primary/10 text-primary font-medium'
-                  : 'hover:bg-muted text-foreground',
-              )}
+        <CardContent>
+          {/* Select for common timezones — "Autre…" opens the searchable combobox */}
+          <div className="relative">
+            <Select
+              value={isCommonTz ? currentTz : '__other__'}
+              onValueChange={(val) => {
+                if (val === '__other__') {
+                  setOpen(true)
+                } else {
+                  saveTimezone(val)
+                }
+              }}
             >
-              {formatTzLabel(tz)}
-              {currentTz === tz && <Check className="h-3.5 w-3.5 shrink-0" />}
-            </button>
-          ))}
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {COMMON_TZ.map((tz) => (
+                  <SelectItem key={tz} value={tz}>
+                    {formatTzLabel(tz)}
+                  </SelectItem>
+                ))}
+                <SelectItem value="__other__">
+                  {isCommonTz ? 'Autre…' : formatTzLabel(currentTz)}
+                </SelectItem>
+              </SelectContent>
+            </Select>
 
-          {/* Autre… — combobox */}
-          <div className="pt-1">
+            {/* Combobox — opened programmatically when "Autre…" is picked */}
             <Popover open={open} onOpenChange={(v) => { setOpen(v); if (!v) setSearch('') }}>
               <PopoverTrigger asChild>
                 <button
                   type="button"
-                  className={cn(
-                    'flex w-full items-center justify-between rounded-md px-3 py-2 text-sm transition-colors text-left border border-dashed border-border hover:border-primary/50 hover:bg-muted',
-                    !isCommonTz && 'border-primary/30 bg-primary/5 text-primary font-medium',
-                  )}
-                >
-                  <span>{isCommonTz ? 'Autre…' : formatTzLabel(currentTz)}</span>
-                  <ChevronsUpDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                </button>
+                  className="absolute inset-0 opacity-0 pointer-events-none"
+                  tabIndex={-1}
+                  aria-hidden
+                />
               </PopoverTrigger>
-              <PopoverContent className="w-72 p-0" align="start">
+              <PopoverContent className="w-full p-0" align="start">
                 <Command shouldFilter={false}>
                   <CommandInput
                     placeholder="Rechercher un fuseau…"
