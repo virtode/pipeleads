@@ -103,7 +103,9 @@ export function ContactTimeline({ contactId, autoFocus, onFocused }: ContactTime
   const [selectedTemplate, setSelectedTemplate] = useState<ActionTemplate | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
 
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const textareaRef    = useRef<HTMLTextAreaElement>(null)
+  const quickPicksRef  = useRef<HTMLDivElement>(null)
+  const templatesRef   = useRef<HTMLDivElement>(null)
 
   // Auto-focus when parent requests it
   useEffect(() => {
@@ -124,6 +126,38 @@ export function ContactTimeline({ contactId, autoFocus, onFocused }: ContactTime
     setSelectedTemplate(null)
     setEditingId(null)
   }, [])
+
+  // Native horizontal-swipe guard — stops ContactSheet's swipe-to-close native listener
+  // when the user is swiping the chip rows horizontally.
+  useEffect(() => {
+    function attach(el: HTMLDivElement | null) {
+      if (!el) return () => {}
+      let startX = 0, startY = 0, dir: 'h' | 'v' | null = null
+      const onStart = (e: TouchEvent) => {
+        startX = e.touches[0].clientX
+        startY = e.touches[0].clientY
+        dir = null
+      }
+      const onMove = (e: TouchEvent) => {
+        if (dir === null) {
+          const dx = Math.abs(e.touches[0].clientX - startX)
+          const dy = Math.abs(e.touches[0].clientY - startY)
+          if (dx < 5 && dy < 5) return
+          dir = dx >= dy ? 'h' : 'v'
+        }
+        if (dir === 'h') e.stopPropagation()
+      }
+      el.addEventListener('touchstart', onStart, { passive: true })
+      el.addEventListener('touchmove',  onMove,  { passive: true })
+      return () => {
+        el.removeEventListener('touchstart', onStart)
+        el.removeEventListener('touchmove',  onMove)
+      }
+    }
+    const q = attach(quickPicksRef.current)
+    const t = attach(templatesRef.current)
+    return () => { q(); t() }
+  }, [isReminder])
 
   // Fill form for editing
   function startEdit(i: Interaction) {
@@ -270,9 +304,8 @@ export function ContactTimeline({ contactId, autoFocus, onFocused }: ContactTime
           <div className="space-y-2">
             {/* Date picks — scroll horizontal on mobile */}
             <div
+              ref={quickPicksRef}
               className="flex gap-1.5 overflow-x-auto scrollbar-hide pb-0.5"
-              onTouchStart={(e) => e.stopPropagation()}
-              onTouchMove={(e) => e.stopPropagation()}
             >
               {QUICK_PICKS.map(({ label, compute }) => (
                 <button
@@ -316,9 +349,8 @@ export function ContactTimeline({ contactId, autoFocus, onFocused }: ContactTime
 
             {/* Template chips — scroll horizontal on mobile */}
             <div
+              ref={templatesRef}
               className="flex gap-1.5 overflow-x-auto scrollbar-hide pb-0.5"
-              onTouchStart={(e) => e.stopPropagation()}
-              onTouchMove={(e) => e.stopPropagation()}
             >
               {TEMPLATES.map(({ key, emoji }) => (
                 <button
