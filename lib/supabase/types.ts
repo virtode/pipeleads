@@ -391,6 +391,7 @@ export interface Database {
           id: string
           timezone: string
           daily_digest_enabled: boolean
+          ical_token: string | null
           created_at: string
           updated_at: string
         }
@@ -398,6 +399,7 @@ export interface Database {
           id: string
           timezone?: string
           daily_digest_enabled?: boolean
+          ical_token?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -405,6 +407,7 @@ export interface Database {
           id?: string
           timezone?: string
           daily_digest_enabled?: boolean
+          ical_token?: string | null
           updated_at?: string
         }
         Relationships: [

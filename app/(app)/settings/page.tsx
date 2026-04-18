@@ -22,6 +22,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import { TimezoneSection } from '@/components/settings/TimezoneSection'
+import { IcalSection } from '@/components/settings/IcalSection'
 
 // ---------------------------------------------------------------------------
 // CRM field options for mapping
@@ -322,6 +323,14 @@ export default function SettingsPage() {
       {/* ================================================================ */}
 
       <TimezoneSection />
+
+      <Separator />
+
+      {/* ================================================================ */}
+      {/* Synchronisation calendrier                                        */}
+      {/* ================================================================ */}
+
+      <IcalSection />
 
       <Separator />
 
