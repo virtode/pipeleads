@@ -50,11 +50,11 @@ function groupByUrgency(reminders: AgendaReminder[], timezone: string): Groups {
 }
 
 const GROUP_META = [
-  { key: 'overdue',   label: '🔴 En retard' },
-  { key: 'today',     label: '🟠 Aujourd\'hui' },
-  { key: 'thisWeek',  label: '🟡 Cette semaine' },
-  { key: 'thisMonth', label: '⚪ Ce mois-ci' },
-  { key: 'later',     label: '🔵 Plus tard' },
+  { key: 'overdue',   label: 'En retard',     urgent: true  },
+  { key: 'today',     label: "Aujourd'hui",   urgent: false },
+  { key: 'thisWeek',  label: 'Cette semaine', urgent: false },
+  { key: 'thisMonth', label: 'Ce mois-ci',    urgent: false },
+  { key: 'later',     label: 'Plus tard',     urgent: false },
 ] as const
 
 // ---------------------------------------------------------------------------
@@ -314,14 +314,17 @@ export function AgendaView() {
   const groups = groupByUrgency(reminders, timezone)
 
   return (
-    <div className="flex-1 overflow-y-auto px-4 py-4 space-y-6 max-w-2xl mx-auto w-full">
-      {GROUP_META.map(({ key, label }) => {
+    <div className="flex-1 overflow-y-auto px-6 py-4 space-y-8">
+      {GROUP_META.map(({ key, label, urgent }) => {
         const items = groups[key]
         if (items.length === 0) return null
 
         return (
           <section key={key} className="space-y-1.5">
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-1">
+            <h2 className={[
+              'text-xs font-semibold uppercase tracking-widest px-1',
+              urgent ? 'text-destructive' : 'text-muted-foreground',
+            ].join(' ')}>
               {label} <span className="font-normal">({items.length})</span>
             </h2>
             <div className="space-y-1">
