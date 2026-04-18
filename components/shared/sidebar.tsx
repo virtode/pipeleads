@@ -13,20 +13,24 @@ import {
   Settings,
   LogOut,
   Shield,
+  CalendarClock,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { ThemeToggle } from '@/components/shared/ThemeToggle'
 import { useSupabaseClient } from '@/lib/supabase/context'
+import { usePendingReminderCount } from '@/hooks/useAgendaReminders'
 
 interface NavItem {
   label: string
   href: string
   icon: React.ElementType
+  badge?: number
 }
 
-const NAV_ITEMS: NavItem[] = [
+const STATIC_NAV: Omit<NavItem, 'badge'>[] = [
   { label: 'Contacts', href: '/contacts', icon: Users },
+  { label: 'Agenda',   href: '/agenda',   icon: CalendarClock },
   { label: 'Pipelines', href: '/pipelines', icon: GitBranch },
   { label: 'Leads (Kanban)', href: '/leads', icon: Kanban },
   { label: 'Rapports', href: '/reports', icon: BarChart2 },
@@ -45,6 +49,12 @@ export function Sidebar({ onNavigate, isAdmin = false }: SidebarProps) {
   const supabase = useSupabaseClient()
   const [mounted, setMounted] = useState(false)
   useEffect(() => setMounted(true), [])
+
+  const { data: pendingCount } = usePendingReminderCount()
+
+  const NAV_ITEMS: NavItem[] = STATIC_NAV.map((item) =>
+    item.href === '/agenda' ? { ...item, badge: pendingCount } : item,
+  )
 
   async function handleLogout() {
     await supabase.auth.signOut()
@@ -67,7 +77,7 @@ export function Sidebar({ onNavigate, isAdmin = false }: SidebarProps) {
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto p-2">
         <ul className="space-y-0.5">
-          {NAV_ITEMS.map(({ label, href, icon: Icon }) => {
+          {NAV_ITEMS.map(({ label, href, icon: Icon, badge }) => {
             const isActive =
               pathname === href || pathname.startsWith(`${href}/`)
             return (
@@ -83,7 +93,12 @@ export function Sidebar({ onNavigate, isAdmin = false }: SidebarProps) {
                   )}
                 >
                   <Icon className="h-4 w-4 shrink-0" />
-                  {label}
+                  <span className="flex-1">{label}</span>
+                  {badge != null && badge > 0 && (
+                    <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1.5 text-[11px] font-semibold text-destructive-foreground">
+                      {badge > 99 ? '99+' : badge}
+                    </span>
+                  )}
                 </Link>
               </li>
             )
