@@ -112,6 +112,11 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next({ request })
   }
 
+  const isIcalRoute = pathname.startsWith('/api/ical/')
+  if (isIcalRoute) {
+    return NextResponse.next({ request })
+  }
+
   // ── Résolution du tenant ──────────────────────────────────────────────────
   let requestHeaders = new Headers(request.headers)
 
@@ -172,6 +177,6 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|api/health|email-templates/|manifest.json|.*\\.(?:svg|png|jpg|jpeg|gif|webp|html)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|api/health|api/ical|email-templates/|manifest.json|.*\\.(?:svg|png|jpg|jpeg|gif|webp|html)$).*)',
   ],
 }
