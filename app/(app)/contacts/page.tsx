@@ -54,9 +54,14 @@ function ContactsPageContent() {
   // Contacts pre-selected when opening export from bulk action bar
   const [exportPreselected, setExportPreselected] = useState<Contact[]>([])
 
-  // Handle URL params from command palette (Cmd+N, import, export)
+  // Handle URL params from command palette and deep links
   useEffect(() => {
-    if (searchParams.get('new') === '1') {
+    const idParam = searchParams.get('id')
+    if (idParam) {
+      setSelectedId(idParam)
+      setIsSheetOpen(true)
+      router.replace('/contacts')
+    } else if (searchParams.get('new') === '1') {
       setIsCreateOpen(true)
       router.replace('/contacts')
     } else if (searchParams.get('import') === 'csv') {
