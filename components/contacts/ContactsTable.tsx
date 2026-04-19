@@ -382,7 +382,7 @@ export function ContactsTable({
       </div>
 
       {/* Pagination */}
-      <div className="shrink-0 flex items-center gap-3 px-1 py-1 text-sm text-muted-foreground border-t">
+      <div className="shrink-0 flex items-center gap-3 px-1 py-1 text-sm text-muted-foreground">
         {/* Sélecteur taille + compteur — masqués sur mobile */}
         <div className="hidden md:flex items-center gap-3">
           <span>Contacts par page</span>
