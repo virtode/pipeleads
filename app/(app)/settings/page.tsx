@@ -6,7 +6,6 @@ import { Settings, LogOut, Loader2 } from 'lucide-react'
 import { useSupabaseClient } from '@/lib/supabase/context'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Separator } from '@/components/ui/separator'
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -48,19 +47,11 @@ export default function SettingsPage() {
 
       <TimezoneSection />
 
-      <Separator />
-
       <IcalSection />
-
-      <Separator />
 
       <NotionSettingsSection />
 
-      <Separator />
-
       <CardDavSettingsSection />
-
-      <Separator />
 
       {/* ================================================================ */}
       {/* Account                                                           */}
