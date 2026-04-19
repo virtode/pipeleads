@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendEmail } from '@/lib/email/send'
 import { buildDailyDigestHtml, type DigestItem } from '@/lib/email/digest'
-import { endOfDay, startOfDay } from 'date-fns'
-import { formatInTimeZone, fromZonedTime, toZonedTime } from 'date-fns-tz'
+import { formatInTimeZone } from 'date-fns-tz'
+import { getStartOfDayUtc, getEndOfDayUtc } from '@/lib/utils/timezone'
 
 // ---------------------------------------------------------------------------
 // Cron setup (Coolify / external scheduler)
@@ -127,9 +127,8 @@ async function processUser(
   }
 
   // ── 4. Timezone boundaries ──────────────────────────────────────────────
-  const zonedNow       = toZonedTime(now, tz)
-  const startOfTodayUtc = fromZonedTime(startOfDay(zonedNow), tz)
-  const endOfTodayUtc   = fromZonedTime(endOfDay(zonedNow), tz)
+  const startOfTodayUtc = getStartOfDayUtc(tz, now)
+  const endOfTodayUtc   = getEndOfDayUtc(tz, now)
 
   // ── 5. Get contact IDs for this user ────────────────────────────────────
   const { data: contacts } = await admin

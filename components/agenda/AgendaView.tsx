@@ -3,8 +3,9 @@
 import { useRef, useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { CalendarClock } from 'lucide-react'
-import { addDays, endOfDay, endOfMonth, endOfWeek, startOfDay } from 'date-fns'
+import { addDays, endOfMonth, endOfWeek } from 'date-fns'
 import { formatInTimeZone, fromZonedTime, toZonedTime } from 'date-fns-tz'
+import { getStartOfDayUtc, getEndOfDayUtc } from '@/lib/utils/timezone'
 import { fr } from 'date-fns/locale'
 import { toast } from 'sonner'
 import { useAgendaReminders, type AgendaReminder } from '@/hooks/useAgendaReminders'
@@ -29,8 +30,8 @@ function groupByUrgency(reminders: AgendaReminder[], timezone: string): Groups {
   const now       = new Date()
   const zonedNow  = toZonedTime(now, timezone)
 
-  const startOfTodayUtc = fromZonedTime(startOfDay(zonedNow), timezone)
-  const endOfTodayUtc   = fromZonedTime(endOfDay(zonedNow), timezone)
+  const startOfTodayUtc = getStartOfDayUtc(timezone, now)
+  const endOfTodayUtc   = getEndOfDayUtc(timezone, now)
   // Week ending Sunday (weekStartsOn:1 → Monday start, Sunday end)
   const endOfWeekUtc    = fromZonedTime(endOfWeek(zonedNow, { weekStartsOn: 1 }), timezone)
   const endOfMonthUtc   = fromZonedTime(endOfMonth(zonedNow), timezone)
