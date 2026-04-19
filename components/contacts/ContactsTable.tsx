@@ -29,7 +29,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { getInitials, formatDate } from '@/lib/utils'
+import { getInitials, formatDate, getFullName } from '@/lib/utils'
 import type { Contact, ContactSortField } from '@/types'
 
 // ---------------------------------------------------------------------------
@@ -66,7 +66,7 @@ function buildColumns(onRowClick: (id: string) => void) {
       enableSorting: false,
     }),
 
-    col.accessor((row) => `${row.first_name} ${row.last_name ?? ''}`.trim(), {
+    col.accessor((row) => getFullName(row.first_name, row.last_name), {
       id: 'last_name',
       header: 'Nom',
       sortingFn: (rowA, rowB) => {

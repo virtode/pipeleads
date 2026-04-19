@@ -5,6 +5,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import type { KanbanCardData } from '@/hooks/usePipelines'
+import { getFullName } from '@/lib/utils'
 
 interface KanbanCardProps {
   card: KanbanCardData
@@ -46,7 +47,7 @@ export function KanbanCard({ card, onOpen, dimmed }: KanbanCardProps) {
       {...listeners}
       className="cursor-grab rounded-lg border bg-card px-3 py-2.5 shadow-sm active:cursor-grabbing hover:shadow-md transition-shadow"
       onClick={() => onOpen(contact.id)}
-      aria-label={`${contact.first_name} ${contact.last_name ?? ''}`}
+      aria-label={getFullName(contact.first_name, contact.last_name)}
     >
       <div className="flex items-start gap-2.5">
         <Avatar className="h-7 w-7 shrink-0 mt-0.5">
@@ -57,7 +58,7 @@ export function KanbanCard({ card, onOpen, dimmed }: KanbanCardProps) {
         </Avatar>
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-medium leading-tight">
-            {contact.first_name} {contact.last_name}
+            {getFullName(contact.first_name, contact.last_name)}
           </p>
           {contact.company && (
             <p className="truncate text-xs text-muted-foreground mt-0.5">{contact.company}</p>
@@ -92,7 +93,7 @@ export function KanbanCardOverlay({ card }: { card: KanbanCardData }) {
         </Avatar>
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-medium leading-tight">
-            {contact.first_name} {contact.last_name}
+            {getFullName(contact.first_name, contact.last_name)}
           </p>
           {contact.company && (
             <p className="truncate text-xs text-muted-foreground mt-0.5">{contact.company}</p>

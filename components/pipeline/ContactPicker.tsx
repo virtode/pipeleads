@@ -18,6 +18,7 @@ import { useContacts } from '@/hooks/useContacts'
 import { useDebounce } from '@/hooks/useDebounce'
 import type { PipelineWithStages } from '@/hooks/usePipelines'
 import type { Contact } from '@/types'
+import { getFullName } from '@/lib/utils'
 
 const NO_STAGE = '__none__'
 
@@ -100,7 +101,7 @@ export function ContactPicker({
                 </Avatar>
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium">
-                    {contact.first_name} {contact.last_name}
+                    {getFullName(contact.first_name, contact.last_name)}
                   </p>
                   {contact.company && (
                     <p className="truncate text-xs text-muted-foreground">{contact.company}</p>

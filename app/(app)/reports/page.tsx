@@ -36,6 +36,7 @@ import {
   type ReportFilters as Filters,
 } from '@/hooks/useReports'
 import { exportToCSV } from '@/lib/export/csv'
+import { getFullName } from '@/lib/utils'
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -342,7 +343,7 @@ export default function ReportsPage() {
                   <div key={c.id} className="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-muted/50">
                     <div className="flex-1 min-w-0">
                       <p className="truncate text-sm font-medium">
-                        {c.first_name} {c.last_name}
+                        {getFullName(c.first_name, c.last_name)}
                       </p>
                       {c.company && (
                         <p className="truncate text-xs text-muted-foreground">{c.company}</p>

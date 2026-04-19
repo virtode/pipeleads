@@ -18,6 +18,7 @@ import { toast } from 'sonner'
 import { parseVCF, type ImportContactDto } from '@/lib/import/vcf'
 import { useSupabaseClient } from '@/lib/supabase/context'
 import { useQueryClient } from '@tanstack/react-query'
+import { getFullName } from '@/lib/utils'
 
 type Step = 'upload' | 'preview' | 'importing' | 'done'
 
@@ -57,7 +58,7 @@ function VirtualContactList({ contacts }: { contacts: ImportContactDto[] }) {
       >
         {virtualizer.getVirtualItems().map((vItem) => {
           const c = contacts[vItem.index]
-          const name = [c.first_name, c.last_name].filter(Boolean).join(' ')
+          const name = getFullName(c.first_name, c.last_name)
           const detail = [c.company, c.email?.[0]].filter(Boolean).join(' · ')
           return (
             <div
@@ -161,7 +162,7 @@ export function ImportVCFDialog({ open, onOpenChange }: ImportVCFDialogProps) {
         result.errors++
         const msg = err instanceof Error ? err.message : String(err)
         if (result.errorMessages.length < 5) {
-          const name = [contacts[i].first_name, contacts[i].last_name].filter(Boolean).join(' ')
+          const name = getFullName(contacts[i].first_name, contacts[i].last_name)
           result.errorMessages.push(`${name || `Contact ${i + 1}`}: ${msg}`)
         }
       }

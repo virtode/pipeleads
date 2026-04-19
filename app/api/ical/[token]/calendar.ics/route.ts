@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { addDays } from 'date-fns'
 import { formatInTimeZone } from 'date-fns-tz'
+import { getFullName } from '@/lib/utils'
 import type { ActionTemplate } from '@/lib/types/interactions'
 import { ActionTemplateLabels } from '@/lib/types/interactions'
 
@@ -52,7 +53,7 @@ function buildIcs(
     const tpl         = r.action_template as ActionTemplate | null
     const label       = tpl ? ActionTemplateLabels[tpl] : 'Rappel'
     const contactName = r.contact
-      ? [r.contact.first_name, r.contact.last_name].filter(Boolean).join(' ')
+      ? getFullName(r.contact.first_name, r.contact.last_name)
       : 'Contact inconnu'
 
     const summary     = `[PipeLeads] ${label} — ${contactName}`
