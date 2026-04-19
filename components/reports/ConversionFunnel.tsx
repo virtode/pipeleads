@@ -3,6 +3,18 @@
 import { Skeleton } from '@/components/ui/skeleton'
 import type { ConversionStep } from '@/hooks/useReports'
 
+const RATE_COLORS = {
+  bad:    'hsl(var(--destructive) / 0.4)',
+  medium: 'hsl(24 96% 53% / 0.4)',
+  good:   'hsl(142 71% 45% / 0.4)',
+}
+
+function getRateStyle(rate: number): string {
+  if (rate >= 70) return 'text-green-600 dark:text-green-400'
+  if (rate >= 40) return 'text-yellow-600 dark:text-yellow-400'
+  return 'text-red-500'
+}
+
 interface ConversionFunnelProps {
   data: ConversionStep[]
   isLoading?: boolean
@@ -58,15 +70,7 @@ export function ConversionFunnel({ data, isLoading }: ConversionFunnelProps) {
               {i === 0 ? (
                 <span className="text-xs text-muted-foreground">—</span>
               ) : (
-                <span
-                  className={`text-xs font-semibold tabular-nums ${
-                    step.rate >= 70
-                      ? 'text-green-600 dark:text-green-400'
-                      : step.rate >= 40
-                      ? 'text-yellow-600 dark:text-yellow-400'
-                      : 'text-red-500'
-                  }`}
-                >
+                <span className={`text-xs font-semibold tabular-nums ${getRateStyle(step.rate)}`}>
                   {step.rate}%
                 </span>
               )}
@@ -99,7 +103,7 @@ export function ConversionFunnel({ data, isLoading }: ConversionFunnelProps) {
                   className="absolute inset-y-0 left-0 rounded-md transition-all duration-500"
                   style={{
                     width: `${Math.max(step.count > 0 ? (step.count / maxNormalCount) * 100 : 0, step.count > 0 ? 4 : 0)}%`,
-                    backgroundColor: '#ef444466',
+                    backgroundColor: RATE_COLORS.bad,
                   }}
                 />
                 <div className="relative flex items-center h-full px-2 gap-2">
@@ -144,7 +148,7 @@ export function ConversionFunnel({ data, isLoading }: ConversionFunnelProps) {
                   className="absolute inset-y-0 left-0 rounded-md transition-all duration-500"
                   style={{
                     width: `${Math.max(step.count > 0 ? (step.count / maxNormalCount) * 100 : 0, step.count > 0 ? 4 : 0)}%`,
-                    backgroundColor: '#f9731666',
+                    backgroundColor: RATE_COLORS.medium,
                   }}
                 />
                 <div className="relative flex items-center h-full px-2 gap-2">
@@ -189,7 +193,7 @@ export function ConversionFunnel({ data, isLoading }: ConversionFunnelProps) {
                   className="absolute inset-y-0 left-0 rounded-md transition-all duration-500"
                   style={{
                     width: `${Math.max(step.count > 0 ? (step.count / maxNormalCount) * 100 : 0, step.count > 0 ? 4 : 0)}%`,
-                    backgroundColor: '#22c55e66',
+                    backgroundColor: RATE_COLORS.good,
                   }}
                 />
                 <div className="relative flex items-center h-full px-2 gap-2">

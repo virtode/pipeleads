@@ -13,6 +13,18 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 import type { StageDistributionItem } from '@/hooks/useReports'
 
+const STAGE_COLORS = {
+  lost:       'hsl(var(--muted-foreground))',
+  won:        '#22c55e',
+  unassigned: 'hsl(var(--muted-foreground))',
+}
+
+function getBarColor(item: StageDistributionItem): string {
+  if (item.isLost) return STAGE_COLORS.lost
+  if (item.isWon)  return STAGE_COLORS.won
+  return item.stageColor || STAGE_COLORS.unassigned
+}
+
 interface DistributionChartProps {
   data: StageDistributionItem[]
   isLoading?: boolean
@@ -31,7 +43,7 @@ function CustomTooltip({ active, payload }: { active?: boolean; payload?: Toolti
       <div className="flex items-center gap-2">
         <span
           className="h-2.5 w-2.5 rounded-full"
-          style={{ backgroundColor: item.isLost ? '#94a3b8' : item.stageColor }}
+          style={{ backgroundColor: getBarColor(item) }}
         />
         <span className="font-medium">{item.stageName}</span>
         {item.isLost && (
@@ -55,7 +67,6 @@ interface CustomTickProps {
   x?: number
   y?: number
   payload?: { value: string }
-  isLost?: boolean
 }
 
 function CustomTick({ x = 0, y = 0, payload }: CustomTickProps) {
@@ -71,7 +82,7 @@ function CustomTick({ x = 0, y = 0, payload }: CustomTickProps) {
           dy={14 + i * 12}
           textAnchor="middle"
           fontSize={11}
-          fill="#666"
+          fill="hsl(var(--muted-foreground))"
         >
           {word}
         </text>
@@ -120,7 +131,7 @@ export function DistributionChart({ data, isLoading }: DistributionChartProps) {
           {data.map((item, i) => (
             <Cell
               key={i}
-              fill={item.isLost ? '#94a3b8' : item.isWon ? '#22c55e' : item.stageColor}
+              fill={getBarColor(item)}
               opacity={item.isLost ? 0.6 : item.isReferral || item.isWon ? 0.75 : 1}
             />
           ))}
