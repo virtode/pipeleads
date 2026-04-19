@@ -69,7 +69,6 @@ export function useCreatePipeline() {
       queryClient.invalidateQueries({ queryKey: ['pipelines'] })
     },
     onError: (err) => {
-      console.error('[useCreatePipeline]', err)
       const msg = (err as { message?: string })?.message ?? String(err)
       toast.error(`Erreur création pipeline : ${msg}`)
     },
@@ -96,7 +95,6 @@ export function useUpdatePipeline() {
       queryClient.invalidateQueries({ queryKey: ['pipeline', id] })
     },
     onError: (err) => {
-      console.error('[useUpdatePipeline]', err)
       const msg = (err as { message?: string })?.message ?? String(err)
       toast.error(`Erreur mise à jour pipeline : ${msg}`)
     },
@@ -118,7 +116,6 @@ export function useDeletePipeline() {
       toast.success('Pipeline supprimé')
     },
     onError: (err) => {
-      console.error('[useDeletePipeline]', err)
       const msg = (err as { message?: string })?.message ?? String(err)
       toast.error(`Erreur suppression pipeline : ${msg}`)
     },

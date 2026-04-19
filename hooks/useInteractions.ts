@@ -62,8 +62,7 @@ export function useCreateInteraction() {
       queryClient.invalidateQueries({ queryKey: ['interactions', row.contact_id] })
       queryClient.invalidateQueries({ queryKey: ['interactions-count', row.contact_id] })
     },
-    onError: (err) => {
-      console.error('[useCreateInteraction]', err)
+    onError: () => {
       toast.error('Erreur lors de l\'ajout')
     },
   })
@@ -87,8 +86,7 @@ export function useUpdateInteraction() {
     onSuccess: ({ contactId }) => {
       queryClient.invalidateQueries({ queryKey: ['interactions', contactId] })
     },
-    onError: (err) => {
-      console.error('[useUpdateInteraction]', err)
+    onError: () => {
       toast.error('Erreur lors de la modification')
     },
   })
@@ -108,8 +106,7 @@ export function useDeleteInteraction() {
       queryClient.invalidateQueries({ queryKey: ['interactions', contactId] })
       queryClient.invalidateQueries({ queryKey: ['interactions-count', contactId] })
     },
-    onError: (err) => {
-      console.error('[useDeleteInteraction]', err)
+    onError: () => {
       toast.error('Erreur lors de la suppression')
     },
   })

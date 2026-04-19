@@ -25,7 +25,6 @@ export function useCreateStage() {
       queryClient.invalidateQueries({ queryKey: ['pipeline', input.pipeline_id] })
     },
     onError: (err) => {
-      console.error('[useCreateStage]', err)
       const msg = (err as { message?: string })?.message ?? String(err)
       toast.error(`Erreur création étape : ${msg}`)
     },

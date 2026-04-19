@@ -142,7 +142,6 @@ export function useCreateContact() {
       toast.success('Contact créé')
     },
     onError: (err) => {
-      console.error('[useCreateContact]', err)
       const msg = (err as { message?: string })?.message ?? String(err)
       toast.error(`Erreur création : ${msg}`)
     },
@@ -172,7 +171,6 @@ export function useUpdateContact() {
       toast.success('Contact mis à jour')
     },
     onError: (err) => {
-      console.error('[useUpdateContact]', err)
       const msg = (err as { message?: string })?.message ?? String(err)
       toast.error(`Erreur mise à jour : ${msg}`)
     },
@@ -194,7 +192,6 @@ export function useDeleteContact() {
       toast.success('Contact supprimé')
     },
     onError: (err) => {
-      console.error('[useDeleteContact]', err)
       const msg = (err as { message?: string })?.message ?? String(err)
       toast.error(`Erreur suppression : ${msg}`)
     },
@@ -216,7 +213,6 @@ export function useDeleteContacts() {
       toast.success(`${ids.length} contact${ids.length > 1 ? 's' : ''} supprimé${ids.length > 1 ? 's' : ''}`)
     },
     onError: (err) => {
-      console.error('[useDeleteContacts]', err)
       const msg = (err as { message?: string })?.message ?? String(err)
       toast.error(`Erreur suppression : ${msg}`)
     },
