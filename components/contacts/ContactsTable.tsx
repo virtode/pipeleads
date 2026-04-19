@@ -363,7 +363,7 @@ export function ContactsTable({
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() ? 'selected' : undefined}
-                  className="cursor-pointer"
+                  className="cursor-pointer last:border-b-0"
                   onClick={() => onRowClick(row.original.id)}
                 >
                   {row.getVisibleCells().map((cell) => (
