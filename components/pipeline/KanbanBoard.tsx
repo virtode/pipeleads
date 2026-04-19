@@ -41,15 +41,16 @@ interface KanbanColumnProps {
 function KanbanColumn({ id, label, color, cards, onCardOpen, isReferral, isWon }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id })
 
-  const headerBg = isWon ? '#22c55e18' : isReferral ? '#f9731618' : color + '18'
+  const headerBgClass = isWon ? 'bg-green-500/5' : isReferral ? 'bg-orange-500/5' : ''
+  const headerBgStyle = !isWon && !isReferral ? { backgroundColor: color + '18' } : undefined
   const bodyBg = isWon ? 'bg-green-500/5' : isReferral ? 'bg-orange-500/5' : 'bg-muted/30'
 
   return (
     <div className="flex flex-col w-72 shrink-0 h-full gap-2">
       {/* Header */}
       <div
-        className="shrink-0 sticky top-0 z-10 flex items-center gap-2 rounded-lg px-3 py-2"
-        style={{ backgroundColor: headerBg }}
+        className={`shrink-0 sticky top-0 z-10 flex items-center gap-2 rounded-lg px-3 py-2 ${headerBgClass}`}
+        style={headerBgStyle}
       >
         <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: color }} />
         <span className="flex-1 text-sm font-medium truncate">{label}</span>

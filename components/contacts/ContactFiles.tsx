@@ -22,6 +22,14 @@ import {
 } from '@/components/ui/alert-dialog'
 import { formatDate } from '@/lib/utils'
 
+const FILE_TYPE_COLORS: Record<string, string> = {
+  image: 'text-blue-500',
+  pdf: 'text-red-500',
+  spreadsheet: 'text-green-600',
+  presentation: 'text-orange-500',
+  default: 'text-muted-foreground',
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────────────────────────────────────
@@ -58,20 +66,16 @@ function formatFileSize(bytes: number | null): string {
 }
 
 function FileIcon({ mimeType }: { mimeType: string | null }) {
-  if (!mimeType) return <File className="h-5 w-5 shrink-0 text-muted-foreground" />
+  if (!mimeType) return <File className={`h-5 w-5 shrink-0 ${FILE_TYPE_COLORS.default}`} />
   if (mimeType.startsWith('image/'))
-    return <FileImage className="h-5 w-5 shrink-0 text-blue-500" />
+    return <FileImage className={`h-5 w-5 shrink-0 ${FILE_TYPE_COLORS.image}`} />
   if (mimeType === 'application/pdf')
-    return <FileText className="h-5 w-5 shrink-0 text-red-500" />
-  if (
-    mimeType.includes('spreadsheet') ||
-    mimeType.includes('excel') ||
-    mimeType === 'text/csv'
-  )
-    return <FileText className="h-5 w-5 shrink-0 text-green-600" />
+    return <FileText className={`h-5 w-5 shrink-0 ${FILE_TYPE_COLORS.pdf}`} />
+  if (mimeType.includes('spreadsheet') || mimeType.includes('excel') || mimeType === 'text/csv')
+    return <FileText className={`h-5 w-5 shrink-0 ${FILE_TYPE_COLORS.spreadsheet}`} />
   if (mimeType.includes('presentation') || mimeType.includes('powerpoint'))
-    return <FileText className="h-5 w-5 shrink-0 text-orange-500" />
-  return <FileText className="h-5 w-5 shrink-0 text-muted-foreground" />
+    return <FileText className={`h-5 w-5 shrink-0 ${FILE_TYPE_COLORS.presentation}`} />
+  return <FileText className={`h-5 w-5 shrink-0 ${FILE_TYPE_COLORS.default}`} />
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
