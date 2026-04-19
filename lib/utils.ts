@@ -13,22 +13,4 @@ export function getFullName(first: string, last?: string | null): string {
   return [first, last].filter(Boolean).join(' ')
 }
 
-/** Date only: "01 janv. 2025" */
-export function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('fr-FR', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  })
-}
-
-/** Date + time: "01 janv. 2025, 14:30" */
-export function formatDateTime(iso: string): string {
-  return new Date(iso).toLocaleDateString('fr-FR', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-}
+export { formatDateFr as formatDate, formatDateTimeFr as formatDateTime } from '@/lib/utils/date'

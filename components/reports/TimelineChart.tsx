@@ -11,17 +11,11 @@ import {
 } from 'recharts'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { TimelinePoint } from '@/hooks/useReports'
+import { formatDateFrShort as formatDate } from '@/lib/utils/date'
 
 interface TimelineChartProps {
   data: TimelinePoint[]
   isLoading?: boolean
-}
-
-function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString('fr-FR', {
-    day: '2-digit',
-    month: 'short',
-  })
 }
 
 interface TooltipPayload {
