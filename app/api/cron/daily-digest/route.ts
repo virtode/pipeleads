@@ -159,7 +159,14 @@ async function processUser(
     return
   }
 
-  const interactions = (rows ?? []) as unknown as DigestItem[]
+  const interactions: DigestItem[] = (rows ?? []).map((row) => ({
+    id: row.id,
+    contact_id: row.contact_id,
+    content: row.content,
+    action_template: row.action_template,
+    date: row.date,
+    contact: row.contact as { id: string; first_name: string; last_name: string | null } | null,
+  }))
 
   if (interactions.length === 0) {
     stats.skipped++

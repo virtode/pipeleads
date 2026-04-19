@@ -56,7 +56,7 @@ export function useKanban(pipelineId: string | null) {
           contact_id: entry.contact_id,
           stage_id: entry.stage_id,
           value: entry.value,
-          contact: entry.contacts as unknown as Contact,
+          contact: entry.contacts as Contact,
         }
         const key = entry.stage_id ?? null
         const list = cardsByStage.get(key) ?? []
