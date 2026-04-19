@@ -12,6 +12,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import { TimezoneSection } from '@/components/settings/TimezoneSection'
+import { NotificationsSection } from '@/components/settings/NotificationsSection'
 import { IcalSection } from '@/components/settings/IcalSection'
 import { NotionSettingsSection } from '@/components/settings/NotionSettingsSection'
 import { CardDavSettingsSection } from '@/components/settings/CardDavSettingsSection'
@@ -46,6 +47,8 @@ export default function SettingsPage() {
       </div>
 
       <TimezoneSection />
+
+      <NotificationsSection />
 
       <IcalSection />
 
