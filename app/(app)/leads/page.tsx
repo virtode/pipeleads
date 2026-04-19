@@ -144,7 +144,7 @@ export default function LeadsPage() {
             )}
 
             {/* Manage pipelines */}
-            <Button size="sm" variant="ghost" className="w-full md:w-auto" asChild>
+            <Button size="sm" variant="ghost" className="hidden md:inline-flex" asChild>
               <Link href="/pipelines">
                 <Settings className="mr-1.5 h-4 w-4" />
                 Gérer
