@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { Bell, X } from 'lucide-react'
+import { TemplateIcon } from '@/lib/utils/interaction-icons'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { useCreateInteraction, useUpdateInteraction } from '@/hooks/useInteractions'
@@ -21,13 +22,8 @@ const QUICK_PICKS: { label: string; compute: () => Date }[] = [
   { label: '+6mois', compute: () => addMonths(new Date(), 6) },
 ]
 
-const TEMPLATES: { key: ActionTemplate; emoji: string }[] = [
-  { key: 'email_followup',   emoji: '📧' },
-  { key: 'call',             emoji: '📞' },
-  { key: 'linkedin_message', emoji: '💼' },
-  { key: 'propose_meeting',  emoji: '☕' },
-  { key: 'send_document',    emoji: '📄' },
-  { key: 'other',            emoji: '✍️' },
+const TEMPLATES: ActionTemplate[] = [
+  'email_followup', 'call', 'linkedin_message', 'propose_meeting', 'send_document', 'other',
 ]
 
 // ---------------------------------------------------------------------------
@@ -287,19 +283,20 @@ export function CreateInteractionForm({
             ref={templatesRef}
             className="flex gap-1.5 overflow-x-auto scrollbar-hide pb-0.5"
           >
-            {TEMPLATES.map(({ key, emoji }) => (
+            {TEMPLATES.map((key) => (
               <button
                 key={key}
                 type="button"
                 onClick={() => setSelectedTemplate(selectedTemplate === key ? null : key)}
                 className={[
-                  'shrink-0 rounded-full px-3 py-1 text-xs font-medium border transition-colors whitespace-nowrap',
+                  'shrink-0 flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium border transition-colors whitespace-nowrap',
                   selectedTemplate === key
                     ? 'bg-primary text-primary-foreground border-primary'
                     : 'border-border hover:border-primary/50',
                 ].join(' ')}
               >
-                {emoji} {ActionTemplateLabels[key]}
+                <TemplateIcon template={key} size={12} />
+                {ActionTemplateLabels[key]}
               </button>
             ))}
           </div>

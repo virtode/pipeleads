@@ -13,6 +13,7 @@ import { useUpdateInteraction } from '@/hooks/useInteractions'
 import { useProfile } from '@/hooks/useProfile'
 import type { ActionTemplate } from '@/lib/types/interactions'
 import { ActionTemplateLabels } from '@/lib/types/interactions'
+import { TemplateIcon } from '@/lib/utils/interaction-icons'
 
 // ---------------------------------------------------------------------------
 // Grouping
@@ -57,19 +58,6 @@ const GROUP_META = [
   { key: 'thisMonth', label: 'Ce mois-ci',    urgent: false },
   { key: 'later',     label: 'Plus tard',     urgent: false },
 ] as const
-
-// ---------------------------------------------------------------------------
-// Template icons (emoji fallback)
-// ---------------------------------------------------------------------------
-
-const TEMPLATE_EMOJI: Record<ActionTemplate, string> = {
-  email_followup:   '📧',
-  call:             '📞',
-  linkedin_message: '💼',
-  propose_meeting:  '☕',
-  send_document:    '📄',
-  other:            '✍️',
-}
 
 // ---------------------------------------------------------------------------
 // SwipeableRow
@@ -169,7 +157,6 @@ function SwipeableRow({ reminder, timezone, onMarkDone, onPostpone, onTap }: Swi
     : reminder.content
 
   const templateKey = reminder.action_template as ActionTemplate | null
-  const emoji = templateKey ? TEMPLATE_EMOJI[templateKey] : '🔔'
   const templateLabel = templateKey ? ActionTemplateLabels[templateKey] : null
 
   const dateStr = formatInTimeZone(new Date(reminder.date), timezone, 'd MMM', { locale: fr })
@@ -216,7 +203,7 @@ function SwipeableRow({ reminder, timezone, onMarkDone, onPostpone, onTap }: Swi
         className="relative flex flex-col gap-0.5 bg-background rounded-lg px-3 py-2.5 cursor-pointer hover:bg-muted/40 active:bg-muted/60 select-none"
       >
         <div className="flex items-center gap-2 text-sm">
-          <span className="text-base leading-none shrink-0">{emoji}</span>
+          <TemplateIcon template={reminder.action_template} size={15} />
           <span className="text-xs text-muted-foreground shrink-0 font-medium">{dateStr}</span>
           <span className="font-medium truncate">{contactName}</span>
         </div>
