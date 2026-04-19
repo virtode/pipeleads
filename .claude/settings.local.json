@@ -45,7 +45,13 @@
       "Bash(identify /Users/matey/Virtode/pipeleads/public/icon-dark.png /Users/matey/Virtode/pipeleads/public/icon-light.png /Users/matey/Virtode/pipeleads/public/logo.png)",
       "Bash(sips -g pixelWidth -g pixelHeight /Users/matey/Virtode/pipeleads/public/icon-dark.png /Users/matey/Virtode/pipeleads/public/icon-light.png /Users/matey/Virtode/pipeleads/public/logo.png)",
       "mcp__claude_ai_Supabase__apply_migration",
-      "Bash(grep *)"
+      "Bash(grep *)",
+      "Bash(npx supabase *)",
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(sed -n '1,15p' /Users/matey/Virtode/pipeleads/app/\\\\\\(app\\\\\\)/reports/page.tsx)",
+      "Bash(sed -n '340,350p' /Users/matey/Virtode/pipeleads/app/\\\\\\(app\\\\\\)/reports/page.tsx)",
+      "Bash(sed -n '55,70p' /Users/matey/Virtode/pipeleads/components/contacts/ImportVCFDialog.tsx)",
+      "Bash(sed -n '160,170p' /Users/matey/Virtode/pipeleads/components/contacts/ImportVCFDialog.tsx)"
     ]
   }
 }
