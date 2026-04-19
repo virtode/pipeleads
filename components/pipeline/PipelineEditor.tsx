@@ -22,6 +22,7 @@ import { GripVertical, Plus, Trash2, Loader2, XCircle, ArrowUpRight, CheckCircle
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import {
   useCreatePipeline,
@@ -51,50 +52,6 @@ const STAGE_COLORS = [
   '#3b82f6', // blue
   '#64748b', // slate
 ]
-
-// ---------------------------------------------------------------------------
-// Stage toggle (is_lost / is_referral)
-// ---------------------------------------------------------------------------
-
-function StageToggle({
-  checked,
-  onChange,
-  activeColor,
-  label,
-  hint,
-}: {
-  checked: boolean
-  onChange: (v: boolean) => void
-  activeColor: string   // Tailwind bg class, e.g. 'bg-red-500'
-  label: React.ReactNode
-  hint?: React.ReactNode
-}) {
-  return (
-    <div className="ml-6 flex items-center gap-2">
-      <button
-        type="button"
-        role="switch"
-        aria-checked={checked}
-        onClick={() => onChange(!checked)}
-        className={`relative inline-flex h-4 w-7 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-          checked ? activeColor : 'bg-muted-foreground/30'
-        }`}
-      >
-        <span
-          className={`pointer-events-none inline-block h-3 w-3 rounded-full bg-white shadow-sm transition-transform ${
-            checked ? 'translate-x-3' : 'translate-x-0'
-          }`}
-        />
-      </button>
-      <span className="text-xs">
-        {label}
-        {checked && hint && (
-          <span className="ml-1 text-muted-foreground font-normal">{hint}</span>
-        )}
-      </span>
-    </div>
-  )
-}
 
 // ---------------------------------------------------------------------------
 // Stage row (sortable)
@@ -175,39 +132,35 @@ function StageRow({ id, name, color, isLost, isReferral, isWon, onNameChange, on
         </Button>
       </div>
 
-      <StageToggle
-        checked={isLost}
-        onChange={onIsLostChange}
-        activeColor="bg-red-500"
-        label={<span className={isLost ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'}>Étape de clôture négative</span>}
-        hint="— exclue de l'entonnoir"
-      />
+      <div className="ml-6 flex items-center gap-2">
+        <Switch id={`${id}-lost`} checked={isLost} onCheckedChange={onIsLostChange} className="data-[state=checked]:bg-red-500 h-4 w-7 [&_span]:h-3 [&_span]:w-3" />
+        <label htmlFor={`${id}-lost`} className="text-xs cursor-pointer">
+          <span className={isLost ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'}>Étape de clôture négative</span>
+          {isLost && <span className="ml-1 text-muted-foreground font-normal">— exclue de l&apos;entonnoir</span>}
+        </label>
+      </div>
 
-      <StageToggle
-        checked={isReferral}
-        onChange={onIsReferralChange}
-        activeColor="bg-orange-500"
-        label={
+      <div className="ml-6 flex items-center gap-2">
+        <Switch id={`${id}-referral`} checked={isReferral} onCheckedChange={onIsReferralChange} className="data-[state=checked]:bg-orange-500 h-4 w-7 [&_span]:h-3 [&_span]:w-3" />
+        <label htmlFor={`${id}-referral`} className="text-xs cursor-pointer">
           <span className={isReferral ? 'text-orange-600 dark:text-orange-400' : 'text-muted-foreground'}>
             <ArrowUpRight className="inline h-3 w-3 mr-0.5" />
             Étape de referral — génère un contact de suivi
           </span>
-        }
-        hint="— sortie latérale positive"
-      />
+          {isReferral && <span className="ml-1 text-muted-foreground font-normal">— sortie latérale positive</span>}
+        </label>
+      </div>
 
-      <StageToggle
-        checked={isWon}
-        onChange={onIsWonChange}
-        activeColor="bg-green-500"
-        label={
+      <div className="ml-6 flex items-center gap-2">
+        <Switch id={`${id}-won`} checked={isWon} onCheckedChange={onIsWonChange} className="data-[state=checked]:bg-green-500 h-4 w-7 [&_span]:h-3 [&_span]:w-3" />
+        <label htmlFor={`${id}-won`} className="text-xs cursor-pointer">
           <span className={isWon ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}>
             <CheckCircle className="inline h-3 w-3 mr-0.5" />
             Étape de clôture positive — objectif atteint
           </span>
-        }
-        hint="— exclue de l'entonnoir"
-      />
+          {isWon && <span className="ml-1 text-muted-foreground font-normal">— exclue de l&apos;entonnoir</span>}
+        </label>
+      </div>
     </div>
   )
 }
