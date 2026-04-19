@@ -146,7 +146,7 @@ export function useStageDistribution(filters: ReportFilters) {
         result.push({
           stageId: null,
           stageName: 'Sans étape',
-          stageColor: '#94a3b8',
+          stageColor: '',
           count: unassignedCount,
           isLost: false,
           isReferral: false,
