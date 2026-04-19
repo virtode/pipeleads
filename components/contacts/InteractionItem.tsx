@@ -87,11 +87,11 @@ export function InteractionItem({
         <div className="flex-1 min-w-0 space-y-1">
           <p className="text-sm whitespace-pre-wrap break-words">{i.content}</p>
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-[11px] text-muted-foreground">
+            <span className="text-xs text-muted-foreground">
               {formatDate(i.date, timezone)}
             </span>
             {i.action_template && (
-              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">
+              <Badge variant="secondary" className="text-xs px-1.5 py-0 h-4">
                 {ActionTemplateLabels[i.action_template as ActionTemplate]}
               </Badge>
             )}
