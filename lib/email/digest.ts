@@ -1,6 +1,7 @@
 import { ActionTemplateLabels } from '@/lib/types/interactions'
 import type { ActionTemplate } from '@/lib/types/interactions'
 
+// Email-only: Lucide icons can't render in HTML emails.
 const TEMPLATE_EMOJI: Record<ActionTemplate, string> = {
   email_followup:   '📧',
   call:             '📞',
