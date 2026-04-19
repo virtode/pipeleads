@@ -20,7 +20,6 @@ import { Button } from '@/components/ui/button'
 import { ThemeToggle } from '@/components/shared/ThemeToggle'
 import { useSupabaseClient } from '@/lib/supabase/context'
 import { usePendingReminderCount } from '@/hooks/useAgendaReminders'
-import { APP_VERSION } from '@/lib/version'
 
 interface NavItem {
   label: string
@@ -133,7 +132,7 @@ export function Sidebar({ onNavigate, isAdmin = false }: SidebarProps) {
         </Button>
         <ThemeToggle />
       </div>
-      <p className="px-4 pb-3 text-xs text-muted-foreground/60">v{APP_VERSION}</p>
+      <p className="px-4 pb-3 text-xs text-muted-foreground/60">v{process.env.NEXT_PUBLIC_APP_VERSION}</p>
     </div>
   )
 }
