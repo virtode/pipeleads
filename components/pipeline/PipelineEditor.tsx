@@ -18,12 +18,12 @@ import {
 } from '@dnd-kit/sortable'
 import { KeyboardSensor } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
-import { GripVertical, Plus, Trash2, Loader2, XCircle, ArrowUpRight, CheckCircle } from 'lucide-react'
+import { GripVertical, Plus, Trash2, Loader2, XCircle, ArrowUpRight, CheckCircle2, Building2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import {
   useCreatePipeline,
   useUpdatePipeline,
@@ -64,16 +64,18 @@ interface StageRowProps {
   isLost: boolean
   isReferral: boolean
   isWon: boolean
+  countByCompany: boolean
   onNameChange: (v: string) => void
   onColorChange: (v: string) => void
   onIsLostChange: (v: boolean) => void
   onIsReferralChange: (v: boolean) => void
   onIsWonChange: (v: boolean) => void
+  onCountByCompanyChange: (v: boolean) => void
   onDelete: () => void
   canDelete: boolean
 }
 
-function StageRow({ id, name, color, isLost, isReferral, isWon, onNameChange, onColorChange, onIsLostChange, onIsReferralChange, onIsWonChange, onDelete, canDelete }: StageRowProps) {
+function StageRow({ id, name, color, isLost, isReferral, isWon, countByCompany, onNameChange, onColorChange, onIsLostChange, onIsReferralChange, onIsWonChange, onCountByCompanyChange, onDelete, canDelete }: StageRowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id })
 
@@ -132,35 +134,66 @@ function StageRow({ id, name, color, isLost, isReferral, isWon, onNameChange, on
         </Button>
       </div>
 
-      <div className="ml-6 flex items-center gap-2">
-        <Switch id={`${id}-lost`} checked={isLost} onCheckedChange={onIsLostChange} className="data-[state=checked]:bg-red-500 h-4 w-7 [&_span]:h-3 [&_span]:w-3" />
-        <label htmlFor={`${id}-lost`} className="text-xs cursor-pointer">
-          <span className={isLost ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'}>Étape de clôture négative</span>
-          {isLost && <span className="ml-1 text-muted-foreground font-normal">— exclue de l&apos;entonnoir</span>}
-        </label>
-      </div>
+      {/* Icon-toggle row */}
+      <TooltipProvider>
+        <div className="ml-6 flex items-center gap-1">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                onClick={() => onIsLostChange(!isLost)}
+                className={`rounded-md p-1.5 transition-colors ${isLost ? 'text-destructive bg-destructive/10' : 'text-muted-foreground hover:text-foreground'}`}
+                aria-label="Étape de clôture négative"
+              >
+                <XCircle className="h-4 w-4" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>Étape de clôture négative</TooltipContent>
+          </Tooltip>
 
-      <div className="ml-6 flex items-center gap-2">
-        <Switch id={`${id}-referral`} checked={isReferral} onCheckedChange={onIsReferralChange} className="data-[state=checked]:bg-orange-500 h-4 w-7 [&_span]:h-3 [&_span]:w-3" />
-        <label htmlFor={`${id}-referral`} className="text-xs cursor-pointer">
-          <span className={isReferral ? 'text-orange-600 dark:text-orange-400' : 'text-muted-foreground'}>
-            <ArrowUpRight className="inline h-3 w-3 mr-0.5" />
-            Étape de referral — génère un contact de suivi
-          </span>
-          {isReferral && <span className="ml-1 text-muted-foreground font-normal">— sortie latérale positive</span>}
-        </label>
-      </div>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                onClick={() => onIsReferralChange(!isReferral)}
+                className={`rounded-md p-1.5 transition-colors ${isReferral ? 'text-orange-500 bg-orange-500/10' : 'text-muted-foreground hover:text-foreground'}`}
+                aria-label="Étape de referral"
+              >
+                <ArrowUpRight className="h-4 w-4" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>Étape de referral — génère un contact de suivi</TooltipContent>
+          </Tooltip>
 
-      <div className="ml-6 flex items-center gap-2">
-        <Switch id={`${id}-won`} checked={isWon} onCheckedChange={onIsWonChange} className="data-[state=checked]:bg-green-500 h-4 w-7 [&_span]:h-3 [&_span]:w-3" />
-        <label htmlFor={`${id}-won`} className="text-xs cursor-pointer">
-          <span className={isWon ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}>
-            <CheckCircle className="inline h-3 w-3 mr-0.5" />
-            Étape de clôture positive — objectif atteint
-          </span>
-          {isWon && <span className="ml-1 text-muted-foreground font-normal">— exclue de l&apos;entonnoir</span>}
-        </label>
-      </div>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                onClick={() => onIsWonChange(!isWon)}
+                className={`rounded-md p-1.5 transition-colors ${isWon ? 'text-green-500 bg-green-500/10' : 'text-muted-foreground hover:text-foreground'}`}
+                aria-label="Étape de clôture positive"
+              >
+                <CheckCircle2 className="h-4 w-4" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>Étape de clôture positive — objectif atteint</TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                onClick={() => onCountByCompanyChange(!countByCompany)}
+                className={`rounded-md p-1.5 transition-colors ${countByCompany ? 'text-blue-500 bg-blue-500/10' : 'text-muted-foreground hover:text-foreground'}`}
+                aria-label="Dédoublonner par entreprise"
+              >
+                <Building2 className="h-4 w-4" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>Dédoublonner par entreprise dans le reporting</TooltipContent>
+          </Tooltip>
+        </div>
+      </TooltipProvider>
     </div>
   )
 }
@@ -178,6 +211,7 @@ interface DraftStage {
   isLost: boolean
   isReferral: boolean
   isWon: boolean
+  countByCompany: boolean
   isNew: boolean
 }
 
@@ -191,6 +225,7 @@ function buildDrafts(stages: PipelineWithStages['pipeline_stages']): DraftStage[
     isLost: s.is_lost,
     isReferral: s.is_referral,
     isWon: s.is_won,
+    countByCompany: s.count_by_company,
     isNew: false,
   }))
 }
@@ -249,6 +284,7 @@ export function PipelineEditor({ pipeline, onSuccess, onCancel }: PipelineEditor
         isLost: false,
         isReferral: false,
         isWon: false,
+        countByCompany: false,
         isNew: true,
       },
     ])
@@ -304,14 +340,14 @@ export function PipelineEditor({ pipeline, onSuccess, onCancel }: PipelineEditor
         await updateStage.mutateAsync({
           id: s.dbId!,
           pipelineId,
-          data: { name: s.name || 'Étape', color: s.color, position: 10000 + i, is_lost: s.isLost, is_referral: s.isReferral, is_won: s.isWon },
+          data: { name: s.name || 'Étape', color: s.color, position: 10000 + i, is_lost: s.isLost, is_referral: s.isReferral, is_won: s.isWon, count_by_company: s.countByCompany },
         })
       }
 
       // Pass 2: write final positions and insert new stages
       for (let i = 0; i < stages.length; i++) {
         const s = stages[i]
-        const payload = { name: s.name || 'Étape', color: s.color, position: i, is_lost: s.isLost, is_referral: s.isReferral, is_won: s.isWon }
+        const payload = { name: s.name || 'Étape', color: s.color, position: i, is_lost: s.isLost, is_referral: s.isReferral, is_won: s.isWon, count_by_company: s.countByCompany }
 
         if (s.dbId) {
           await updateStage.mutateAsync({ id: s.dbId, pipelineId, data: payload })
@@ -388,6 +424,7 @@ export function PipelineEditor({ pipeline, onSuccess, onCancel }: PipelineEditor
                   isLost={stage.isLost}
                   isReferral={stage.isReferral}
                   isWon={stage.isWon}
+                  countByCompany={stage.countByCompany}
                   onNameChange={(v) =>
                     setStages((prev) =>
                       prev.map((s) => (s.localId === stage.localId ? { ...s, name: v } : s))
@@ -401,22 +438,25 @@ export function PipelineEditor({ pipeline, onSuccess, onCancel }: PipelineEditor
                   onIsLostChange={(v) =>
                     setStages((prev) =>
                       prev.map((s) =>
-                        s.localId === stage.localId ? { ...s, isLost: v, ...(v ? { isReferral: false, isWon: false } : {}) } : s
+                        s.localId === stage.localId ? { ...s, isLost: v, ...(v ? { isWon: false } : {}) } : s
                       )
                     )
                   }
                   onIsReferralChange={(v) =>
                     setStages((prev) =>
-                      prev.map((s) =>
-                        s.localId === stage.localId ? { ...s, isReferral: v, ...(v ? { isLost: false, isWon: false } : {}) } : s
-                      )
+                      prev.map((s) => (s.localId === stage.localId ? { ...s, isReferral: v } : s))
                     )
                   }
                   onIsWonChange={(v) =>
                     setStages((prev) =>
                       prev.map((s) =>
-                        s.localId === stage.localId ? { ...s, isWon: v, ...(v ? { isLost: false, isReferral: false } : {}) } : s
+                        s.localId === stage.localId ? { ...s, isWon: v, ...(v ? { isLost: false } : {}) } : s
                       )
+                    )
+                  }
+                  onCountByCompanyChange={(v) =>
+                    setStages((prev) =>
+                      prev.map((s) => (s.localId === stage.localId ? { ...s, countByCompany: v } : s))
                     )
                   }
                   onDelete={() => removeStage(stage.localId)}
