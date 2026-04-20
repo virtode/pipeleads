@@ -18,6 +18,7 @@ import {
 } from '@dnd-kit/sortable'
 import { useDroppable } from '@dnd-kit/core'
 import { ArrowUpRight, CheckCircle } from 'lucide-react'
+import { countDistinctCompanies } from '@/lib/utils/pipeline'
 import { KanbanCard, KanbanCardOverlay } from './KanbanCard'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -36,9 +37,11 @@ interface KanbanColumnProps {
   onCardOpen: (contactId: string) => void
   isReferral?: boolean
   isWon?: boolean
+  countByCompany?: boolean
 }
 
-function KanbanColumn({ id, label, color, cards, onCardOpen, isReferral, isWon }: KanbanColumnProps) {
+function KanbanColumn({ id, label, color, cards, onCardOpen, isReferral, isWon, countByCompany }: KanbanColumnProps) {
+  const companyCount = countByCompany ? countDistinctCompanies(cards.map((c) => c.contact)) : undefined
   const { setNodeRef, isOver } = useDroppable({ id })
 
   const headerBgClass = isWon ? 'bg-green-500/5' : isReferral ? 'bg-orange-500/5' : ''
@@ -60,7 +63,12 @@ function KanbanColumn({ id, label, color, cards, onCardOpen, isReferral, isWon }
         {isWon && (
           <CheckCircle className="h-3.5 w-3.5 shrink-0 text-green-500" />
         )}
-        <span className="text-xs text-muted-foreground tabular-nums">{cards.length}</span>
+        <span className="text-xs text-muted-foreground tabular-nums">
+          {cards.length}
+          {companyCount !== undefined && companyCount !== cards.length && (
+            <> · {companyCount} co.</>
+          )}
+        </span>
       </div>
 
       {/* Cards drop zone */}
@@ -253,6 +261,7 @@ export function KanbanBoard({ data, onCardOpen, isLoading, showReferrals = false
             onCardOpen={onCardOpen}
             isReferral={col.stage.is_referral}
             isWon={col.stage.is_won}
+            countByCompany={col.stage.count_by_company}
           />
         ))}
 
