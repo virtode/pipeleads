@@ -30,6 +30,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { getInitials, formatDate, getFullName } from '@/lib/utils'
+import { formatPhone } from '@/lib/utils/phone'
 import type { Contact, ContactSortField } from '@/types'
 
 // ---------------------------------------------------------------------------
@@ -120,11 +121,15 @@ function buildColumns(onRowClick: (id: string) => void) {
       enableSorting: false,
     }),
 
-    col.accessor((row) => row.phone?.[0] ?? '', {
+    col.accessor((row) => row.phone?.[0] ?? null, {
       id: 'phone',
       header: 'Téléphone',
-      cell: ({ getValue }) =>
-        getValue() || <span className="text-muted-foreground">—</span>,
+      cell: ({ getValue }) => {
+        const formatted = formatPhone(getValue())
+        return formatted === '—'
+          ? <span className="text-muted-foreground">—</span>
+          : formatted
+      },
       enableSorting: false,
     }),
 

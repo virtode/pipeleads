@@ -6,6 +6,7 @@ import {
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
+import { formatPhone } from '@/lib/utils/phone'
 
 function InfoRow({
   icon: Icon,
@@ -56,7 +57,7 @@ export function ContactInfoSection({
         ))}
         {(contact.phone ?? []).map((p) => (
           <InfoRow key={p} icon={Phone}>
-            <a href={`tel:${p}`} className="hover:underline">{p}</a>
+            <a href={`tel:${p}`} className="hover:underline">{formatPhone(p)}</a>
           </InfoRow>
         ))}
 
