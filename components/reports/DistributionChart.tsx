@@ -58,6 +58,9 @@ function CustomTooltip({ active, payload }: { active?: boolean; payload?: Toolti
       </div>
       <p className="mt-1 text-muted-foreground">
         {item.count} contact{item.count !== 1 ? 's' : ''}
+        {item.countByCompany && item.companyCount !== undefined && item.companyCount !== item.count && (
+          <span className="ml-1 text-xs"> · {item.companyCount} entreprise{item.companyCount !== 1 ? 's' : ''}</span>
+        )}
       </p>
     </div>
   )

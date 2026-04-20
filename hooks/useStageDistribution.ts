@@ -17,6 +17,8 @@ export interface StageDistributionItem {
   isLost: boolean
   isReferral: boolean
   isWon: boolean
+  countByCompany: boolean
+  companyCount?: number
 }
 
 export interface TimelinePoint {
@@ -47,7 +49,7 @@ export function useStageDistribution(filters: ReportFilters) {
 
       const { data: stages, error: stagesErr } = await supabase
         .from('pipeline_stages')
-        .select('id, name, color, is_lost, is_referral, is_won')
+        .select('id, name, color, is_lost, is_referral, is_won, count_by_company')
         .eq('pipeline_id', filters.pipelineId)
         .order('position', { ascending: true })
 
@@ -55,26 +57,44 @@ export function useStageDistribution(filters: ReportFilters) {
 
       const { data: entries, error: entriesErr } = await supabase
         .from('contact_pipeline')
-        .select('stage_id')
+        .select('stage_id, contacts(company)')
         .eq('pipeline_id', filters.pipelineId)
 
       if (entriesErr) throw entriesErr
 
       const counts = new Map<string | null, number>()
+      const companiesByStage = new Map<string | null, string[]>()
+
       for (const entry of entries ?? []) {
         const key = entry.stage_id
         counts.set(key, (counts.get(key) ?? 0) + 1)
+        const company = (entry.contacts as { company?: string | null } | null)?.company
+        if (company) {
+          const list = companiesByStage.get(key) ?? []
+          list.push(company)
+          companiesByStage.set(key, list)
+        }
       }
 
-      const result: StageDistributionItem[] = (stages ?? []).map((stage) => ({
-        stageId: stage.id,
-        stageName: stage.name,
-        stageColor: stage.color,
-        count: counts.get(stage.id) ?? 0,
-        isLost: stage.is_lost,
-        isReferral: stage.is_referral,
-        isWon: stage.is_won,
-      }))
+      const result: StageDistributionItem[] = (stages ?? []).map((stage) => {
+        const count = counts.get(stage.id) ?? 0
+        let companyCount: number | undefined
+        if (stage.count_by_company) {
+          const companies = companiesByStage.get(stage.id) ?? []
+          companyCount = new Set(companies).size
+        }
+        return {
+          stageId: stage.id,
+          stageName: stage.name,
+          stageColor: stage.color,
+          count,
+          isLost: stage.is_lost,
+          isReferral: stage.is_referral,
+          isWon: stage.is_won,
+          countByCompany: stage.count_by_company,
+          companyCount,
+        }
+      })
 
       const unassignedCount = counts.get(null) ?? 0
       if (unassignedCount > 0) {
@@ -86,6 +106,7 @@ export function useStageDistribution(filters: ReportFilters) {
           isLost: false,
           isReferral: false,
           isWon: false,
+          countByCompany: false,
         })
       }
 
