@@ -38,7 +38,7 @@ function ContactsPageContent() {
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(() => {
     const saved = localStorage.getItem('contacts_page_size')
-    return saved ? Number(saved) : 20
+    return saved ? Number(saved) : 50
   })
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS)
   const [sort, setSort] = useState<ContactSortField>({

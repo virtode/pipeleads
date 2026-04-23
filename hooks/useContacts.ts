@@ -6,7 +6,7 @@ import { useSupabaseClient, useTenantId } from '@/lib/supabase/context'
 import type { ContactFilters, ContactSortField } from '@/types'
 import type { InsertDto, UpdateDto } from '@/lib/supabase/types'
 
-export const CONTACTS_PAGE_SIZE = 20
+export const CONTACTS_PAGE_SIZE = 50
 
 interface UseContactsParams {
   page?: number
