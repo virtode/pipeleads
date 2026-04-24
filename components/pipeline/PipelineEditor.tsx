@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import {
   DndContext,
   closestCenter,
+  KeyboardSensor,
   PointerSensor,
   useSensor,
   useSensors,
@@ -16,7 +17,6 @@ import {
   verticalListSortingStrategy,
   arrayMove,
 } from '@dnd-kit/sortable'
-import { KeyboardSensor } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
 import { GripVertical, Plus, Trash2, Loader2, XCircle, ArrowUpRight, CheckCircle2, Building2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -65,17 +65,12 @@ interface StageRowProps {
   isReferral: boolean
   isWon: boolean
   countByCompany: boolean
-  onNameChange: (v: string) => void
-  onColorChange: (v: string) => void
-  onIsLostChange: (v: boolean) => void
-  onIsReferralChange: (v: boolean) => void
-  onIsWonChange: (v: boolean) => void
-  onCountByCompanyChange: (v: boolean) => void
+  onUpdate: (patch: Partial<Pick<DraftStage, 'name' | 'color' | 'isLost' | 'isReferral' | 'isWon' | 'countByCompany'>>) => void
   onDelete: () => void
   canDelete: boolean
 }
 
-function StageRow({ id, name, color, isLost, isReferral, isWon, countByCompany, onNameChange, onColorChange, onIsLostChange, onIsReferralChange, onIsWonChange, onCountByCompanyChange, onDelete, canDelete }: StageRowProps) {
+function StageRow({ id, name, color, isLost, isReferral, isWon, countByCompany, onUpdate, onDelete, canDelete }: StageRowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id })
 
@@ -106,7 +101,7 @@ function StageRow({ id, name, color, isLost, isReferral, isWon, countByCompany, 
               type="button"
               className={`h-4 w-4 rounded-full transition-transform ${c === color ? 'scale-125 ring-2 ring-offset-1 ring-foreground/30' : 'hover:scale-110'}`}
               style={{ backgroundColor: c }}
-              onClick={() => onColorChange(c)}
+              onClick={() => onUpdate({ color: c })}
               aria-label={`Couleur ${c}`}
             />
           ))}
@@ -115,7 +110,7 @@ function StageRow({ id, name, color, isLost, isReferral, isWon, countByCompany, 
         {/* Name */}
         <Input
           value={name}
-          onChange={(e) => onNameChange(e.target.value)}
+          onChange={(e) => onUpdate({ name: e.target.value })}
           placeholder="Nom de l'étape"
           className={`h-8 flex-1 text-sm ${isLost ? 'border-red-300 dark:border-red-800' : isReferral ? 'border-orange-300 dark:border-orange-800' : isWon ? 'border-green-300 dark:border-green-800' : ''}`}
         />
@@ -141,7 +136,7 @@ function StageRow({ id, name, color, isLost, isReferral, isWon, countByCompany, 
             <TooltipTrigger asChild>
               <button
                 type="button"
-                onClick={() => onIsLostChange(!isLost)}
+                onClick={() => onUpdate({ isLost: !isLost })}
                 className={`rounded-md p-1.5 transition-colors ${isLost ? 'text-destructive bg-destructive/10' : 'text-muted-foreground hover:text-foreground'}`}
                 aria-label="Étape de clôture négative"
               >
@@ -155,7 +150,7 @@ function StageRow({ id, name, color, isLost, isReferral, isWon, countByCompany, 
             <TooltipTrigger asChild>
               <button
                 type="button"
-                onClick={() => onIsReferralChange(!isReferral)}
+                onClick={() => onUpdate({ isReferral: !isReferral })}
                 className={`rounded-md p-1.5 transition-colors ${isReferral ? 'text-orange-500 bg-orange-500/10' : 'text-muted-foreground hover:text-foreground'}`}
                 aria-label="Étape de referral"
               >
@@ -169,7 +164,7 @@ function StageRow({ id, name, color, isLost, isReferral, isWon, countByCompany, 
             <TooltipTrigger asChild>
               <button
                 type="button"
-                onClick={() => onIsWonChange(!isWon)}
+                onClick={() => onUpdate({ isWon: !isWon })}
                 className={`rounded-md p-1.5 transition-colors ${isWon ? 'text-green-500 bg-green-500/10' : 'text-muted-foreground hover:text-foreground'}`}
                 aria-label="Étape de clôture positive"
               >
@@ -183,7 +178,7 @@ function StageRow({ id, name, color, isLost, isReferral, isWon, countByCompany, 
             <TooltipTrigger asChild>
               <button
                 type="button"
-                onClick={() => onCountByCompanyChange(!countByCompany)}
+                onClick={() => onUpdate({ countByCompany: !countByCompany })}
                 className={`rounded-md p-1.5 transition-colors ${countByCompany ? 'text-blue-500 bg-blue-500/10' : 'text-muted-foreground hover:text-foreground'}`}
                 aria-label="Dédoublonner par entreprise"
               >
@@ -327,9 +322,7 @@ export function PipelineEditor({ pipeline, onSuccess, onCancel }: PipelineEditor
       }
 
       // 2. Delete removed stages
-      for (const dbId of stagesToDelete) {
-        await deleteStage.mutateAsync({ id: dbId, pipelineId })
-      }
+      await Promise.all(stagesToDelete.map((dbId) => deleteStage.mutateAsync({ id: dbId, pipelineId })))
 
       // 3. Upsert stages (insert new, update existing)
       // Pass 1: move all existing stages to temporary positions to avoid UNIQUE(pipeline_id, position)
@@ -363,7 +356,7 @@ export function PipelineEditor({ pipeline, onSuccess, onCancel }: PipelineEditor
       onSuccess()
     } catch (err) {
       console.error('[PipelineEditor.handleSave]', err)
-      const msg = (err as { message?: string })?.message ?? 'Erreur inconnue'
+      const msg = (err as { message?: string }).message ?? 'Erreur inconnue'
       toast.error(`Erreur lors de la sauvegarde : ${msg}`)
     } finally {
       setIsSaving(false)
@@ -425,38 +418,15 @@ export function PipelineEditor({ pipeline, onSuccess, onCancel }: PipelineEditor
                   isReferral={stage.isReferral}
                   isWon={stage.isWon}
                   countByCompany={stage.countByCompany}
-                  onNameChange={(v) =>
+                  onUpdate={(patch) =>
                     setStages((prev) =>
-                      prev.map((s) => (s.localId === stage.localId ? { ...s, name: v } : s))
-                    )
-                  }
-                  onColorChange={(v) =>
-                    setStages((prev) =>
-                      prev.map((s) => (s.localId === stage.localId ? { ...s, color: v } : s))
-                    )
-                  }
-                  onIsLostChange={(v) =>
-                    setStages((prev) =>
-                      prev.map((s) =>
-                        s.localId === stage.localId ? { ...s, isLost: v, ...(v ? { isWon: false } : {}) } : s
-                      )
-                    )
-                  }
-                  onIsReferralChange={(v) =>
-                    setStages((prev) =>
-                      prev.map((s) => (s.localId === stage.localId ? { ...s, isReferral: v } : s))
-                    )
-                  }
-                  onIsWonChange={(v) =>
-                    setStages((prev) =>
-                      prev.map((s) =>
-                        s.localId === stage.localId ? { ...s, isWon: v, ...(v ? { isLost: false } : {}) } : s
-                      )
-                    )
-                  }
-                  onCountByCompanyChange={(v) =>
-                    setStages((prev) =>
-                      prev.map((s) => (s.localId === stage.localId ? { ...s, countByCompany: v } : s))
+                      prev.map((s) => {
+                        if (s.localId !== stage.localId) return s
+                        const next = { ...s, ...patch }
+                        if (patch.isLost && next.isLost) next.isWon = false
+                        if (patch.isWon && next.isWon) next.isLost = false
+                        return next
+                      })
                     )
                   }
                   onDelete={() => removeStage(stage.localId)}

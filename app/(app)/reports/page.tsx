@@ -97,11 +97,11 @@ export default function ReportsPage() {
   const [filters, setFilters] = useState<Filters>(buildDefaultFilters)
 
   const { data: kpis, isLoading: kpisLoading } = useKpis()
-  const { data: distribution, isLoading: distLoading } = useStageDistribution(filters)
+  const { data: distribution, isLoading: distLoading } = useStageDistribution(filters.pipelineId)
   const { data: timeline, isLoading: timelineLoading } = useTimeline(filters)
   const { data: tags, isLoading: tagsLoading } = useTagsDistribution()
   const { data: inactive } = useInactiveContacts(30, filters.pipelineId)
-  const { data: funnel, isLoading: funnelLoading } = useConversionFunnel(filters.pipelineId, filters)
+  const { data: funnel, isLoading: funnelLoading } = useConversionFunnel(filters)
 
   // CSV exports per widget
   function exportDistribution() {

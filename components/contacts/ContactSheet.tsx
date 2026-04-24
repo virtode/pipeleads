@@ -14,10 +14,21 @@ import { ContactTimeline } from './ContactTimeline'
 import { ContactHeaderSection } from './ContactHeaderSection'
 import { ContactInfoSection } from './ContactInfoSection'
 import { ContactPipelineSection } from './ContactPipelineSection'
-import { useQuery } from '@tanstack/react-query'
 import { useContact, useDeleteContact } from '@/hooks/useContacts'
 import { usePipelines } from '@/hooks/usePipelines'
 import { useInteractionCount } from '@/hooks/useInteractions'
+import { useContactFiles } from '@/hooks/useContactFiles'
+
+// ---------------------------------------------------------------------------
+// Module-level constants
+// ---------------------------------------------------------------------------
+
+const CLOSE_THRESHOLD = 120
+
+const noSwipe = {
+  onTouchStart: (e: { stopPropagation: () => void }) => e.stopPropagation(),
+  onTouchMove: (e: { stopPropagation: () => void }) => e.stopPropagation(),
+}
 
 // ---------------------------------------------------------------------------
 // Composant
@@ -33,8 +44,8 @@ interface ContactSheetProps {
 export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactSheetProps) {
   const [mode, setMode] = useState<'view' | 'edit'>('view')
   const [activeTab, setActiveTab] = useState('info')
-  const [defaultTabSet, setDefaultTabSet] = useState(false)
-  const [focusTimeline, setFocusTimeline] = useState(false)
+  const defaultTabSetRef = useRef(false)
+  const focusTimelineRef = useRef(false)
   const [addingPipelineId, setAddingPipelineId] = useState<string | null>(null)
 
   const [referralPending, setReferralPending] = useState<{
@@ -49,7 +60,6 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
   const sheetRef = useRef<HTMLDivElement>(null)
   const tabBarRef = useRef<HTMLDivElement>(null)
   const onCloseRef = useRef(onClose)
-  const CLOSE_THRESHOLD = 120
 
   useEffect(() => { onCloseRef.current = onClose })
 
@@ -152,33 +162,23 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
   useEffect(() => {
     setMode('view')
     setAddingPipelineId(null)
-    setDefaultTabSet(false)
+    defaultTabSetRef.current = false
     setActiveTab('info')
   }, [contactId])
 
   // Onglet par défaut conditionnel : Timeline si interactions ≥ 1
   useEffect(() => {
-    if (defaultTabSet || interactionCount === undefined) return
-    setDefaultTabSet(true)
+    if (defaultTabSetRef.current || interactionCount === undefined) return
+    defaultTabSetRef.current = true
     setActiveTab(interactionCount > 0 ? 'timeline' : 'info')
-  }, [interactionCount, defaultTabSet])
+  }, [interactionCount])
 
   // pipelines already containing this contact
   const contactPipelines = ('contact_pipeline' in (contact ?? {}) && Array.isArray((contact as { contact_pipeline?: unknown[] }).contact_pipeline))
     ? (contact as { contact_pipeline: { pipeline: { id: string; name: string } | null; stage: { id: string; name: string; color: string } | null }[] }).contact_pipeline
     : []
 
-  const { data: contactFiles } = useQuery<{ id: string }[]>({
-    queryKey: ['contact-files', contactId],
-    queryFn: async () => {
-      if (!contactId) return []
-      const res = await fetch(`/api/contacts/${contactId}/files`)
-      if (!res.ok) return []
-      const json = await res.json() as { data: { id: string }[] }
-      return json.data
-    },
-    enabled: !!contactId && isOpen,
-  })
+  const { data: contactFiles } = useContactFiles(contactId, isOpen)
   const fileCount = contactFiles?.length ?? 0
 
   const assignedPipelineIds = contactPipelines.map((cp) => cp.pipeline?.id).filter(Boolean) as string[]
@@ -277,8 +277,7 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
             {mode === 'edit' && (
               <div
                 className="flex-1 overflow-y-auto px-6 py-4"
-                onTouchStart={(e) => e.stopPropagation()}
-                onTouchMove={(e) => e.stopPropagation()}
+                {...noSwipe}
               >
                 <ContactForm
                   ref={formRef}
@@ -338,15 +337,14 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
               <TabsContent
                 value="info"
                 className="overflow-y-auto h-full space-y-5 px-6 py-5"
-                onTouchStart={(e) => e.stopPropagation()}
-                onTouchMove={(e) => e.stopPropagation()}
+                {...noSwipe}
               >
                 <ContactInfoSection
                   contact={contact}
                   interactionCount={interactionCount}
                   onAddInteraction={() => {
                     setActiveTab('timeline')
-                    setFocusTimeline(true)
+                    focusTimelineRef.current = true
                   }}
                 />
               </TabsContent>
@@ -355,13 +353,12 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
               <TabsContent
                 value="timeline"
                 className="h-full overflow-hidden flex flex-col"
-                onTouchStart={(e) => e.stopPropagation()}
-                onTouchMove={(e) => e.stopPropagation()}
+                {...noSwipe}
               >
                 <ContactTimeline
                   contactId={contact.id}
-                  autoFocus={focusTimeline}
-                  onFocused={() => setFocusTimeline(false)}
+                  autoFocus={focusTimelineRef.current}
+                  onFocused={() => { focusTimelineRef.current = false }}
                 />
               </TabsContent>
 
@@ -369,26 +366,26 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
               <TabsContent
                 value="pipelines"
                 className="overflow-y-auto h-full px-6 py-5 space-y-2"
-                onTouchStart={(e) => e.stopPropagation()}
-                onTouchMove={(e) => e.stopPropagation()}
+                {...noSwipe}
               >
-                <ContactPipelineSection
-                  contactId={contactId!}
-                  contactPipelines={contactPipelines}
-                  allPipelines={allPipelines}
-                  availablePipelines={availablePipelines}
-                  addingPipelineId={addingPipelineId}
-                  setAddingPipelineId={setAddingPipelineId}
-                  onReferralPending={setReferralPending}
-                />
+                {contactId && (
+                  <ContactPipelineSection
+                    contactId={contactId}
+                    contactPipelines={contactPipelines}
+                    allPipelines={allPipelines}
+                    availablePipelines={availablePipelines}
+                    addingPipelineId={addingPipelineId}
+                    setAddingPipelineId={setAddingPipelineId}
+                    onReferralPending={setReferralPending}
+                  />
+                )}
               </TabsContent>
 
               {/* Enrichissements IA — tous, sans limite */}
               <TabsContent
                 value="ai"
                 className="overflow-y-auto h-full px-6 py-5"
-                onTouchStart={(e) => e.stopPropagation()}
-                onTouchMove={(e) => e.stopPropagation()}
+                {...noSwipe}
               >
                 <AIEnrichmentPanel
                   contactId={contact.id}
@@ -401,8 +398,7 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
               <TabsContent
                 value="notes"
                 className="overflow-y-auto h-full px-6 py-5 space-y-3"
-                onTouchStart={(e) => e.stopPropagation()}
-                onTouchMove={(e) => e.stopPropagation()}
+                {...noSwipe}
               >
                 {contact.notes ? (
                   <>
@@ -428,8 +424,7 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
               <TabsContent
                 value="documents"
                 className="overflow-y-auto h-full px-6 py-5"
-                onTouchStart={(e) => e.stopPropagation()}
-                onTouchMove={(e) => e.stopPropagation()}
+                {...noSwipe}
               >
                 <ContactFiles contactId={contact.id} />
               </TabsContent>

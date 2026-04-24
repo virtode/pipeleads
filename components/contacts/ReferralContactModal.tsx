@@ -23,7 +23,7 @@ import { useCreateContact, useUpdateContact, useContacts } from '@/hooks/useCont
 import { useAssignContactToPipeline } from '@/hooks/usePipelines'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useSupabaseClient } from '@/lib/supabase/context'
-import { getFullName } from '@/lib/utils'
+import { getFullName, getInitials } from '@/lib/utils'
 import type { Contact, PipelineStage } from '@/types'
 
 // ---------------------------------------------------------------------------
@@ -63,14 +63,6 @@ interface ReferralContactModalProps {
   referralStageId: string
   firstStage: PipelineStage | null
   onSuccess: () => void
-}
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-function getInitials(first: string, last?: string | null) {
-  return `${first.charAt(0)}${last ? last.charAt(0) : ''}`.toUpperCase()
 }
 
 // ---------------------------------------------------------------------------
@@ -143,7 +135,7 @@ export function ReferralContactModal({
     page: 0,
     pageSize: 5,
   })
-  const results = debouncedSearch.trim() ? (searchData?.contacts ?? []).slice(0, 5) : []
+  const results = debouncedSearch.trim() ? (searchData?.contacts ?? []) : []
 
   // ---------------------------------------------------------------------------
   // Shared cache flush — called on every success path
@@ -184,14 +176,45 @@ export function ReferralContactModal({
   }
 
   // ---------------------------------------------------------------------------
+  // Shared tail: note source + assign both contacts + cache flush
+  // Returns false if assignment failed (caller should abort without calling onSuccess).
+  // ---------------------------------------------------------------------------
+
+  async function finishReferral(
+    targetId: string,
+    firstName: string,
+    lastName: string | null | undefined,
+    company: string | null | undefined,
+  ): Promise<boolean> {
+    if (!firstStage) {
+      toast.warning('Ce pipeline n\'a pas d\'étape active — le contact sera ajouté sans étape.')
+    }
+
+    // Write source note first so it's committed before assignContact.onSuccess
+    // triggers a cache refetch — avoids a race where the refetch races the write.
+    await addNoteToSource(firstName, lastName, company)
+
+    try {
+      await Promise.all([
+        assignContact.mutateAsync({ contactId: sourceContact.id, pipelineId, stageId: referralStageId }),
+        assignContact.mutateAsync({ contactId: targetId, pipelineId, stageId: firstStage?.id ?? null }),
+      ])
+    } catch {
+      // Assignment failed but note was saved — still flush so the note is visible
+      flushCaches()
+      return false
+    }
+
+    flushCaches()
+    return true
+  }
+
+  // ---------------------------------------------------------------------------
   // Mode A — pick an existing contact
   // ---------------------------------------------------------------------------
 
   async function handlePickExisting(contact: Contact) {
-    // Append the referral note to the contact's existing notes
-    const updatedNotes = contact.notes
-      ? `${contact.notes}\n${notesRef}`
-      : notesRef
+    const updatedNotes = contact.notes ? `${contact.notes}\n${notesRef}` : notesRef
 
     try {
       await updateContact.mutateAsync({ id: contact.id, data: { notes: updatedNotes } })
@@ -200,23 +223,8 @@ export function ReferralContactModal({
       return
     }
 
-    // Write source note first so it's committed before assignContact.onSuccess
-    // triggers a cache refetch — avoids a race where the refetch races the write.
-    await addNoteToSource(contact.first_name, contact.last_name, contact.company)
+    if (!await finishReferral(contact.id, contact.first_name, contact.last_name, contact.company)) return
 
-    // Move source to referral stage, picked contact to first active stage
-    try {
-      await Promise.all([
-        assignContact.mutateAsync({ contactId: sourceContact.id, pipelineId, stageId: referralStageId }),
-        assignContact.mutateAsync({ contactId: contact.id, pipelineId, stageId: firstStage?.id ?? null }),
-      ])
-    } catch {
-      // Assignment failed but note was saved — still flush so the note is visible
-      flushCaches()
-      return
-    }
-
-    flushCaches()
     toast.success(`${getFullName(contact.first_name, contact.last_name)} ajouté comme referral`)
     onSuccess()
   }
@@ -241,21 +249,8 @@ export function ReferralContactModal({
       return
     }
 
-    // Write source note first — same reason as handlePickExisting (race condition)
-    await addNoteToSource(values.first_name, values.last_name, values.company)
+    if (!await finishReferral(newContact.id, values.first_name, values.last_name, values.company)) return
 
-    try {
-      await Promise.all([
-        assignContact.mutateAsync({ contactId: sourceContact.id, pipelineId, stageId: referralStageId }),
-        assignContact.mutateAsync({ contactId: newContact.id, pipelineId, stageId: firstStage?.id ?? null }),
-      ])
-    } catch {
-      // Assignment failed but contact was created — flush so it appears in the list
-      flushCaches()
-      return
-    }
-
-    flushCaches()
     form.reset()
     onSuccess()
   }

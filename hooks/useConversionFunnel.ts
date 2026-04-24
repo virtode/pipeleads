@@ -7,18 +7,18 @@ import type { ReportFilters } from './useStageDistribution'
 
 export type { ConversionStep } from '@/lib/reports/funnel'
 
-export function useConversionFunnel(pipelineId: string | null, filters: ReportFilters) {
+export function useConversionFunnel(filters: ReportFilters) {
   const supabase = useSupabaseClient()
 
   return useQuery({
-    queryKey: ['reports-funnel', pipelineId, filters.startDate.toISOString().slice(0, 10), filters.endDate.toISOString().slice(0, 10)],
+    queryKey: ['reports-funnel', filters.pipelineId],
     queryFn: async () => {
-      if (!pipelineId) return []
+      if (!filters.pipelineId) return []
 
       const { data: stages, error: stagesErr } = await supabase
         .from('pipeline_stages')
         .select('id, name, color, position, is_lost, is_referral, is_won')
-        .eq('pipeline_id', pipelineId)
+        .eq('pipeline_id', filters.pipelineId)
         .order('position', { ascending: true })
 
       if (stagesErr) throw stagesErr
@@ -27,7 +27,7 @@ export function useConversionFunnel(pipelineId: string | null, filters: ReportFi
       const { data: current, error: currentErr } = await supabase
         .from('contact_pipeline')
         .select('stage_id')
-        .eq('pipeline_id', pipelineId)
+        .eq('pipeline_id', filters.pipelineId)
         .not('stage_id', 'is', null)
 
       if (currentErr) throw currentErr
@@ -43,7 +43,7 @@ export function useConversionFunnel(pipelineId: string | null, filters: ReportFi
 
       return buildFunnelSteps(stages, stageCounts, totalInPipeline)
     },
-    enabled: !!pipelineId,
+    enabled: !!filters.pipelineId,
     staleTime: 60_000,
   })
 }

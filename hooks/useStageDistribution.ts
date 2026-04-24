@@ -39,18 +39,18 @@ export interface InactiveContact {
   daysSinceLastActivity: number
 }
 
-export function useStageDistribution(filters: ReportFilters) {
+export function useStageDistribution(pipelineId: string | null) {
   const supabase = useSupabaseClient()
 
   return useQuery({
-    queryKey: ['reports-distribution', filters.pipelineId],
+    queryKey: ['reports-distribution', pipelineId],
     queryFn: async (): Promise<StageDistributionItem[]> => {
-      if (!filters.pipelineId) return []
+      if (!pipelineId) return []
 
       const { data: stages, error: stagesErr } = await supabase
         .from('pipeline_stages')
         .select('id, name, color, is_lost, is_referral, is_won, count_by_company')
-        .eq('pipeline_id', filters.pipelineId)
+        .eq('pipeline_id', pipelineId)
         .order('position', { ascending: true })
 
       if (stagesErr) throw stagesErr
@@ -58,7 +58,7 @@ export function useStageDistribution(filters: ReportFilters) {
       const { data: entries, error: entriesErr } = await supabase
         .from('contact_pipeline')
         .select('stage_id, contacts(company)')
-        .eq('pipeline_id', filters.pipelineId)
+        .eq('pipeline_id', pipelineId)
 
       if (entriesErr) throw entriesErr
 
@@ -112,7 +112,7 @@ export function useStageDistribution(filters: ReportFilters) {
 
       return result
     },
-    enabled: !!filters.pipelineId,
+    enabled: !!pipelineId,
     staleTime: 60_000,
   })
 }
