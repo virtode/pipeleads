@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
     console.error('[cleanup-reports] CRON_SECRET not configured')
     return NextResponse.json({ error: 'Server misconfiguration' }, { status: 500 })
   }
-  if (req.headers.get('Authorization') !== `Bearer ${cronSecret}`) {
+  if (req.headers.get('Authorization')?.trim() !== `Bearer ${cronSecret.trim()}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
