@@ -117,6 +117,11 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next({ request })
   }
 
+  const isCronRoute = pathname.startsWith('/api/cron/')
+  if (isCronRoute) {
+    return NextResponse.next({ request })
+  }
+
   // ── Résolution du tenant ──────────────────────────────────────────────────
   let requestHeaders = new Headers(request.headers)
 
