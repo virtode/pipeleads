@@ -33,8 +33,6 @@ export async function POST(req: NextRequest) {
     console.error('[cleanup-reports] CRON_SECRET not configured')
     return NextResponse.json({ error: 'Server misconfiguration' }, { status: 500 })
   }
-  console.log('[CRON DEBUG] received:', req.headers.get('Authorization')?.slice(0, 20))
-  console.log('[CRON DEBUG] expected:', `Bearer ${process.env.CRON_SECRET?.trim()?.slice(0, 20)}`)
   if (req.headers.get('Authorization')?.trim() !== `Bearer ${cronSecret.trim()}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
