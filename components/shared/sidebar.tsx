@@ -10,6 +10,7 @@ import {
   Kanban,
   GitBranch,
   BarChart2,
+  Sparkles,
   Settings,
   LogOut,
   Shield,
@@ -33,6 +34,7 @@ const STATIC_NAV: Omit<NavItem, 'badge'>[] = [
   { label: 'Agenda',   href: '/agenda',   icon: CalendarClock },
   { label: 'Pipelines', href: '/pipelines', icon: GitBranch },
   { label: 'Leads', href: '/leads', icon: Kanban },
+  { label: 'Insights', href: '/insights', icon: Sparkles },
   { label: 'Rapports', href: '/reports', icon: BarChart2 },
   { label: 'Paramètres', href: '/settings', icon: Settings },
 ]
