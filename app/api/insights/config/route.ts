@@ -36,6 +36,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   const {
     pipelineId,
+    pipelineName,
     respondentStatuses,
     silentStatuses,
     excludedStatuses,
@@ -70,10 +71,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   //    INSERT sets all fields including tenant_id.
   //    On conflict (pipeline_id): update config fields only —
   //    prompt_version is managed by a DB trigger, tenant_id and created_at are untouched.
-  //    Only columns defined in the AnalysisConfig type are sent — pipeline_name,
-  //    report_template and ttl_seconds are not in the table schema.
   const upsertPayload = {
     pipeline_id: pipelineId,
+    pipeline_name: typeof pipelineName === 'string' ? pipelineName : '',
     tenant_id: tenantId,
     respondent_statuses: Array.isArray(respondentStatuses) ? respondentStatuses : [],
     silent_statuses: Array.isArray(silentStatuses) ? silentStatuses : [],
