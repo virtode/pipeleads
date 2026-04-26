@@ -293,7 +293,7 @@ export default function InsightsConfigPage() {
                 <div>
                   <Label className="text-sm font-medium">Étapes répondants</Label>
                   <p className="mt-0.5 text-xs text-muted-foreground">
-                    Contacts actifs ayant répondu positivement.
+                    Contacts ayant réagi à la sollicitation (positivement ou négativement).
                   </p>
                 </div>
                 <StageCheckboxGroup
@@ -312,7 +312,7 @@ export default function InsightsConfigPage() {
                 <div>
                   <Label className="text-sm font-medium">Étapes silencieux</Label>
                   <p className="mt-0.5 text-xs text-muted-foreground">
-                    Contacts n&apos;ayant pas répondu ou inactifs.
+                    Contacts n&apos;ayant jamais répondu à la sollicitation.
                   </p>
                 </div>
                 <StageCheckboxGroup
