@@ -36,14 +36,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   const {
     pipelineId,
-    pipelineName,
     respondentStatuses,
     silentStatuses,
     excludedStatuses,
     systemPrompt,
     contextPrompt,
-    reportTemplate,
-    ttlSeconds,
   } = body
 
   // 3. Validate required fields
@@ -73,28 +70,27 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   //    INSERT sets all fields including tenant_id.
   //    On conflict (pipeline_id): update config fields only —
   //    prompt_version is managed by a DB trigger, tenant_id and created_at are untouched.
-  const { data, error } = await untyped
+  //    Only columns defined in the AnalysisConfig type are sent — pipeline_name,
+  //    report_template and ttl_seconds are not in the table schema.
+  const upsertPayload = {
+    pipeline_id: pipelineId,
+    tenant_id: tenantId,
+    respondent_statuses: Array.isArray(respondentStatuses) ? respondentStatuses : [],
+    silent_statuses: Array.isArray(silentStatuses) ? silentStatuses : [],
+    excluded_statuses: Array.isArray(excludedStatuses) ? excludedStatuses : [],
+    system_prompt: (systemPrompt as string).trim(),
+    context_prompt: typeof contextPrompt === 'string' ? contextPrompt.trim() || null : null,
+    updated_at: new Date().toISOString(),
+  }
+
+  const { data, error: upsertError } = await untyped
     .from('analysis_configs')
-    .upsert(
-      {
-        pipeline_id: pipelineId,
-        tenant_id: tenantId,
-        pipeline_name: typeof pipelineName === 'string' ? pipelineName.trim() || null : null,
-        respondent_statuses: Array.isArray(respondentStatuses) ? respondentStatuses : [],
-        silent_statuses: Array.isArray(silentStatuses) ? silentStatuses : [],
-        excluded_statuses: Array.isArray(excludedStatuses) ? excludedStatuses : [],
-        system_prompt: (systemPrompt as string).trim(),
-        context_prompt: typeof contextPrompt === 'string' ? contextPrompt.trim() || null : null,
-        report_template: typeof reportTemplate === 'string' ? reportTemplate : 'default',
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: 'pipeline_id' },
-    )
+    .upsert(upsertPayload, { onConflict: 'pipeline_id' })
     .select('id')
     .single()
 
-  if (error) {
-    console.error('[insights/config] upsert error:', error.message)
+  if (upsertError) {
+    console.error('[insights/config] upsert error:', upsertError.message)
     return NextResponse.json({ error: 'Erreur lors de la sauvegarde' }, { status: 500 })
   }
 
