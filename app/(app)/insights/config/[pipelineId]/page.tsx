@@ -186,8 +186,7 @@ export default function InsightsConfigPage() {
   }
 
   // Submit
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
+  async function handleSubmit() {
     if (!pipelineId) return
     setSaving(true)
     try {
@@ -227,7 +226,7 @@ export default function InsightsConfigPage() {
   // ---------------------------------------------------------------------------
 
   return (
-    <div className="mx-auto max-w-2xl w-full space-y-8 flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-6 py-6">
+    <div className="mx-auto max-w-2xl w-full space-y-8 flex-1 overflow-y-auto overflow-x-hidden px-6 py-6">
       {/* Back link */}
       <Button variant="ghost" size="sm" className="-ml-2 h-8" asChild>
         <Link href="/insights">
@@ -244,7 +243,7 @@ export default function InsightsConfigPage() {
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-8">
+      <div className="space-y-8">
         {/* ── Identification ───────────────────────────────────────────────── */}
         <section className="space-y-4">
           <div className="flex items-center gap-2">
@@ -369,7 +368,6 @@ export default function InsightsConfigPage() {
                     onChange={(e) => setSystemPrompt(e.target.value)}
                     rows={8}
                     placeholder="Tu es un expert en analyse de pipeline de vente…"
-                    required
                   />
                 )}
               </div>
@@ -443,14 +441,15 @@ export default function InsightsConfigPage() {
             <Link href="/insights">Annuler</Link>
           </Button>
           <Button
-            type="submit"
+            type="button"
+            onClick={handleSubmit}
             disabled={saving || dataLoading || !systemPrompt.trim()}
           >
             {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {config ? 'Mettre à jour' : 'Créer la configuration'}
           </Button>
         </div>
-      </form>
+      </div>
     </div>
   )
 }
