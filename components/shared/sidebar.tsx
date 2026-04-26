@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { useTheme } from 'next-themes'
+import pkg from '@/package.json'
 import {
   Users,
   Kanban,
@@ -134,7 +135,7 @@ export function Sidebar({ onNavigate, isAdmin = false }: SidebarProps) {
         </Button>
         <ThemeToggle />
       </div>
-      <p className="px-4 pb-3 text-xs text-muted-foreground/60">v{process.env.NEXT_PUBLIC_APP_VERSION}</p>
+      <p className="px-4 pb-3 text-xs text-muted-foreground/60">v{pkg.version}</p>
     </div>
   )
 }
