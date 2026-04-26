@@ -83,16 +83,17 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     updated_at: new Date().toISOString(),
   }
 
-  const { data, error: upsertError } = await untyped
+  const { error: upsertError } = await untyped
     .from('analysis_configs')
     .upsert(upsertPayload, { onConflict: 'pipeline_id' })
-    .select('id')
-    .single()
 
   if (upsertError) {
-    console.error('[insights/config] upsert error:', upsertError.message)
-    return NextResponse.json({ error: 'Erreur lors de la sauvegarde' }, { status: 500 })
+    console.error('[CONFIG UPSERT ERROR]', upsertError)
+    return NextResponse.json(
+      { error: upsertError.message },
+      { status: 500 }
+    )
   }
 
-  return NextResponse.json({ success: true, configId: (data as { id: string }).id })
+  return NextResponse.json({ success: true })
 }
