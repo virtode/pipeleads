@@ -16,6 +16,7 @@ export async function uploadReport(
     .upload(storagePath, blob, {
       contentType: 'text/html; charset=utf-8',
       upsert: false,
+      cacheControl: '3600',
     })
 
   if (error) throw new Error(`storage error: ${error.message}`)
