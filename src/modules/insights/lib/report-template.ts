@@ -9,6 +9,7 @@ export interface ReportMeta {
   respondentCount: number
   silentCount: number
   pipelineId: string
+  pipelineName: string
   generatedAt: string
 }
 
@@ -96,7 +97,7 @@ export function generateReportHtml(
   config: AnalysisConfig,
   meta: ReportMeta,
 ): string {
-  const { respondentCount, silentCount, pipelineId, generatedAt } = meta
+  const { respondentCount, silentCount, pipelineName, generatedAt } = meta
   const total = respondentCount + silentCount
   const responseRate = total > 0 ? Math.round((respondentCount / total) * 100) : 0
   const dateFr = formatDateFr(generatedAt)
@@ -127,7 +128,7 @@ export function generateReportHtml(
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Analyse Pipeline — ${escapeHtml(pipelineId)}</title>
+<title>Analyse Pipeline — ${escapeHtml(pipelineName)}</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -422,12 +423,12 @@ export function generateReportHtml(
   /* ── Tabs ── */
   .tab-nav {
     display: flex;
+    flex-wrap: wrap;
     gap: 4px;
     margin-bottom: 1.25rem;
     background: var(--cream-dark);
     padding: 4px;
     border-radius: 10px;
-    width: fit-content;
   }
   .tab-btn {
     padding: 7px 18px;
@@ -443,6 +444,8 @@ export function generateReportHtml(
     display: flex;
     align-items: center;
     gap: 7px;
+    white-space: nowrap;
+    flex-shrink: 0;
   }
   .tab-btn.active {
     background: white;
@@ -618,7 +621,7 @@ export function generateReportHtml(
 
 <!-- ══ HEADER ══ -->
 <div class="header">
-  <p class="header-eyebrow">Rapport d'analyse · Pipeline ${escapeHtml(pipelineId)}</p>
+  <p class="header-eyebrow">Rapport d'analyse · Pipeline ${escapeHtml(pipelineName)}</p>
   <h1>Analyse des <em>profils répondants</em><br>et stratégie de relance</h1>
   <div class="header-meta">
     <div class="meta-item">
@@ -759,7 +762,7 @@ export function generateReportHtml(
 
 <!-- ══ FOOTER ══ -->
 <div class="footer">
-  Analyse générée via PipeLeads · ${escapeHtml(dateFr)} · Pipeline ${escapeHtml(pipelineId)}
+  Analyse générée via PipeLeads · ${escapeHtml(dateFr)} · Pipeline ${escapeHtml(pipelineName)}
 </div>
 
 <script>

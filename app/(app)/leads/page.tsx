@@ -82,7 +82,7 @@ export default function LeadsPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Leads</h1>
         </div>
-        <div className="flex flex-col gap-2 md:flex-row md:items-center">
+        <div className="flex flex-wrap flex-col gap-2 sm:flex-row sm:items-center">
           {/* Pipeline selector */}
           {pipelinesLoading ? (
             <Skeleton className="h-9 w-full rounded-md md:w-52" />
@@ -109,7 +109,7 @@ export default function LeadsPage() {
             <Button
               size="sm"
               variant="outline"
-              className="w-full md:w-auto"
+              className="w-full sm:w-auto"
               onClick={() => setIsPickerOpen(true)}
               disabled={!pipelineId}
             >
@@ -122,7 +122,7 @@ export default function LeadsPage() {
               <Button
                 size="sm"
                 variant={showReferrals ? 'secondary' : 'outline'}
-                className="w-full md:w-auto"
+                className="w-full sm:w-auto"
                 onClick={() => setShowReferrals((v) => !v)}
               >
                 <ArrowUpRight className="mr-1.5 h-4 w-4" />
@@ -135,7 +135,7 @@ export default function LeadsPage() {
               <Button
                 size="sm"
                 variant={showWon ? 'secondary' : 'outline'}
-                className="w-full md:w-auto"
+                className="w-full sm:w-auto"
                 onClick={() => setShowWon((v) => !v)}
               >
                 <CheckCircle className="mr-1.5 h-4 w-4" />

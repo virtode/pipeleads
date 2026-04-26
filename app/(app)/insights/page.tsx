@@ -371,7 +371,7 @@ export default function InsightsPage() {
                 </div>
               ) : config ? (
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between gap-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
                       <CheckCircle2 className="h-4 w-4 text-green-600" />
                       <span className="text-sm font-medium">Configuration active</span>
