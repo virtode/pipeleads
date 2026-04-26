@@ -35,6 +35,7 @@ export async function createReport(
     tenantId: string
     createdBy: string
     pipelineId: string
+    pipelineName: string
     config: AnalysisConfig
     result: AnalysisResult
     respondentCount: number
@@ -43,7 +44,7 @@ export async function createReport(
   },
 ): Promise<{ reportId: string; signedUrl: string; storagePath: string }> {
   const {
-    tenantId, createdBy, pipelineId, config, result,
+    tenantId, createdBy, pipelineId, pipelineName, config, result,
     respondentCount, silentCount, ttlSeconds = DEFAULT_TTL,
   } = params
 
@@ -55,6 +56,7 @@ export async function createReport(
     respondentCount,
     silentCount,
     pipelineId,
+    pipelineName,
     generatedAt: result.generated_at,
   }
 

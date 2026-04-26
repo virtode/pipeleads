@@ -37,7 +37,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'tenantId manquant ou invalide' }, { status: 400 })
   }
 
-  // 3. Load config
+  // 3. Load pipeline name
+  const { data: pipelineRow } = await supabase
+    .from('pipelines')
+    .select('name')
+    .eq('id', pipelineId)
+    .single()
+  const pipelineName = (pipelineRow as { name: string } | null)?.name ?? pipelineId
+
+  // 4. Load config
   let config
   try {
     config = await getAnalysisConfig(supabase, pipelineId)
@@ -50,7 +58,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'No config found for this pipeline' }, { status: 404 })
   }
 
-  // 4. Load contacts
+  // 5. Load contacts
   let payload
   try {
     payload = await getContactsForAnalysis(supabase, pipelineId, config)
@@ -92,6 +100,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       tenantId,
       createdBy: user.id,
       pipelineId,
+      pipelineName,
       config,
       result: analysis,
       respondentCount: respondents.length,
