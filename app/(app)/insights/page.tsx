@@ -114,7 +114,8 @@ type AnalyzeStatus = 'idle' | 'loading' | 'success' | 'error'
 
 interface AnalyzeResult {
   signedUrl?: string
-  analysis?: string
+  reportId?: string
+  analysis?: unknown
   meta?: { respondentCount: number; silentCount: number }
 }
 
@@ -468,9 +469,7 @@ export default function InsightsPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() =>
-                      copyToClipboard(analyzeResult.signedUrl ?? analyzeResult.analysis ?? '')
-                    }
+                    onClick={() => copyToClipboard(analyzeResult.signedUrl ?? '')}
                   >
                     <Copy className="mr-1.5 h-3.5 w-3.5" />
                     Copier

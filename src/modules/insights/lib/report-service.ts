@@ -78,7 +78,10 @@ export async function createReport(
         respondent_count: respondentCount,
       })
 
-    if (error) throw new Error(error.message)
+    if (error) {
+      console.error('[report-service] INSERT analysis_reports error:', error)
+      throw new Error(error.message)
+    }
 
     const signedUrl = await generateSignedUrl(supabase, storagePath, ttlSeconds)
     return { reportId, signedUrl, storagePath }

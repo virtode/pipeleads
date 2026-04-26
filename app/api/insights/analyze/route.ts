@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getAnalysisConfig, getContactsForAnalysis } from '@/src/modules/insights/lib/data'
 import { buildSystemPrompt, buildUserPrompt } from '@/src/modules/insights/lib/prompt'
 import { callClaudeWithRetry } from '@/src/modules/insights/lib/claude'
+import { createReport } from '@/src/modules/insights/lib/report-service'
 
 // TODO Sprint 3 : ajouter un rate limiter par tenantId (ex. 1 analyse / 60 s)
 
@@ -27,6 +28,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   const { pipelineId, tenantId } = body
+  const ttlSeconds = typeof body.ttlSeconds === 'number' ? body.ttlSeconds : 604800
 
   if (typeof pipelineId !== 'string' || !pipelineId) {
     return NextResponse.json({ error: 'pipelineId manquant ou invalide' }, { status: 400 })
@@ -82,10 +84,36 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     )
   }
 
-  // 7. Return result
+  // 7. Persist report and generate signed URL
+  let reportId: string
+  let signedUrl: string
+  try {
+    const report = await createReport(supabase, {
+      tenantId,
+      createdBy: user.id,
+      pipelineId,
+      config,
+      result: analysis,
+      respondentCount: respondents.length,
+      silentCount: silents.length,
+      ttlSeconds,
+    })
+    reportId = report.reportId
+    signedUrl = report.signedUrl
+  } catch (err) {
+    console.error('[insights/analyze] createReport error:', err)
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : 'Erreur lors de la création du rapport' },
+      { status: 500 },
+    )
+  }
+
+  // 8. Return result
   return NextResponse.json({
     success: true,
     analysis,
+    signedUrl,
+    reportId,
     meta: {
       respondentCount: respondents.length,
       silentCount: silents.length,
