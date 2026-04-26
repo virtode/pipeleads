@@ -52,8 +52,9 @@ function typeBar(typeName: string, pct: number): string {
       <div class="bar-row">
         <span class="bar-label">${escapeHtml(typeName)}</span>
         <div class="bar-track">
-          <div class="bar" style="width:${w}%;background:#1F6B4A">
-            <span class="bar-val" style="color:#D1EDDF">${pct}%</span>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div class="bar" style="width:${w}%;min-width:4px;background:#1F6B4A"></div>
+            <span class="bar-val" style="font-size:12px;font-weight:600;color:var(--ink-muted);flex-shrink:0">${pct}%</span>
           </div>
         </div>
       </div>`
@@ -346,12 +347,7 @@ export function generateReportHtml(
   .bar {
     height: 22px;
     border-radius: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    padding-right: 7px;
     transition: opacity .2s;
-    min-width: 28px;
   }
   .bar:hover { opacity: .85; }
   .bar-val { font-size: 11px; font-weight: 600; }
