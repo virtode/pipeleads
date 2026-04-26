@@ -51,8 +51,6 @@ export async function createReport(
   const now = Date.now()
   const expiresAt = new Date(now + ttlSeconds * 1000)
 
-  console.log('[createReport] 1 - start', { tenantId, pipelineId, reportId })
-
   const meta: ReportMeta = {
     respondentCount,
     silentCount,
@@ -63,19 +61,8 @@ export async function createReport(
   const html = generateReportHtml(result, config, meta)
   const storagePath = await uploadReport(supabase, tenantId, reportId, html)
 
-  console.log('[createReport] 2 - upload done', { storagePath })
-
   try {
-    console.log('[createReport] 3 - inserting', {
-      tenant_id: tenantId,
-      config_id: config.id,
-      pipeline_id: pipelineId,
-      created_by: createdBy,
-      storage_path: storagePath,
-      expires_at: expiresAt.toISOString(),
-    })
-
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('analysis_reports')
       .insert({
         id: reportId,
@@ -91,20 +78,12 @@ export async function createReport(
         respondent_count: respondentCount,
       })
 
-    console.log('[createReport] 4 - insert result', {
-      data: JSON.stringify(data),
-      error: JSON.stringify(error),
-    })
-
     if (error) {
       console.error('[report-service] INSERT analysis_reports error:', error)
       throw new Error(error.message)
     }
 
     const signedUrl = await generateSignedUrl(supabase, storagePath, ttlSeconds)
-
-    console.log('[createReport] 5 - signed url done', { signedUrl: signedUrl?.slice(0, 50) })
-
     return { reportId, signedUrl, storagePath }
   } catch (err) {
     await deleteReport(supabase, storagePath).catch(() => {})
