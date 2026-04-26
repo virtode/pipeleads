@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { listReports, getSignedUrl } from '@/src/modules/insights/lib/report-service'
+import { listReports } from '@/src/modules/insights/lib/report-service'
 
 // ---------------------------------------------------------------------------
 // GET /api/insights/reports?pipelineId=xxx
@@ -30,22 +30,12 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   }
 
   // 4. Generate fresh signed URLs for active reports (parallelised)
-  const reports = await Promise.all(
-    summaries.map(async (report) => {
-      if (report.isExpired || report.isRevoked) {
-        return { ...report, signedUrl: null }
-      }
-      try {
-        const signedUrl = await getSignedUrl(
-          supabase as Parameters<typeof getSignedUrl>[0],
-          report.id,
-        )
-        return { ...report, signedUrl }
-      } catch {
-        return { ...report, signedUrl: null }
-      }
-    }),
-  )
+  const reports = summaries.map((report) => ({
+    ...report,
+    signedUrl: report.isExpired || report.isRevoked
+      ? null
+      : `/api/insights/reports/${report.id}/html`,
+  }))
 
   // 5. Return
   return NextResponse.json({ reports })

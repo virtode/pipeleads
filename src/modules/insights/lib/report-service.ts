@@ -83,8 +83,7 @@ export async function createReport(
       throw new Error(error.message)
     }
 
-    const signedUrl = `data:text/html;base64,${Buffer.from(html).toString('base64')}`
-    return { reportId, signedUrl, storagePath }
+    return { reportId, signedUrl: `/api/insights/reports/${reportId}/html`, storagePath }
   } catch (err) {
     await deleteReport(supabase, storagePath).catch(() => {})
     throw err
