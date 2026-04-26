@@ -12,7 +12,7 @@ import {
   Loader2,
   Trash2,
   Layers,
-  Settings2,
+  Settings,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -312,31 +312,36 @@ export default function InsightsPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Selectors row */}
-          <div className="flex flex-col gap-3 sm:flex-row">
-            {pipelinesLoading ? (
-              <Skeleton className="h-9 w-full sm:w-56" />
-            ) : (
-              <Select
-                value={pipelineId ?? ''}
-                onValueChange={(v) => {
-                  setSelectedPipelineId(v)
-                  setAnalyzeStatus('idle')
-                  setAnalyzeResult(null)
-                  setAnalyzeError(null)
-                }}
-              >
-                <SelectTrigger className="w-full sm:w-56">
-                  <SelectValue placeholder="Choisir un pipeline" />
-                </SelectTrigger>
-                <SelectContent>
-                  {(pipelines ?? []).map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-medium text-muted-foreground">
+                Pipeline à analyser
+              </label>
+              {pipelinesLoading ? (
+                <Skeleton className="h-9 w-full sm:w-56" />
+              ) : (
+                <Select
+                  value={pipelineId ?? ''}
+                  onValueChange={(v) => {
+                    setSelectedPipelineId(v)
+                    setAnalyzeStatus('idle')
+                    setAnalyzeResult(null)
+                    setAnalyzeError(null)
+                  }}
+                >
+                  <SelectTrigger className="w-full sm:w-56">
+                    <SelectValue placeholder="Choisir un pipeline" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(pipelines ?? []).map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
 
             <Select
               value={String(ttlSeconds)}
@@ -365,9 +370,17 @@ export default function InsightsPage() {
                 </div>
               ) : config ? (
                 <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-green-600" />
-                    <span className="text-sm font-medium">Configuration active</span>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-green-600" />
+                      <span className="text-sm font-medium">Configuration active</span>
+                    </div>
+                    <Button variant="outline" size="sm" asChild>
+                      <Link href={`/insights/config/${pipelineId}`}>
+                        <Settings className="mr-1.5 h-3.5 w-3.5" />
+                        Modifier la configuration
+                      </Link>
+                    </Button>
                   </div>
                   <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
                     <span>
@@ -393,10 +406,9 @@ export default function InsightsPage() {
                     </span>
                     <Badge variant="outline">Non configuré</Badge>
                   </div>
-                  <Button variant="outline" size="sm" asChild>
+                  <Button variant="default" size="sm" asChild>
                     <Link href={`/insights/config/${pipelineId}`}>
-                      <Settings2 className="mr-1.5 h-3.5 w-3.5" />
-                      Configurer
+                      Configurer ce pipeline
                     </Link>
                   </Button>
                 </div>
