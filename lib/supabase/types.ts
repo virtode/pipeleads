@@ -197,6 +197,7 @@ export interface Database {
           tenant_id?: string | null
           stage_id?: string | null
           value?: number | null
+          updated_at?: string
         }
         Relationships: [
           {
