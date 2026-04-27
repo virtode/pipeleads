@@ -653,7 +653,7 @@ export function generateReportHtml(
       <div class="metric-cell accent">
         <span class="metric-label">Contacts engagés</span>
         <div class="metric-value">${respondentCount}</div>
-        <div class="metric-sub">ont répondu positivement</div>
+        <div class="metric-sub">ont réagi à la sollicitation</div>
       </div>
       <div class="metric-cell accent">
         <span class="metric-label">Taux de réponse</span>
@@ -663,7 +663,7 @@ export function generateReportHtml(
       <div class="metric-cell">
         <span class="metric-label">À ne pas relancer</span>
         <div class="metric-value">${result.do_not_follow_up.length}</div>
-        <div class="metric-sub">refus ou hors-cible identifiés</div>
+        <div class="metric-sub">contacts à ne pas relancer</div>
       </div>
     </div>
   </div>
