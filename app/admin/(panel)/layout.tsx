@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { LayoutDashboard, Building2, LogOut, ArrowLeft } from 'lucide-react'
+import { LayoutDashboard, Building2, Bot, LogOut, ArrowLeft } from 'lucide-react'
 import { requireAdminAuth } from '@/lib/admin/auth'
 
 /**
@@ -35,6 +35,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         <nav className="flex-1 space-y-0.5 p-2">
           <AdminNavLink href="/admin/dashboard" icon={LayoutDashboard} label="Dashboard" />
           <AdminNavLink href="/admin/tenants" icon={Building2} label="Tenants" />
+          <AdminNavLink href="/admin/ai-config" icon={Bot} label="Config IA" />
         </nav>
 
         {/* Déconnexion */}

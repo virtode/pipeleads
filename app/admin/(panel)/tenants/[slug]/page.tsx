@@ -9,6 +9,7 @@ import { TenantToggleButton } from '@/components/admin/TenantToggleButton'
 import { TenantInviteManagerButton } from '@/components/admin/TenantInviteManagerButton'
 import { TenantDeleteButton } from '@/components/admin/TenantDeleteButton'
 import { CardDavProvision } from '@/components/admin/CardDavProvision'
+import { TenantAIConfigSection } from '@/components/admin/TenantAIConfigSection'
 import { generateCarddavPassword } from '@/lib/carddav/password'
 
 interface Tenant {
@@ -174,6 +175,12 @@ export default async function TenantDetailPage({ params }: Props) {
           tenantName={t.name}
           users={cardDavUsers}
         />
+      </div>
+
+      {/* Configuration IA */}
+      <div className="space-y-3">
+        <h2 className="text-base font-semibold">Configuration IA</h2>
+        <TenantAIConfigSection slug={t.slug} />
       </div>
 
       {/* Managers */}
