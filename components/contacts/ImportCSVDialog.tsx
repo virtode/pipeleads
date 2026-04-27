@@ -154,9 +154,10 @@ export function ImportCSVDialog({ open, onOpenChange }: ImportCSVDialogProps) {
               setProgress(Math.round(((i + 1) / contacts.length) * 100))
               continue
             } else if (duplicateStrategy === 'overwrite') {
+              const { created_at, id, ...updateableContact } = contact
               const { error } = await supabase
                 .from('contacts')
-                .update({ ...contact, updated_at: new Date().toISOString() })
+                .update({ ...updateableContact, updated_at: new Date().toISOString() })
                 .eq('id', existing.id)
               if (error) throw error
               result.created++ // count as upsert
