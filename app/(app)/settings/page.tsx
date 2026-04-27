@@ -16,15 +16,27 @@ import { NotificationsSection } from '@/components/settings/NotificationsSection
 import { IcalSection } from '@/components/settings/IcalSection'
 import { NotionSettingsSection } from '@/components/settings/NotionSettingsSection'
 import { CardDavSettingsSection } from '@/components/settings/CardDavSettingsSection'
+import { TenantAISettings } from '@/components/settings/TenantAISettings'
 
 export default function SettingsPage() {
   const router = useRouter()
   const supabase = useSupabaseClient()
   const [userEmail, setUserEmail] = useState<string | null>(null)
   const [logoutLoading, setLogoutLoading] = useState(false)
+  const [userRole, setUserRole] = useState<'manager' | 'member' | null>(null)
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setUserEmail(data.user?.email ?? null))
+    supabase.auth.getUser().then(async ({ data }) => {
+      setUserEmail(data.user?.email ?? null)
+      if (data.user) {
+        const { data: tu } = await supabase
+          .from('tenant_users')
+          .select('role')
+          .eq('user_id', data.user.id)
+          .maybeSingle()
+        setUserRole((tu?.role as 'manager' | 'member') ?? null)
+      }
+    })
   }, [supabase])
 
   async function handleLogout() {
@@ -55,6 +67,8 @@ export default function SettingsPage() {
       <NotionSettingsSection />
 
       <CardDavSettingsSection />
+
+      {userRole === 'manager' && <TenantAISettings />}
 
       {/* ================================================================ */}
       {/* Account                                                           */}
