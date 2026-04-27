@@ -2,7 +2,7 @@ import { generateText, generateObject } from 'ai'
 import { anthropic } from '@ai-sdk/anthropic'
 import { z } from 'zod'
 import type { Contact } from '@/types'
-import { ANTHROPIC_MODEL } from '@/lib/constants'
+import { getLiteLLMClient, getAIModel, isAnthropicProvider } from './client'
 
 // ---------------------------------------------------------------------------
 // Retry with exponential backoff (for 529 overloaded errors)
@@ -34,7 +34,6 @@ async function withRetry<T>(
   throw lastError
 }
 
-const MODEL = ANTHROPIC_MODEL
 const TODAY = () => new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })
 
 // ---------------------------------------------------------------------------
@@ -99,9 +98,11 @@ N'inclus un champ que si l'information est explicitement présente dans le texte
 Si une information n'est pas trouvée, omet simplement ce champ.`
 
   try {
+    const client = getLiteLLMClient()
+    const model = getAIModel()
     const { object } = await withRetry(() =>
       generateObject({
-        model: anthropic(MODEL),
+        model: client(model),
         schema: extractedFieldsSchema,
         prompt,
         maxOutputTokens: 256,
@@ -187,13 +188,15 @@ Si l'entreprise est peu connue ou que les informations sont limitées, indique-l
 // ---------------------------------------------------------------------------
 
 export async function enrichContactProfile(contact: Contact): Promise<EnrichmentResult> {
+  const client = getLiteLLMClient()
+  const model = getAIModel()
   const { text: summary } = await withRetry(() =>
     generateText({
-      model: anthropic(MODEL),
+      model: client(model),
       maxOutputTokens: 4096,
-      tools: {
-        web_search: anthropic.tools.webSearch_20250305(),
-      },
+      tools: isAnthropicProvider(model)
+        ? { web_search: anthropic.tools.webSearch_20250305() }
+        : undefined,
       prompt: buildContactProfilePrompt(contact),
     })
   )
@@ -216,13 +219,15 @@ export async function enrichContactProfile(contact: Contact): Promise<Enrichment
 // ---------------------------------------------------------------------------
 
 export async function enrichCompanyNews(company: string, contact?: Contact): Promise<EnrichmentResult> {
+  const client = getLiteLLMClient()
+  const model = getAIModel()
   const { text: summary } = await withRetry(() =>
     generateText({
-      model: anthropic(MODEL),
+      model: client(model),
       maxOutputTokens: 4096,
-      tools: {
-        web_search: anthropic.tools.webSearch_20250305(),
-      },
+      tools: isAnthropicProvider(model)
+        ? { web_search: anthropic.tools.webSearch_20250305() }
+        : undefined,
       prompt: buildCompanyNewsPrompt(company),
     })
   )

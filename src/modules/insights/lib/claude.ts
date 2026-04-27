@@ -1,3 +1,5 @@
+import { getAIModel } from '@/lib/ai/client'
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -38,14 +40,6 @@ export interface AnalysisResult {
 }
 
 // ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
-
-const MODEL = 'claude-sonnet-4-6'
-const API_URL = 'https://api.anthropic.com/v1/messages'
-const ANTHROPIC_VERSION = '2023-06-01'
-
-// ---------------------------------------------------------------------------
 // Core call
 // ---------------------------------------------------------------------------
 
@@ -53,39 +47,43 @@ export async function callClaude(
   systemPrompt: string,
   userPrompt: string,
 ): Promise<AnalysisResult> {
-  const apiKey = process.env.ANTHROPIC_API_KEY
-  if (!apiKey) throw new Error('ANTHROPIC_API_KEY is not set')
+  const apiKey = process.env.LITELLM_MASTER_KEY
+  if (!apiKey) throw new Error('LITELLM_MASTER_KEY is not set')
 
-  const response = await fetch(API_URL, {
+  const model = getAIModel()
+  const baseUrl = process.env.LITELLM_URL ?? 'http://litellm:4000'
+
+  const response = await fetch(`${baseUrl}/v1/chat/completions`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': ANTHROPIC_VERSION,
+      'Authorization': `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: MODEL,
+      model,
       max_tokens: 8192,
       temperature: 0.3,
-      system: systemPrompt,
-      messages: [{ role: 'user', content: userPrompt }],
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt },
+      ],
     }),
   })
 
   if (!response.ok) {
     const body = await response.text()
-    throw new Error(`Anthropic API error ${response.status}: ${body}`)
+    throw new Error(`LiteLLM API error ${response.status}: ${body}`)
   }
 
-  const data = await response.json() as { content: Array<{ text: string }> }
-  const raw = data.content[0].text
+  const data = await response.json() as { choices: Array<{ message: { content: string } }> }
+  const raw = data.choices[0].message.content
 
   const parsed = parseJson(raw)
 
   return {
     ...parsed,
     generated_at: new Date().toISOString(),
-    model: MODEL,
+    model,
   }
 }
 

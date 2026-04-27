@@ -9,7 +9,7 @@ import {
   buildCompanyNewsPrompt,
   extractFieldsFromReport,
 } from '@/lib/ai/agent'
-import { ANTHROPIC_MODEL } from '@/lib/constants'
+import { getLiteLLMClient, getAIModel, isAnthropicProvider } from '@/lib/ai/client'
 
 // ---------------------------------------------------------------------------
 // Rate limiter — in-memory, per contactId:type (max 1 req / 10 s)
@@ -99,12 +99,15 @@ export async function POST(request: NextRequest): Promise<Response> {
   }
 
   // 6. Stream AI response — DB save + field extraction happen in onFinish
+  const aiClient = getLiteLLMClient(tenantId ?? undefined)
+  const aiModel = getAIModel(tenantId ?? undefined)
+
   const result = streamText({
-    model: anthropic(ANTHROPIC_MODEL),
+    model: aiClient(aiModel),
     maxOutputTokens: 4096,
-    tools: {
-      web_search: anthropic.tools.webSearch_20250305(),
-    },
+    tools: isAnthropicProvider(aiModel)
+      ? { web_search: anthropic.tools.webSearch_20250305() }
+      : undefined,
     prompt,
     onFinish: async ({ text: summary }) => {
       if (!summary) return
@@ -117,7 +120,7 @@ export async function POST(request: NextRequest): Promise<Response> {
           tenant_id: tenantId,
           type: enrichType,
           content: summary,
-          model: ANTHROPIC_MODEL,
+          model: aiModel,
         })
 
       if (saveErr) return
