@@ -52,7 +52,7 @@ function typeBar(typeName: string, pct: number): string {
       <div class="bar-row">
         <span class="bar-label">${escapeHtml(typeName)}</span>
         <div class="bar-track">
-          <div style="display:flex;align-items:center;gap:8px">
+          <div style="display:flex;align-items:center;gap:8px;width:100%">
             <div class="bar" style="width:${w}%;min-width:4px;background:#1F6B4A"></div>
             <span class="bar-val" style="font-size:12px;font-weight:600;color:var(--ink-muted);flex-shrink:0">${pct}%</span>
           </div>
