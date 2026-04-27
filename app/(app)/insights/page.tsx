@@ -344,6 +344,10 @@ export default function InsightsPage() {
               )}
             </div>
 
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-medium text-muted-foreground">
+                Durée de validité du lien
+              </label>
             <Select
               value={String(ttlSeconds)}
               onValueChange={(v) => setTtlSeconds(Number(v))}
@@ -359,6 +363,7 @@ export default function InsightsPage() {
                 ))}
               </SelectContent>
             </Select>
+            </div>
           </div>
 
           {/* Config status */}
