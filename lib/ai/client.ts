@@ -1,15 +1,16 @@
 import { createOpenAI } from '@ai-sdk/openai'
-import { DEFAULT_AI_MODEL } from '@/lib/constants'
+import { resolveAIConfig } from './config'
 
-export function getLiteLLMClient(_tenantId?: string) {
+export function getLiteLLMClient(apiKey?: string) {
   return createOpenAI({
     baseURL: `${process.env.LITELLM_URL ?? 'http://litellm:4000'}/v1`,
-    apiKey: process.env.LITELLM_MASTER_KEY ?? '',
+    apiKey: apiKey ?? process.env.LITELLM_MASTER_KEY ?? '',
   })
 }
 
-export function getAIModel(_tenantId?: string): string {
-  return DEFAULT_AI_MODEL
+export async function getAIModel(tenantId?: string): Promise<string> {
+  const config = await resolveAIConfig(tenantId)
+  return config.model
 }
 
 export function isAnthropicProvider(model: string): boolean {

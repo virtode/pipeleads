@@ -9,7 +9,8 @@ import {
   buildCompanyNewsPrompt,
   extractFieldsFromReport,
 } from '@/lib/ai/agent'
-import { getLiteLLMClient, getAIModel, isAnthropicProvider } from '@/lib/ai/client'
+import { getLiteLLMClient, isAnthropicProvider } from '@/lib/ai/client'
+import { resolveAIConfig } from '@/lib/ai/config'
 
 // ---------------------------------------------------------------------------
 // Rate limiter — in-memory, per contactId:type (max 1 req / 10 s)
@@ -99,8 +100,9 @@ export async function POST(request: NextRequest): Promise<Response> {
   }
 
   // 6. Stream AI response — DB save + field extraction happen in onFinish
-  const aiClient = getLiteLLMClient(tenantId ?? undefined)
-  const aiModel = getAIModel(tenantId ?? undefined)
+  const aiConfig = await resolveAIConfig(tenantId ?? undefined)
+  const aiClient = getLiteLLMClient(aiConfig.apiKey)
+  const aiModel = aiConfig.model
 
   const result = streamText({
     model: aiClient(aiModel),
@@ -135,7 +137,7 @@ export async function POST(request: NextRequest): Promise<Response> {
         if (!contact.website) fieldsToExtract.push('website')
       }
 
-      const extracted_fields = await extractFieldsFromReport(summary, fieldsToExtract)
+      const extracted_fields = await extractFieldsFromReport(summary, fieldsToExtract, tenantId ?? undefined)
       if (Object.keys(extracted_fields).length === 0) return
 
       // Apply validated fields to contact (only empty ones)

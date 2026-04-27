@@ -77,7 +77,8 @@ const FIELD_DESCRIPTIONS: Record<ExtractableField, string> = {
 
 export async function extractFieldsFromReport(
   reportText: string,
-  fields: ExtractableField[]
+  fields: ExtractableField[],
+  tenantId?: string
 ): Promise<EnrichmentResult['extracted_fields']> {
   if (!reportText.trim() || fields.length === 0) return {}
 
@@ -99,7 +100,7 @@ Si une information n'est pas trouvée, omet simplement ce champ.`
 
   try {
     const client = getLiteLLMClient()
-    const model = getAIModel()
+    const model = await getAIModel(tenantId)
     const { object } = await withRetry(() =>
       generateObject({
         model: client(model),
@@ -187,9 +188,9 @@ Si l'entreprise est peu connue ou que les informations sont limitées, indique-l
 // enrichContactProfile — public interface (unchanged)
 // ---------------------------------------------------------------------------
 
-export async function enrichContactProfile(contact: Contact): Promise<EnrichmentResult> {
+export async function enrichContactProfile(contact: Contact, tenantId?: string): Promise<EnrichmentResult> {
   const client = getLiteLLMClient()
-  const model = getAIModel()
+  const model = await getAIModel(tenantId)
   const { text: summary } = await withRetry(() =>
     generateText({
       model: client(model),
@@ -209,18 +210,18 @@ export async function enrichContactProfile(contact: Contact): Promise<Enrichment
   if (!contact.twitter_url)  fieldsToExtract.push('twitter_url')
   if (!(contact.email as string[] | null)?.length) fieldsToExtract.push('email')
 
-  const extracted_fields = await extractFieldsFromReport(summary, fieldsToExtract)
+  const extracted_fields = await extractFieldsFromReport(summary, fieldsToExtract, tenantId)
 
   return { summary, extracted_fields }
 }
 
 // ---------------------------------------------------------------------------
-// enrichCompanyNews — public interface (unchanged)
+// enrichCompanyNews — public interface
 // ---------------------------------------------------------------------------
 
-export async function enrichCompanyNews(company: string, contact?: Contact): Promise<EnrichmentResult> {
+export async function enrichCompanyNews(company: string, contact?: Contact, tenantId?: string): Promise<EnrichmentResult> {
   const client = getLiteLLMClient()
-  const model = getAIModel()
+  const model = await getAIModel(tenantId)
   const { text: summary } = await withRetry(() =>
     generateText({
       model: client(model),
@@ -238,7 +239,7 @@ export async function enrichCompanyNews(company: string, contact?: Contact): Pro
   const fieldsToExtract: ExtractableField[] = []
   if (!contact?.website) fieldsToExtract.push('website')
 
-  const extracted_fields = await extractFieldsFromReport(summary, fieldsToExtract)
+  const extracted_fields = await extractFieldsFromReport(summary, fieldsToExtract, tenantId)
 
   return { summary, extracted_fields }
 }

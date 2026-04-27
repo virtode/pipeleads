@@ -50,7 +50,7 @@ export async function callClaude(
   const apiKey = process.env.LITELLM_MASTER_KEY
   if (!apiKey) throw new Error('LITELLM_MASTER_KEY is not set')
 
-  const model = getAIModel()
+  const model = await getAIModel()
   const baseUrl = process.env.LITELLM_URL ?? 'http://litellm:4000'
 
   const response = await fetch(`${baseUrl}/v1/chat/completions`, {
