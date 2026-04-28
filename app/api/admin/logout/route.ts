@@ -10,7 +10,8 @@ import { createServerClient } from '@supabase/ssr'
 export async function POST(req: NextRequest) {
   const cookieStore = await cookies()
 
-  const response = NextResponse.redirect(new URL('/admin/login', req.url))
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? `https://${req.headers.get('host')}`
+  const response = NextResponse.redirect(new URL('/admin/login', baseUrl))
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
