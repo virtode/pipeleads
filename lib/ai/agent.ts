@@ -1,8 +1,6 @@
-import { generateText, generateObject } from 'ai'
-import { anthropic } from '@ai-sdk/anthropic'
 import { z } from 'zod'
 import type { Contact } from '@/types'
-import { getLiteLLMClient, getAIModel, isAnthropicProvider } from './client'
+import { getLiteLLMConfig, getAIModel } from './client'
 
 // ---------------------------------------------------------------------------
 // Retry with exponential backoff (for 529 overloaded errors)
@@ -19,11 +17,9 @@ async function withRetry<T>(
       return await fn()
     } catch (err) {
       lastError = err
-      // Vercel AI SDK wraps API errors — check both statusCode and status
       const code =
         (err as { statusCode?: number })?.statusCode ??
         (err as { status?: number })?.status
-      // Only retry on 529 (overloaded) errors
       if (code !== 529) throw err
       if (attempt < maxAttempts - 1) {
         const delay = baseDelayMs * Math.pow(2, attempt) // 2s, 4s, 8s
@@ -51,7 +47,7 @@ export interface EnrichmentResult {
 }
 
 // ---------------------------------------------------------------------------
-// Zod schema for generateObject() field extraction
+// Zod schema for field extraction
 // ---------------------------------------------------------------------------
 
 const extractedFieldsSchema = z.object({
@@ -61,11 +57,6 @@ const extractedFieldsSchema = z.object({
   website:      z.string().url().optional(),
 })
 
-// ---------------------------------------------------------------------------
-// Phase 2 — lean extraction call using generateObject()
-// No web search, small token budget, returns structured fields directly.
-// ---------------------------------------------------------------------------
-
 type ExtractableField = keyof EnrichmentResult['extracted_fields']
 
 const FIELD_DESCRIPTIONS: Record<ExtractableField, string> = {
@@ -74,6 +65,42 @@ const FIELD_DESCRIPTIONS: Record<ExtractableField, string> = {
   email:        'Adresse email professionnelle',
   website:      'URL du site web officiel de l\'entreprise (doit commencer par https:// ou http://)',
 }
+
+// ---------------------------------------------------------------------------
+// Helper: POST to LiteLLM /v1/chat/completions
+// ---------------------------------------------------------------------------
+
+interface ChatCompletionResponse {
+  choices: Array<{ message: { content: string } }>
+}
+
+interface LiteLLMError extends Error {
+  status: number
+}
+
+async function liteLLMFetch(
+  config: { baseURL: string; apiKey: string },
+  body: Record<string, unknown>
+): Promise<ChatCompletionResponse> {
+  const res = await fetch(`${config.baseURL}/chat/completions`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${config.apiKey}`,
+    },
+    body: JSON.stringify(body),
+  })
+  if (!res.ok) {
+    const err = new Error(`LiteLLM error ${res.status}`) as LiteLLMError
+    err.status = res.status
+    throw err
+  }
+  return res.json() as Promise<ChatCompletionResponse>
+}
+
+// ---------------------------------------------------------------------------
+// Phase 2 — lean extraction call using json_object mode + Zod
+// ---------------------------------------------------------------------------
 
 export async function extractFieldsFromReport(
   reportText: string,
@@ -99,21 +126,24 @@ N'inclus un champ que si l'information est explicitement présente dans le texte
 Si une information n'est pas trouvée, omet simplement ce champ.`
 
   try {
-    const client = getLiteLLMClient()
+    const config = getLiteLLMConfig()
     const model = await getAIModel(tenantId)
-    const { object } = await withRetry(() =>
-      generateObject({
-        model: client(model),
-        schema: extractedFieldsSchema,
-        prompt,
-        maxOutputTokens: 256,
+    const data = await withRetry(() =>
+      liteLLMFetch(config, {
+        model,
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 256,
+        response_format: { type: 'json_object' },
+        ...(tenantId !== undefined ? { user: tenantId } : {}),
       })
     )
-    // Return only the requested fields that have a value
+    const content = data.choices[0]?.message?.content ?? '{}'
+    const validated = extractedFieldsSchema.safeParse(JSON.parse(content))
+    if (!validated.success) return {}
     return Object.fromEntries(
       fields
-        .filter((f) => object[f] !== undefined)
-        .map((f) => [f, object[f]])
+        .filter((f) => validated.data[f] !== undefined)
+        .map((f) => [f, validated.data[f]])
     ) as EnrichmentResult['extracted_fields']
   } catch {
     return {}
@@ -185,33 +215,33 @@ Si l'entreprise est peu connue ou que les informations sont limitées, indique-l
 }
 
 // ---------------------------------------------------------------------------
-// enrichContactProfile — public interface (unchanged)
+// enrichContactProfile — public interface
 // ---------------------------------------------------------------------------
 
 export async function enrichContactProfile(contact: Contact, tenantId?: string): Promise<EnrichmentResult> {
-  const client = getLiteLLMClient()
+  const config = getLiteLLMConfig()
   const model = await getAIModel(tenantId)
-  const { text: summary } = await withRetry(() =>
-    generateText({
-      model: client(model),
-      maxOutputTokens: 4096,
-      tools: isAnthropicProvider(model)
-        ? { web_search: anthropic.tools.webSearch_20250305() }
-        : undefined,
-      prompt: buildContactProfilePrompt(contact),
+
+  const data = await withRetry(() =>
+    liteLLMFetch(config, {
+      model,
+      messages: [{ role: 'user', content: buildContactProfilePrompt(contact) }],
+      max_tokens: 4096,
+      // TODO: Pass Anthropic webSearch tool once LiteLLM supports
+      // anthropic-native built-in tools through its OpenAI-compatible endpoint.
+      ...(tenantId !== undefined ? { user: tenantId } : {}),
     })
   )
 
+  const summary = data.choices[0]?.message?.content ?? ''
   if (!summary) throw new Error('Aucun résultat généré par le modèle.')
 
-  // Phase 2: extract structured fields (only missing ones)
   const fieldsToExtract: ExtractableField[] = []
   if (!contact.linkedin_url) fieldsToExtract.push('linkedin_url')
   if (!contact.twitter_url)  fieldsToExtract.push('twitter_url')
   if (!(contact.email as string[] | null)?.length) fieldsToExtract.push('email')
 
   const extracted_fields = await extractFieldsFromReport(summary, fieldsToExtract, tenantId)
-
   return { summary, extracted_fields }
 }
 
@@ -220,26 +250,26 @@ export async function enrichContactProfile(contact: Contact, tenantId?: string):
 // ---------------------------------------------------------------------------
 
 export async function enrichCompanyNews(company: string, contact?: Contact, tenantId?: string): Promise<EnrichmentResult> {
-  const client = getLiteLLMClient()
+  const config = getLiteLLMConfig()
   const model = await getAIModel(tenantId)
-  const { text: summary } = await withRetry(() =>
-    generateText({
-      model: client(model),
-      maxOutputTokens: 4096,
-      tools: isAnthropicProvider(model)
-        ? { web_search: anthropic.tools.webSearch_20250305() }
-        : undefined,
-      prompt: buildCompanyNewsPrompt(company),
+
+  const data = await withRetry(() =>
+    liteLLMFetch(config, {
+      model,
+      messages: [{ role: 'user', content: buildCompanyNewsPrompt(company) }],
+      max_tokens: 4096,
+      // TODO: Pass Anthropic webSearch tool once LiteLLM supports
+      // anthropic-native built-in tools through its OpenAI-compatible endpoint.
+      ...(tenantId !== undefined ? { user: tenantId } : {}),
     })
   )
 
+  const summary = data.choices[0]?.message?.content ?? ''
   if (!summary) throw new Error('Aucun résultat généré par le modèle.')
 
-  // Phase 2: extract website if not already on contact
   const fieldsToExtract: ExtractableField[] = []
   if (!contact?.website) fieldsToExtract.push('website')
 
   const extracted_fields = await extractFieldsFromReport(summary, fieldsToExtract, tenantId)
-
   return { summary, extracted_fields }
 }

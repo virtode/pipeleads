@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { streamText } from 'ai'
-import { anthropic } from '@ai-sdk/anthropic'
 import { createClient } from '@/lib/supabase/server'
 import { getTenantFromHeaders } from '@/lib/tenant/context'
 import {
@@ -9,7 +7,7 @@ import {
   buildCompanyNewsPrompt,
   extractFieldsFromReport,
 } from '@/lib/ai/agent'
-import { getLiteLLMClient, isAnthropicProvider } from '@/lib/ai/client'
+import { getLiteLLMConfig } from '@/lib/ai/client'
 import { resolveAIConfig } from '@/lib/ai/config'
 
 // ---------------------------------------------------------------------------
@@ -49,10 +47,10 @@ export async function POST(request: NextRequest): Promise<Response> {
   const tenant = await getTenantFromHeaders()
   const tenantId = tenant?.tenantId ?? null
 
-  // 2. Parse body (useCompletion sends { prompt, ...body })
-  let body: { contactId?: string; type?: string; prompt?: string }
+  // 2. Parse body
+  let body: { contactId?: string; type?: string }
   try {
-    body = await request.json()
+    body = await request.json() as { contactId?: string; type?: string }
   } catch {
     return NextResponse.json({ data: null, error: 'Corps de requête invalide' }, { status: 400 })
   }
@@ -99,35 +97,82 @@ export async function POST(request: NextRequest): Promise<Response> {
     prompt = buildCompanyNewsPrompt(company)
   }
 
-  // 6. Stream AI response — DB save + field extraction happen in onFinish
+  // 6. Stream AI response — DB save + field extraction happen in the TransformStream flush
   const aiConfig = await resolveAIConfig(tenantId ?? undefined)
-  const aiClient = getLiteLLMClient(aiConfig.apiKey)
+  const liteLLMConfig = getLiteLLMConfig(aiConfig.apiKey)
   const aiModel = aiConfig.model
 
-  const result = streamText({
-    model: aiClient(aiModel),
-    maxOutputTokens: 4096,
-    tools: isAnthropicProvider(aiModel)
-      ? { web_search: anthropic.tools.webSearch_20250305() }
-      : undefined,
-    prompt,
-    onFinish: async ({ text: summary }) => {
-      if (!summary) return
+  const llmResponse = await fetch(`${liteLLMConfig.baseURL}/chat/completions`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${liteLLMConfig.apiKey}`,
+    },
+    body: JSON.stringify({
+      model: aiModel,
+      messages: [{ role: 'user', content: prompt }],
+      max_tokens: 4096,
+      stream: true,
+      // TODO: Pass Anthropic webSearch tool once LiteLLM supports
+      // anthropic-native built-in tools through its OpenAI-compatible endpoint.
+      ...(tenantId !== null ? { user: tenantId } : {}),
+    }),
+  })
 
-      // Save summary to ai_enrichments
+  if (!llmResponse.ok) {
+    return NextResponse.json(
+      { data: null, error: `Erreur du service IA (${llmResponse.status})` },
+      { status: llmResponse.status }
+    )
+  }
+
+  if (!llmResponse.body) {
+    return NextResponse.json({ data: null, error: 'Réponse IA vide' }, { status: 502 })
+  }
+
+  // Pipe the SSE stream through a TransformStream that:
+  // 1. Forwards every chunk to the client unchanged
+  // 2. Accumulates the full text so we can save to DB and extract fields on flush
+  let fullText = ''
+  const sseDecoder = new TextDecoder()
+  let sseBuffer = ''
+
+  const transform = new TransformStream<Uint8Array, Uint8Array>({
+    transform(chunk, controller) {
+      sseBuffer += sseDecoder.decode(chunk, { stream: true })
+      const lines = sseBuffer.split('\n')
+      sseBuffer = lines.pop() ?? ''
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue
+        const data = line.slice(6).trim()
+        if (data === '[DONE]') continue
+        try {
+          const parsed = JSON.parse(data) as {
+            choices?: Array<{ delta?: { content?: string } }>
+          }
+          const content = parsed.choices?.[0]?.delta?.content
+          if (content) fullText += content
+        } catch {
+          // ignore malformed SSE frames
+        }
+      }
+      controller.enqueue(chunk)
+    },
+    async flush() {
+      if (!fullText) return
+
       const { error: saveErr } = await supabase
         .from('ai_enrichments')
         .insert({
           contact_id: contactId,
           tenant_id: tenantId,
           type: enrichType,
-          content: summary,
+          content: fullText,
           model: aiModel,
         })
 
       if (saveErr) return
 
-      // Determine which fields are missing on the contact
       const fieldsToExtract: ('linkedin_url' | 'twitter_url' | 'email' | 'website')[] = []
       if (enrichType === 'contact_profile') {
         if (!contact.linkedin_url) fieldsToExtract.push('linkedin_url')
@@ -137,10 +182,13 @@ export async function POST(request: NextRequest): Promise<Response> {
         if (!contact.website) fieldsToExtract.push('website')
       }
 
-      const extracted_fields = await extractFieldsFromReport(summary, fieldsToExtract, tenantId ?? undefined)
+      const extracted_fields = await extractFieldsFromReport(
+        fullText,
+        fieldsToExtract,
+        tenantId ?? undefined
+      )
       if (Object.keys(extracted_fields).length === 0) return
 
-      // Apply validated fields to contact (only empty ones)
       const contactUpdates: Record<string, unknown> = {}
 
       const urlFields = ['linkedin_url', 'twitter_url', 'website'] as const
@@ -163,15 +211,20 @@ export async function POST(request: NextRequest): Promise<Response> {
       }
 
       if (Object.keys(contactUpdates).length > 0) {
-        const { error: updateErr } = await supabase
+        // Silent failure — contact fields will stay empty if update fails
+        await supabase
           .from('contacts')
           .update({ ...contactUpdates, updated_at: new Date().toISOString() })
           .eq('id', contactId)
-
-        // Silent failure — contact fields will stay empty if update fails
       }
     },
   })
 
-  return result.toTextStreamResponse()
+  return new Response(llmResponse.body.pipeThrough(transform), {
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      Connection: 'keep-alive',
+    },
+  })
 }

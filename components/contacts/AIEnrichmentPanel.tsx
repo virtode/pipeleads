@@ -1,8 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { useCompletion } from '@ai-sdk/react'
-import { Sparkles, Building2, User, RefreshCw, ChevronDown, Clock, AlertCircle, Trash2, Loader2 } from 'lucide-react'
+import { useState, useRef } from 'react'
+import { Sparkles, Building2, User, RefreshCw, Clock, AlertCircle, Trash2, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -54,28 +53,9 @@ export function AIEnrichmentPanel({
   const queryClient = useQueryClient()
   const [activeType, setActiveType] = useState<EnrichType | null>(null)
   const [completionError, setCompletionError] = useState<string | null>(null)
-
-  const { completion, complete, isLoading, setCompletion } = useCompletion({
-    api: '/api/ai/enrich',
-    streamProtocol: 'text',
-    onFinish: () => {
-      queryClient.invalidateQueries({ queryKey: ['contact', contactId] })
-      toast.success(
-        activeType === 'contact_profile' ? 'Profil enrichi avec succès' : 'Actualités récupérées'
-      )
-    },
-    onError: (err) => {
-      let message = 'Erreur lors de l\'enrichissement IA'
-      try {
-        const parsed = JSON.parse(err.message) as { error?: string }
-        if (parsed.error) message = parsed.error
-      } catch {
-        if (err.message) message = err.message
-      }
-      setCompletionError(message)
-      toast.error('Erreur lors de l\'enrichissement IA')
-    },
-  })
+  const [completion, setCompletion] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+  const abortRef = useRef<AbortController | null>(null)
 
   const deleteEnrichment = useMutation({
     mutationFn: async (id: string) => {
@@ -94,11 +74,75 @@ export function AIEnrichmentPanel({
   const maxHistory = compact ? 2 : 5
   const history = enrichments.slice(0, maxHistory)
 
-  function handleEnrich(type: EnrichType) {
+  async function handleEnrich(type: EnrichType) {
+    abortRef.current?.abort()
+    const controller = new AbortController()
+    abortRef.current = controller
+
     setCompletion('')
     setActiveType(type)
     setCompletionError(null)
-    complete('', { body: { contactId, type } })
+    setIsLoading(true)
+
+    try {
+      const response = await fetch('/api/ai/enrich', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contactId, type }),
+        signal: controller.signal,
+      })
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({})) as { error?: string }
+        throw new Error(errData.error ?? `Erreur ${response.status}`)
+      }
+
+      if (!response.body) throw new Error('Réponse vide du serveur')
+
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder()
+      let sseBuffer = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        sseBuffer += decoder.decode(value, { stream: true })
+        const lines = sseBuffer.split('\n')
+        sseBuffer = lines.pop() ?? ''
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue
+          const data = line.slice(6).trim()
+          if (data === '[DONE]') continue
+          try {
+            const parsed = JSON.parse(data) as {
+              choices?: Array<{ delta?: { content?: string } }>
+            }
+            const content = parsed.choices?.[0]?.delta?.content
+            if (content) setCompletion((prev) => prev + content)
+          } catch {
+            // ignore malformed SSE frames
+          }
+        }
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['contact', contactId] })
+      toast.success(
+        type === 'contact_profile' ? 'Profil enrichi avec succès' : 'Actualités récupérées'
+      )
+    } catch (err) {
+      if ((err as { name?: string }).name === 'AbortError') return
+      let message = 'Erreur lors de l\'enrichissement IA'
+      try {
+        const parsed = JSON.parse((err as Error).message) as { error?: string }
+        if (parsed.error) message = parsed.error
+      } catch {
+        if (err instanceof Error && err.message) message = err.message
+      }
+      setCompletionError(message)
+      toast.error('Erreur lors de l\'enrichissement IA')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const latestByType = {
@@ -113,7 +157,7 @@ export function AIEnrichmentPanel({
         <Button
           variant="outline"
           size="sm"
-          onClick={() => handleEnrich('contact_profile')}
+          onClick={() => void handleEnrich('contact_profile')}
           disabled={isLoading}
           className="gap-1.5"
         >
@@ -136,7 +180,7 @@ export function AIEnrichmentPanel({
         <Button
           variant="outline"
           size="sm"
-          onClick={() => handleEnrich('company_news')}
+          onClick={() => void handleEnrich('company_news')}
           disabled={isLoading || !hasCompany}
           className="gap-1.5"
           title={!hasCompany ? 'Ce contact n\'a pas d\'entreprise associée' : undefined}
