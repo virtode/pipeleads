@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { requireManager } from '@/lib/tenant/roles'
 import { z } from 'zod'
 
 const RoleSchema = z.object({
@@ -27,9 +26,14 @@ export async function PATCH(
     return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
   }
 
-  try {
-    await requireManager(supabase, user.id)
-  } catch {
+  const adminClient = createAdminClient()
+  const { data: roleRow } = await adminClient
+    .from('tenant_users')
+    .select('role')
+    .eq('user_id', user.id)
+    .maybeSingle()
+
+  if (!roleRow || roleRow.role !== 'manager') {
     return NextResponse.json({ error: 'Accès réservé aux managers' }, { status: 403 })
   }
 
@@ -49,8 +53,6 @@ export async function PATCH(
       { status: 422 }
     )
   }
-
-  const adminClient = createAdminClient()
 
   const { error } = await adminClient
     .from('tenant_users')
