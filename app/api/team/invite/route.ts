@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { createMasterAdminClient } from '@/lib/admin/auth'
 import { requireManager } from '@/lib/tenant/roles'
 import { z } from 'zod'
 
@@ -40,6 +41,30 @@ export async function POST(req: NextRequest) {
   }
 
   const { email, role } = parsed.data
+
+  // Vérifier que l'email n'est pas déjà associé à un autre tenant
+  try {
+    const master = createMasterAdminClient()
+    const { data: { users: masterUsers } } = await master.auth.admin.listUsers()
+    const existingUser = masterUsers.find((u) => u.email === email)
+    if (existingUser) {
+      const { data: existingTu } = await master
+        .from('tenant_users')
+        .select('id')
+        .eq('user_id', existingUser.id)
+        .limit(1)
+        .maybeSingle()
+      if (existingTu) {
+        return NextResponse.json(
+          { error: 'Cet email est déjà associé à un tenant.' },
+          { status: 409 }
+        )
+      }
+    }
+  } catch (err) {
+    console.error('[team/invite] master uniqueness check error:', err)
+    // Non-bloquant en cas d'erreur de connexion master
+  }
 
   const adminClient = createAdminClient()
 

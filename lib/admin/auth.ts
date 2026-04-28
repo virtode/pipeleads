@@ -21,6 +21,38 @@ export function createMasterAdminClient() {
 }
 
 /**
+ * Vérifie la session admin sans rediriger — pour les Route Handlers.
+ * Retourne { email, id } si autorisé, null sinon.
+ */
+export async function getAdminSession(): Promise<{ email: string; id: string } | null> {
+  const cookieStore = await cookies()
+  const masterUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const masterAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  const masterServiceKey = process.env.MASTER_SUPABASE_SERVICE_KEY
+
+  if (!masterUrl || !masterAnonKey || !masterServiceKey) return null
+
+  const supabase = createServerClient(masterUrl, masterAnonKey, {
+    cookies: {
+      getAll: () => cookieStore.getAll(),
+      setAll: () => {},
+    },
+  })
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user?.email) return null
+
+  const adminClient = createClient(masterUrl, masterServiceKey, { auth: { persistSession: false } })
+  const { data: adminUser } = await adminClient
+    .from('admin_users')
+    .select('id, email')
+    .eq('email', user.email)
+    .single()
+
+  return adminUser ?? null
+}
+
+/**
  * Vérifie que l'utilisateur connecté est dans la table admin_users du master.
  * Redirige vers /admin/login si non autorisé.
  * À appeler dans les Server Components de l'admin.

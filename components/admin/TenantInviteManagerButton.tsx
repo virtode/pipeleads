@@ -1,3 +1,4 @@
+// @deprecated Remplacé par TenantUsersSection qui gère l'invitation dans son propre formulaire.
 'use client'
 
 import { useState } from 'react'

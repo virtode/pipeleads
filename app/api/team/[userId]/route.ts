@@ -36,7 +36,7 @@ export async function DELETE(
 
   const adminClient = createAdminClient()
 
-  // Supprimer de tenant_users
+  // Supprimer de tenant_users en premier
   const { error: tuError } = await adminClient
     .from('tenant_users')
     .delete()
@@ -46,13 +46,11 @@ export async function DELETE(
     return NextResponse.json({ error: 'Erreur lors de la révocation' }, { status: 500 })
   }
 
-  // Désactiver dans auth.users (ban temporaire via banDuration)
-  const { error: banError } = await adminClient.auth.admin.updateUserById(targetUserId, {
-    ban_duration: '876000h', // ~100 ans
-  })
+  // Supprimer définitivement de auth.users
+  const { error: deleteError } = await adminClient.auth.admin.deleteUser(targetUserId)
 
-  if (banError) {
-    console.error('[team/delete] ban user error:', banError)
+  if (deleteError) {
+    console.error('[team/delete] deleteUser error:', deleteError)
     // Non-bloquant : l'entrée tenant_users est déjà supprimée
   }
 
