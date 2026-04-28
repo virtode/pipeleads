@@ -29,12 +29,9 @@ export default function SettingsPage() {
     supabase.auth.getUser().then(async ({ data }) => {
       setUserEmail(data.user?.email ?? null)
       if (data.user) {
-        const { data: tu } = await supabase
-          .from('tenant_users')
-          .select('role')
-          .eq('user_id', data.user.id)
-          .maybeSingle()
-        setUserRole((tu?.role as 'manager' | 'member') ?? null)
+        const res = await fetch('/api/tenant/me/role')
+        const json = await res.json() as { role?: 'manager' | 'member' | null }
+        setUserRole(json.role ?? null)
       }
     })
   }, [supabase])
