@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { decrypt, isEncrypted } from '@/lib/crypto/encryption'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -35,10 +36,24 @@ export async function resolveAIConfig(tenantId?: string): Promise<AIConfig> {
 
   if (!tenant || tenant.use_global) return defaults
 
+  let apiKey: string | undefined
+  if (tenant.encrypted_api_key) {
+    if (isEncrypted(tenant.encrypted_api_key)) {
+      try {
+        apiKey = decrypt(tenant.encrypted_api_key)
+      } catch {
+        apiKey = undefined
+      }
+    } else {
+      // Legacy plain-text key — use as-is until re-saved
+      apiKey = tenant.encrypted_api_key
+    }
+  }
+
   return {
     provider: tenant.provider ?? defaults.provider,
     model: tenant.model ?? defaults.model,
-    apiKey: tenant.encrypted_api_key ?? undefined,
+    apiKey,
     budgetUsd: tenant.budget_usd ?? defaults.budgetUsd,
   }
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createMasterAdminClient } from '@/lib/admin/auth'
+import { encrypt } from '@/lib/crypto/encryption'
 
 const ALLOWED_UPDATE_FIELDS = new Set([
   'use_global',
@@ -36,13 +37,16 @@ export async function GET(
   }
 
   const supabase = createServiceClient()
-  const { data: config } = await supabase
+  const { data: raw } = await supabase
     .from('ai_config_tenant')
     .select('*')
     .eq('tenant_id', tenantId)
     .maybeSingle()
 
-  return NextResponse.json({ config: config ?? null })
+  if (!raw) return NextResponse.json({ config: null })
+
+  const { encrypted_api_key, ...rest } = raw
+  return NextResponse.json({ config: { ...rest, hasCustomApiKey: encrypted_api_key !== null } })
 }
 
 export async function PATCH(
@@ -66,19 +70,30 @@ export async function PATCH(
       updates[key] = value
     }
   }
+
+  if (updates.encrypted_api_key !== undefined && updates.encrypted_api_key !== null) {
+    try {
+      updates.encrypted_api_key = encrypt(String(updates.encrypted_api_key))
+    } catch (e) {
+      console.error('[admin/tenants/ai-config] encrypt error:', e)
+      return NextResponse.json({ error: 'Erreur de chiffrement de la clé API' }, { status: 500 })
+    }
+  }
+
   updates.updated_at = new Date().toISOString()
 
   const supabase = createServiceClient()
-  const { data: config, error } = await supabase
+  const { data: savedConfig, error } = await supabase
     .from('ai_config_tenant')
     .upsert(updates, { onConflict: 'tenant_id' })
     .select('*')
     .single()
 
-  if (error || !config) {
+  if (error || !savedConfig) {
     console.error('[admin/tenants/ai-config] upsert error:', error)
     return NextResponse.json({ error: 'Erreur lors de la mise à jour' }, { status: 500 })
   }
 
-  return NextResponse.json({ config })
+  const { encrypted_api_key: _key, ...configWithoutKey } = savedConfig
+  return NextResponse.json({ config: { ...configWithoutKey, hasCustomApiKey: _key !== null } })
 }

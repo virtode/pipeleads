@@ -32,7 +32,7 @@ interface AIConfigTenant {
   use_global: boolean
   provider: string | null
   model: string | null
-  encrypted_api_key: string | null
+  hasCustomApiKey: boolean
   budget_usd: number | null
 }
 
@@ -70,6 +70,7 @@ export function TenantAISettings() {
   const [provider, setProvider] = useState(NO_VALUE)
   const [model, setModel] = useState(NO_VALUE)
   const [apiKey, setApiKey] = useState('')
+  const [hasCustomApiKey, setHasCustomApiKey] = useState(false)
   const [budgetUsd, setBudgetUsd] = useState('')
 
   const allowedProviders = globalConfig?.allowed_providers ?? []
@@ -100,12 +101,36 @@ export function TenantAISettings() {
           setUseGlobal(tc.use_global)
           setProvider(tc.provider ?? NO_VALUE)
           setModel(tc.model ?? NO_VALUE)
+          setHasCustomApiKey(tc.hasCustomApiKey)
           setBudgetUsd(tc.budget_usd != null ? String(tc.budget_usd) : '')
         }
       })
       .catch(() => toast.error('Erreur lors du chargement de la configuration IA'))
       .finally(() => setLoading(false))
   }, [])
+
+  async function handleDeleteApiKey() {
+    setSaving(true)
+    try {
+      const res = await fetch('/api/tenant/ai-config', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ encrypted_api_key: null }),
+      })
+      const json = await res.json()
+      if (!res.ok || json.error) {
+        toast.error(json.error ?? 'Erreur lors de la suppression')
+        return
+      }
+      setHasCustomApiKey(false)
+      setApiKey('')
+      toast.success('Clé API supprimée')
+    } catch {
+      toast.error('Erreur réseau')
+    } finally {
+      setSaving(false)
+    }
+  }
 
   async function handleSave() {
     setSaving(true)
@@ -117,6 +142,7 @@ export function TenantAISettings() {
         body.model = model !== NO_VALUE ? model : null
         body.budget_usd = budgetUsd !== '' ? parseFloat(budgetUsd) : null
         if (apiKey !== '') body.encrypted_api_key = apiKey
+        // If apiKey is empty and hasCustomApiKey, we don't touch encrypted_api_key
       }
 
       const res = await fetch('/api/tenant/ai-config', {
@@ -245,16 +271,32 @@ export function TenantAISettings() {
                   {globalConfig?.allow_byok && (
                     <div className="space-y-1.5">
                       <Label htmlFor="tenant-api-key">Clé API personnalisée (BYOK)</Label>
-                      <Input
-                        id="tenant-api-key"
-                        type="password"
-                        value={apiKey}
-                        onChange={(e) => setApiKey(e.target.value)}
-                        placeholder="sk-..."
-                        autoComplete="off"
-                      />
+                      <div className="flex gap-2">
+                        <Input
+                          id="tenant-api-key"
+                          type="password"
+                          value={apiKey}
+                          onChange={(e) => setApiKey(e.target.value)}
+                          placeholder={hasCustomApiKey ? '••••••••' : 'sk-...'}
+                          autoComplete="off"
+                          className="flex-1"
+                        />
+                        {hasCustomApiKey && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={handleDeleteApiKey}
+                            disabled={saving}
+                          >
+                            Supprimer la clé
+                          </Button>
+                        )}
+                      </div>
                       <p className="text-xs text-muted-foreground">
-                        Votre clé API sera utilisée à la place de la clé globale.
+                        {hasCustomApiKey
+                          ? 'Une clé API personnalisée est déjà configurée. Saisissez une nouvelle valeur pour la remplacer.'
+                          : 'Votre clé API sera utilisée à la place de la clé globale.'}
                       </p>
                     </div>
                   )}

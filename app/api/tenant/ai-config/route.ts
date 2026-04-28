@@ -3,6 +3,7 @@ import { headers } from 'next/headers'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
 import { requireManager } from '@/lib/tenant/roles'
+import { encrypt } from '@/lib/crypto/encryption'
 
 const GLOBAL_ID = '00000000-0000-0000-0000-000000000001'
 
@@ -65,8 +66,16 @@ export async function GET() {
     return NextResponse.json({ error: 'Configuration globale introuvable' }, { status: 500 })
   }
 
+  const raw = tenantResult.data
+  const tenantConfig = raw
+    ? (() => {
+        const { encrypted_api_key, ...rest } = raw
+        return { ...rest, hasCustomApiKey: encrypted_api_key !== null }
+      })()
+    : null
+
   return NextResponse.json({
-    tenantConfig: tenantResult.data ?? null,
+    tenantConfig,
     globalConfig: globalResult.data,
     models,
   })
@@ -104,19 +113,30 @@ export async function PATCH(req: NextRequest) {
       updates[key] = value
     }
   }
+
+  if (updates.encrypted_api_key !== undefined && updates.encrypted_api_key !== null) {
+    try {
+      updates.encrypted_api_key = encrypt(String(updates.encrypted_api_key))
+    } catch (e) {
+      console.error('[tenant/ai-config] encrypt error:', e)
+      return NextResponse.json({ error: 'Erreur de chiffrement de la clé API' }, { status: 500 })
+    }
+  }
+
   updates.updated_at = new Date().toISOString()
 
   const svc = createServiceClient()
-  const { data: config, error } = await svc
+  const { data: savedConfig, error } = await svc
     .from('ai_config_tenant')
     .upsert(updates, { onConflict: 'tenant_id' })
     .select('*')
     .single()
 
-  if (error || !config) {
+  if (error || !savedConfig) {
     console.error('[tenant/ai-config] upsert error:', error)
     return NextResponse.json({ error: 'Erreur lors de la mise à jour' }, { status: 500 })
   }
 
-  return NextResponse.json({ config })
+  const { encrypted_api_key: _key, ...configWithoutKey } = savedConfig
+  return NextResponse.json({ config: { ...configWithoutKey, hasCustomApiKey: _key !== null } })
 }
