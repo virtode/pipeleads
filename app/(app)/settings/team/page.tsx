@@ -20,6 +20,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import Link from 'next/link'
 import { useSupabaseClient } from '@/lib/supabase/context'
 
 // ---------------------------------------------------------------------------
@@ -224,6 +225,10 @@ export default function TeamPage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
+      <Button variant="ghost" size="sm" asChild className="mb-4">
+        <Link href="/settings">← Retour aux paramètres</Link>
+      </Button>
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

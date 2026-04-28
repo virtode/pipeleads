@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Settings, LogOut, Loader2 } from 'lucide-react'
+import { Settings, LogOut, Loader2, Users } from 'lucide-react'
 import { useSupabaseClient } from '@/lib/supabase/context'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -66,6 +67,28 @@ export default function SettingsPage() {
       <CardDavSettingsSection />
 
       {userRole === 'manager' && <TenantAISettings />}
+
+      {userRole === 'manager' && (
+        <section className="space-y-4">
+          <div className="flex items-center gap-2">
+            <Users className="h-5 w-5 text-muted-foreground" />
+            <h2 className="text-lg font-semibold">Équipe</h2>
+          </div>
+          <Card>
+            <CardContent className="pt-5">
+              <p className="text-sm text-muted-foreground mb-4">
+                Gérez les membres de votre espace et leurs rôles.
+              </p>
+              <Button asChild variant="outline">
+                <Link href="/settings/team">
+                  <Users className="h-4 w-4 mr-2" />
+                  Gérer l'équipe
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
+        </section>
+      )}
 
       {/* ================================================================ */}
       {/* Account                                                           */}
