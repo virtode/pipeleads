@@ -56,11 +56,10 @@ export default async function AdminTenantsPage() {
         )}
 
         {all.map((tenant) => (
-          <div key={tenant.id} className="grid grid-cols-[1fr_auto_auto_auto] items-center gap-4 px-4 py-3">
+          <div key={tenant.id} className="relative grid grid-cols-[1fr_auto_auto_auto] items-center gap-4 px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 cursor-pointer">
+            <Link href={`/admin/tenants/${tenant.slug}`} className="absolute inset-0" aria-label={tenant.name} />
             <div className="min-w-0">
-              <Link href={`/admin/tenants/${tenant.slug}`} className="text-sm font-medium hover:underline">
-                {tenant.name}
-              </Link>
+              <p className="text-sm font-medium">{tenant.name}</p>
               <p className="text-xs text-zinc-500">{tenant.slug}.pipeleads.app</p>
             </div>
 
@@ -80,7 +79,9 @@ export default async function AdminTenantsPage() {
               {new Date(tenant.created_at).toLocaleDateString('fr-FR')}
             </span>
 
-            <TenantToggleButton slug={tenant.slug} isActive={tenant.is_active} />
+            <div className="relative z-10">
+              <TenantToggleButton slug={tenant.slug} isActive={tenant.is_active} />
+            </div>
           </div>
         ))}
       </div>
