@@ -78,13 +78,13 @@ export async function getSpendSummary(options: {
     db.query(
       `SELECT
          model,
-         custom_llm_provider         AS provider,
+         SPLIT_PART(model, '/', 1)   AS provider,
          COUNT(*)::int               AS requests,
          COALESCE(SUM(total_tokens), 0)::int AS tokens,
          COALESCE(SUM(spend), 0)::float8     AS "spendUsd"
        FROM "LiteLLM_SpendLogs"
        WHERE "startTime" BETWEEN $1 AND $2 ${tenantFilter}
-       GROUP BY model, custom_llm_provider
+       GROUP BY model
        ORDER BY tokens DESC`,
       baseParams,
     ),
