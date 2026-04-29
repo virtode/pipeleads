@@ -16,6 +16,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { AIConsumptionDashboard } from '@/components/admin/AIConsumptionDashboard'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -157,6 +159,18 @@ export default function AIConfigPage() {
           Paramètres globaux de l&apos;IA appliqués à tous les tenants par défaut.
         </p>
       </div>
+
+      <Tabs defaultValue="configuration">
+        <TabsList>
+          <TabsTrigger value="configuration">Configuration</TabsTrigger>
+          <TabsTrigger value="consumption">Consommation</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="consumption" className="mt-6">
+          <AIConsumptionDashboard />
+        </TabsContent>
+
+        <TabsContent value="configuration" className="mt-6 space-y-8">
 
       {/* Modèle par défaut */}
       <Card>
@@ -363,6 +377,9 @@ export default function AIConfigPage() {
         {saving && <Loader2 className="h-4 w-4 animate-spin" />}
         Sauvegarder
       </Button>
+
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

@@ -80,7 +80,8 @@ interface LiteLLMError extends Error {
 
 async function liteLLMFetch(
   config: { baseURL: string; apiKey: string },
-  body: Record<string, unknown>
+  body: Record<string, unknown>,
+  tenantId?: string,
 ): Promise<ChatCompletionResponse> {
   const res = await fetch(`${config.baseURL}/chat/completions`, {
     method: 'POST',
@@ -88,7 +89,10 @@ async function liteLLMFetch(
       'Content-Type': 'application/json',
       Authorization: `Bearer ${config.apiKey}`,
     },
-    body: JSON.stringify(body),
+    body: JSON.stringify({
+      ...body,
+      ...(tenantId !== undefined ? { user: tenantId } : {}),
+    }),
   })
   if (!res.ok) {
     const err = new Error(`LiteLLM error ${res.status}`) as LiteLLMError
@@ -134,8 +138,7 @@ Si une information n'est pas trouvée, omet simplement ce champ.`
         messages: [{ role: 'user', content: prompt }],
         max_tokens: 256,
         response_format: { type: 'json_object' },
-        ...(tenantId !== undefined ? { user: tenantId } : {}),
-      })
+      }, tenantId)
     )
     const content = data.choices[0]?.message?.content ?? '{}'
     const validated = extractedFieldsSchema.safeParse(JSON.parse(content))
@@ -229,8 +232,7 @@ export async function enrichContactProfile(contact: Contact, tenantId?: string):
       max_tokens: 4096,
       // TODO: Pass Anthropic webSearch tool once LiteLLM supports
       // anthropic-native built-in tools through its OpenAI-compatible endpoint.
-      ...(tenantId !== undefined ? { user: tenantId } : {}),
-    })
+    }, tenantId)
   )
 
   const summary = data.choices[0]?.message?.content ?? ''
@@ -260,8 +262,7 @@ export async function enrichCompanyNews(company: string, contact?: Contact, tena
       max_tokens: 4096,
       // TODO: Pass Anthropic webSearch tool once LiteLLM supports
       // anthropic-native built-in tools through its OpenAI-compatible endpoint.
-      ...(tenantId !== undefined ? { user: tenantId } : {}),
-    })
+    }, tenantId)
   )
 
   const summary = data.choices[0]?.message?.content ?? ''

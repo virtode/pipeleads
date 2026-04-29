@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { Sparkles, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -19,6 +20,25 @@ import {
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
+
+interface ModelBreakdown {
+  model: string
+  provider: string
+  requests: number
+  tokens: number
+  spendUsd: number
+}
+
+interface SpendSummary {
+  totalRequests: number
+  totalTokens: number
+  promptTokens: number
+  completionTokens: number
+  totalSpendUsd: number
+  byModel: ModelBreakdown[]
+}
+
+type Period = '7d' | '30d' | '3m'
 
 interface AIConfigGlobal {
   provider: string
@@ -73,6 +93,10 @@ export function TenantAISettings() {
   const [hasCustomApiKey, setHasCustomApiKey] = useState(false)
   const [budgetUsd, setBudgetUsd] = useState('')
 
+  const [consumptionPeriod, setConsumptionPeriod] = useState<Period>('30d')
+  const [consumptionLoading, setConsumptionLoading] = useState(false)
+  const [consumptionData, setConsumptionData] = useState<SpendSummary | null>(null)
+
   const allowedProviders = globalConfig?.allowed_providers ?? []
 
   const providerModels = useMemo(() => {
@@ -108,6 +132,22 @@ export function TenantAISettings() {
       .catch(() => toast.error('Erreur lors du chargement de la configuration IA'))
       .finally(() => setLoading(false))
   }, [])
+
+  const fetchConsumption = useCallback(async () => {
+    setConsumptionLoading(true)
+    try {
+      const res = await fetch(`/api/tenant/ai-consumption?period=${consumptionPeriod}`)
+      if (!res.ok) return
+      const json = await res.json() as SpendSummary
+      setConsumptionData(json)
+    } catch {
+      // silent — consumption is non-critical
+    } finally {
+      setConsumptionLoading(false)
+    }
+  }, [consumptionPeriod])
+
+  useEffect(() => { void fetchConsumption() }, [fetchConsumption])
 
   async function handleDeleteApiKey() {
     setSaving(true)
@@ -162,6 +202,26 @@ export function TenantAISettings() {
       setSaving(false)
     }
   }
+
+  function formatNumber(n: number): string {
+    if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
+    if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`
+    return String(n)
+  }
+
+  function formatUsd(n: number): string {
+    return `$${n.toFixed(4)}`
+  }
+
+  const PERIOD_LABELS: Record<Period, string> = {
+    '7d': '7 jours',
+    '30d': '30 jours',
+    '3m': '3 mois',
+  }
+
+  const avgTokensPerRequest = consumptionData && consumptionData.totalRequests > 0
+    ? Math.round(consumptionData.totalTokens / consumptionData.totalRequests)
+    : 0
 
   return (
     <section className="space-y-4">
@@ -327,6 +387,99 @@ export function TenantAISettings() {
                 {saving && <Loader2 className="h-4 w-4 animate-spin" />}
                 Sauvegarder
               </Button>
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Consommation IA */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm">Consommation IA</CardTitle>
+          <CardDescription>Utilisation de l&apos;IA par votre espace sur la période sélectionnée.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Period selector */}
+          <div className="flex gap-2">
+            {(['7d', '30d', '3m'] as Period[]).map((p) => (
+              <Button
+                key={p}
+                variant={consumptionPeriod === p ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setConsumptionPeriod(p)}
+              >
+                {PERIOD_LABELS[p]}
+              </Button>
+            ))}
+          </div>
+
+          {consumptionLoading && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Chargement...
+            </div>
+          )}
+
+          {!consumptionLoading && consumptionData && (
+            <>
+              {/* Stat cards */}
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="rounded-lg border p-3">
+                  <p className="text-xs text-muted-foreground">Requêtes</p>
+                  <p className="text-xl font-bold mt-0.5">{formatNumber(consumptionData.totalRequests)}</p>
+                </div>
+                <div className="rounded-lg border p-3">
+                  <p className="text-xs text-muted-foreground">Tokens totaux</p>
+                  <p className="text-xl font-bold mt-0.5">{formatNumber(consumptionData.totalTokens)}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {formatNumber(consumptionData.promptTokens)} entrée · {formatNumber(consumptionData.completionTokens)} sortie
+                  </p>
+                </div>
+                <div className="rounded-lg border p-3">
+                  <p className="text-xs text-muted-foreground">Coût estimé</p>
+                  <p className="text-xl font-bold mt-0.5">{formatUsd(consumptionData.totalSpendUsd)}</p>
+                </div>
+                <div className="rounded-lg border p-3">
+                  <p className="text-xs text-muted-foreground">Tokens / requête moy.</p>
+                  <p className="text-xl font-bold mt-0.5">{formatNumber(avgTokensPerRequest)}</p>
+                </div>
+              </div>
+
+              {/* By model table */}
+              {consumptionData.byModel.length > 0 && (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b text-xs text-muted-foreground">
+                        <th className="py-2 text-left font-medium">Modèle</th>
+                        <th className="py-2 text-left font-medium">Fournisseur</th>
+                        <th className="py-2 text-right font-medium">Requêtes</th>
+                        <th className="py-2 text-right font-medium">Tokens</th>
+                        <th className="py-2 text-right font-medium">Coût</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {consumptionData.byModel.map((row, i) => (
+                        <tr key={i} className="border-b last:border-0">
+                          <td className="py-2 font-mono text-xs">{row.model}</td>
+                          <td className="py-2">
+                            <Badge variant="secondary" className="text-xs">{row.provider}</Badge>
+                          </td>
+                          <td className="py-2 text-right tabular-nums">{formatNumber(row.requests)}</td>
+                          <td className="py-2 text-right tabular-nums">{formatNumber(row.tokens)}</td>
+                          <td className="py-2 text-right tabular-nums">{formatUsd(row.spendUsd)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {consumptionData.totalRequests === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-2">
+                  Aucune donnée de consommation sur cette période.
+                </p>
+              )}
             </>
           )}
         </CardContent>

@@ -46,6 +46,7 @@ export interface AnalysisResult {
 export async function callClaude(
   systemPrompt: string,
   userPrompt: string,
+  tenantId?: string,
 ): Promise<AnalysisResult> {
   const apiKey = process.env.LITELLM_MASTER_KEY
   if (!apiKey) throw new Error('LITELLM_MASTER_KEY is not set')
@@ -67,6 +68,7 @@ export async function callClaude(
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt },
       ],
+      ...(tenantId !== undefined ? { user: tenantId } : {}),
     }),
   })
 
@@ -95,12 +97,13 @@ export async function callClaudeWithRetry(
   systemPrompt: string,
   userPrompt: string,
   maxRetries = 2,
+  tenantId?: string,
 ): Promise<AnalysisResult> {
   let lastError: unknown
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
-      return await callClaude(systemPrompt, userPrompt)
+      return await callClaude(systemPrompt, userPrompt, tenantId)
     } catch (err) {
       if (err instanceof SyntaxError) {
         lastError = err

@@ -83,7 +83,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   // 6. Call Claude
   let analysis
   try {
-    analysis = await callClaudeWithRetry(systemPrompt, userPrompt)
+    analysis = await callClaudeWithRetry(systemPrompt, userPrompt, 2, tenantId)
   } catch (err) {
     console.error('[insights/analyze] callClaudeWithRetry error:', err)
     return NextResponse.json(
