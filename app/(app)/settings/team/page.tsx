@@ -213,7 +213,7 @@ export default function TeamPage() {
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-3xl space-y-6">
+      <div className="mx-auto max-w-3xl space-y-6 px-4 py-6 md:px-6">
         <h1 className="text-2xl font-bold">Équipe</h1>
         <div className="flex items-center gap-2 text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" />
@@ -224,7 +224,7 @@ export default function TeamPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
+    <div className="mx-auto max-w-3xl space-y-6 px-4 py-6 md:px-6">
       <Button variant="ghost" size="sm" asChild className="mb-4">
         <Link href="/settings">← Retour aux paramètres</Link>
       </Button>
