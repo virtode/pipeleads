@@ -81,30 +81,38 @@ export function TenantUsersSection({ slug }: Props) {
   }, [fetchUsers])
 
   async function handleRoleChange(userId: string, role: 'manager' | 'member') {
-    const res = await fetch(`/api/admin/tenants/${slug}/users/${userId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ role }),
-    })
-    const json = await res.json()
-    if (res.ok) {
-      toast.success('Rôle mis à jour')
-      setUsers((prev) => prev.map((u) => (u.userId === userId ? { ...u, role } : u)))
-    } else {
-      toast.error(json.error ?? 'Erreur lors de la mise à jour du rôle')
+    try {
+      const res = await fetch(`/api/admin/tenants/${slug}/users/${userId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role }),
+      })
+      const json = await res.json()
+      if (res.ok) {
+        toast.success('Rôle mis à jour')
+        setUsers((prev) => prev.map((u) => (u.userId === userId ? { ...u, role } : u)))
+      } else {
+        toast.error(json.error ?? 'Erreur lors de la mise à jour du rôle')
+      }
+    } catch {
+      toast.error('Erreur réseau')
     }
   }
 
   async function handleDelete(userId: string) {
-    const res = await fetch(`/api/admin/tenants/${slug}/users/${userId}`, {
-      method: 'DELETE',
-    })
-    const json = await res.json()
-    if (res.ok) {
-      toast.success('Utilisateur supprimé')
-      setUsers((prev) => prev.filter((u) => u.userId !== userId))
-    } else {
-      toast.error(json.error ?? 'Erreur lors de la suppression')
+    try {
+      const res = await fetch(`/api/admin/tenants/${slug}/users/${userId}`, {
+        method: 'DELETE',
+      })
+      const json = await res.json()
+      if (res.ok) {
+        toast.success('Utilisateur supprimé')
+        setUsers((prev) => prev.filter((u) => u.userId !== userId))
+      } else {
+        toast.error(json.error ?? 'Erreur lors de la suppression')
+      }
+    } catch {
+      toast.error('Erreur réseau')
     }
   }
 
