@@ -88,7 +88,7 @@ function ContactsPageContent() {
 
   const debouncedFilters = useDebounce(filters, 300)
 
-  const { data, isLoading } = useContacts({ page, pageSize, filters: debouncedFilters, sort })
+  const { data, isFetching: isLoading } = useContacts({ page, pageSize, filters: debouncedFilters, sort })
   const bulkDeleteMutation = useDeleteContacts()
 
   // Fetch all contacts (no pagination) — enabled only when export dialog is open
