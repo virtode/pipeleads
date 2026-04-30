@@ -67,6 +67,9 @@ export function CommandPalette() {
 
       if (meta && e.key === 'k') {
         e.preventDefault()
+        // Blur before opening so Radix doesn't set aria-hidden while a scroll
+        // region (auto-focused by Chrome) still has focus → silences the warning
+        ;(document.activeElement as HTMLElement | null)?.blur()
         setOpen((prev) => !prev)
         return
       }
