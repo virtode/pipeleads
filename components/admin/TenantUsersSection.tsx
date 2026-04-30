@@ -27,6 +27,7 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -238,6 +239,9 @@ export function TenantUsersSection({ slug }: Props) {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Inviter un utilisateur</DialogTitle>
+            <DialogDescription className="sr-only">
+              Formulaire d&apos;invitation d&apos;un nouvel utilisateur à rejoindre l&apos;espace.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-1.5">
