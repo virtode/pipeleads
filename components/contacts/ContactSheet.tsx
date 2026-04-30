@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, Suspense } from 'react'
 import { FileText, Pencil, Paperclip } from 'lucide-react'
 import type { PipelineStage } from '@/types'
 import { Button } from '@/components/ui/button'
@@ -207,23 +207,25 @@ export function ContactSheet({ contactId, isOpen, onClose, onDeleted }: ContactS
     <>
       {/* Referral contact modal */}
       {referralPending && contact && (
-        <ReferralContactModal
-          isOpen={true}
-          onClose={() => setReferralPending(null)}
-          sourceContact={{
-            id: contact.id,
-            first_name: contact.first_name,
-            last_name: contact.last_name,
-            company: contact.company,
-            notes: contact.notes ?? null,
-          }}
-          pipelineId={referralPending.pipelineId}
-          referralStageId={referralPending.stageId}
-          firstStage={
-            referralPending.stages.find((s) => !s.is_referral && !s.is_lost) ?? null
-          }
-          onSuccess={() => setReferralPending(null)}
-        />
+        <Suspense fallback={null}>
+          <ReferralContactModal
+            isOpen={true}
+            onClose={() => setReferralPending(null)}
+            sourceContact={{
+              id: contact.id,
+              first_name: contact.first_name,
+              last_name: contact.last_name,
+              company: contact.company,
+              notes: contact.notes ?? null,
+            }}
+            pipelineId={referralPending.pipelineId}
+            referralStageId={referralPending.stageId}
+            firstStage={
+              referralPending.stages.find((s) => !s.is_referral && !s.is_lost) ?? null
+            }
+            onSuccess={() => setReferralPending(null)}
+          />
+        </Suspense>
       )}
 
       {/* Overlay / backdrop */}

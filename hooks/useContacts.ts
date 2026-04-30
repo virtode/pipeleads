@@ -1,6 +1,6 @@
 'use client'
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useSuspenseQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { useSupabaseClient, useTenantId } from '@/lib/supabase/context'
 import type { ContactFilters, ContactSortField } from '@/types'
@@ -27,7 +27,7 @@ export function useContacts({
 }: UseContactsParams = {}) {
   const supabase = useSupabaseClient()
 
-  return useQuery({
+  return useSuspenseQuery({
     queryKey: ['contacts', page, pageSize, filters, sort],
     queryFn: async () => {
       let query = supabase

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 import { UserPlus, Settings, Layers, ArrowUpRight, CheckCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -204,20 +204,22 @@ export default function LeadsPage() {
             </DialogDescription>
           </DialogHeader>
           {pipelineId && selectedPipeline && (
-            <ContactPicker
-              pipeline={selectedPipeline}
-              existingContactIds={
-                kanban
-                  ? [
-                      ...kanban.columns.flatMap((c) => c.cards.map((card) => card.contact_id)),
-                      ...kanban.unassigned.map((c) => c.contact_id),
-                    ]
-                  : []
-              }
-              onSelect={handleAddContact}
-              onCancel={() => setIsPickerOpen(false)}
-              isLoading={assignContact.isPending}
-            />
+            <Suspense fallback={null}>
+              <ContactPicker
+                pipeline={selectedPipeline}
+                existingContactIds={
+                  kanban
+                    ? [
+                        ...kanban.columns.flatMap((c) => c.cards.map((card) => card.contact_id)),
+                        ...kanban.unassigned.map((c) => c.contact_id),
+                      ]
+                    : []
+                }
+                onSelect={handleAddContact}
+                onCancel={() => setIsPickerOpen(false)}
+                isLoading={assignContact.isPending}
+              />
+            </Suspense>
           )}
         </DialogContent>
       </Dialog>
