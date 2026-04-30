@@ -6,10 +6,10 @@ import { Pool } from 'pg'
 
 let pool: Pool | null = null
 
-function getPool(): Pool {
+function getPool(): Pool | null {
   if (!pool) {
     const connectionString = process.env.LITELLM_DB_URL
-    if (!connectionString) throw new Error('LITELLM_DB_URL is not set')
+    if (!connectionString) return null
     pool = new Pool({ connectionString })
   }
   return pool
@@ -48,6 +48,16 @@ export interface SpendSummary {
 // Query
 // ---------------------------------------------------------------------------
 
+const EMPTY_SUMMARY: SpendSummary = {
+  totalRequests: 0,
+  totalTokens: 0,
+  promptTokens: 0,
+  completionTokens: 0,
+  totalSpendUsd: 0,
+  byModel: [],
+  byDay: [],
+}
+
 export async function getSpendSummary(options: {
   tenantId?: string
   startDate: Date
@@ -55,6 +65,7 @@ export async function getSpendSummary(options: {
 }): Promise<SpendSummary> {
   const { tenantId, startDate, endDate } = options
   const db = getPool()
+  if (!db) return EMPTY_SUMMARY
 
   const tenantFilter = tenantId !== undefined
     ? `AND "end_user" = $3`
