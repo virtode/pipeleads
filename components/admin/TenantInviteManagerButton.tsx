@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog'
 
 interface TenantInviteManagerButtonProps {
@@ -63,6 +63,9 @@ export function TenantInviteManagerButton({ tenantSlug }: TenantInviteManagerBut
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Inviter un manager</DialogTitle>
+            <DialogDescription className="sr-only">
+              Envoi d&apos;une invitation par e-mail pour ajouter un manager à ce tenant
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-2">
             <div className="space-y-1.5">

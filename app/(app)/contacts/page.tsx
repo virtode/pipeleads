@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
@@ -222,6 +223,9 @@ function ContactsPageContent() {
         <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Nouveau contact</DialogTitle>
+            <DialogDescription className="sr-only">
+              Formulaire de création d&apos;un nouveau contact
+            </DialogDescription>
           </DialogHeader>
           <ContactForm
             onSuccess={() => setIsCreateOpen(false)}
