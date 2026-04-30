@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Menu } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
+import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet'
 import { Sidebar } from '@/components/shared/sidebar'
 
 interface MobileSidebarProps {
@@ -75,6 +75,7 @@ export function MobileSidebar({ isAdmin = false }: MobileSidebarProps) {
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent side="left" className="w-60 p-0" showCloseButton={false}>
           <SheetTitle className="sr-only">Navigation</SheetTitle>
+          <SheetDescription className="sr-only">Menu de navigation principal</SheetDescription>
           <div className="h-full">
             <Sidebar onNavigate={() => setOpen(false)} isAdmin={isAdmin} />
           </div>
