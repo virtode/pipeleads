@@ -49,6 +49,7 @@ export function ContactsPageClient({
   const router = useRouter()
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(() => {
+    if (typeof window === 'undefined') return 50
     const saved = localStorage.getItem('contacts_page_size')
     return saved ? Number(saved) : 50
   })
