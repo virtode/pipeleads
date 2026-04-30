@@ -1,6 +1,6 @@
 'use client'
 
-import { keepPreviousData, useQuery, useSuspenseQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useSuspenseQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { useSupabaseClient, useTenantId } from '@/lib/supabase/context'
 import type { ContactFilters, ContactSortField } from '@/types'
@@ -29,7 +29,6 @@ export function useContacts({
 
   return useSuspenseQuery({
     queryKey: ['contacts', page, pageSize, filters, sort],
-    placeholderData: keepPreviousData,
     queryFn: async () => {
       let query = supabase
         .from('contacts')
