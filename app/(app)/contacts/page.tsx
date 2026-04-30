@@ -259,7 +259,7 @@ function ContactsPageContent() {
 
 export default function ContactsPage() {
   return (
-    <Suspense>
+    <Suspense fallback={null}>
       <ContactsPageContent />
     </Suspense>
   )
