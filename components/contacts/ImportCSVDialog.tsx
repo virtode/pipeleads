@@ -201,6 +201,9 @@ export function ImportCSVDialog({ open, onOpenChange }: ImportCSVDialogProps) {
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-lg">
+        <DialogDescription className="sr-only">
+          Assistant d&apos;importation de contacts au format CSV
+        </DialogDescription>
         {/* Step: upload */}
         {step === 'upload' && (
           <>

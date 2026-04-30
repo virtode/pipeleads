@@ -14,6 +14,7 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
@@ -144,6 +145,9 @@ export default function PipelinesPage() {
       {/* Create/Edit dialog */}
       <Dialog open={isOpen} onOpenChange={(open) => { if (!open) setEditTarget(null) }}>
         <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
+          <DialogDescription className="sr-only">
+            Formulaire de création ou modification d&apos;un pipeline et de ses étapes
+          </DialogDescription>
           <DialogHeader>
             <DialogTitle>
               {editTarget === 'new' ? 'Nouveau pipeline' : 'Modifier le pipeline'}

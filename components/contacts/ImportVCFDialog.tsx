@@ -183,6 +183,9 @@ export function ImportVCFDialog({ open, onOpenChange }: ImportVCFDialogProps) {
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-md">
+        <DialogDescription className="sr-only">
+          Assistant d&apos;importation de contacts au format VCF (vCard)
+        </DialogDescription>
         {/* Step: upload */}
         {step === 'upload' && (
           <>

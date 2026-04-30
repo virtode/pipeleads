@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -324,6 +324,9 @@ export default function TeamPage() {
       {/* Invite modal */}
       <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
         <DialogContent>
+          <DialogDescription className="sr-only">
+            Formulaire d&apos;invitation d&apos;un nouveau membre à rejoindre l&apos;équipe
+          </DialogDescription>
           <DialogHeader>
             <DialogTitle>Inviter un membre</DialogTitle>
           </DialogHeader>
