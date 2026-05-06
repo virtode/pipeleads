@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import type { Contact } from '@/types'
-import { getLiteLLMConfig, getAIModel } from './client'
+import { getLiteLLMConfig, getAIModel, isAnthropicProvider } from './client'
 
 // ---------------------------------------------------------------------------
 // Retry with exponential backoff (for 529 overloaded errors)
@@ -230,8 +230,7 @@ export async function enrichContactProfile(contact: Contact, tenantId?: string):
       model,
       messages: [{ role: 'user', content: buildContactProfilePrompt(contact) }],
       max_tokens: 4096,
-      // TODO: Pass Anthropic webSearch tool once LiteLLM supports
-      // anthropic-native built-in tools through its OpenAI-compatible endpoint.
+      ...(isAnthropicProvider(model) ? { tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 5 }] } : {}),
     }, tenantId)
   )
 
@@ -260,8 +259,7 @@ export async function enrichCompanyNews(company: string, contact?: Contact, tena
       model,
       messages: [{ role: 'user', content: buildCompanyNewsPrompt(company) }],
       max_tokens: 4096,
-      // TODO: Pass Anthropic webSearch tool once LiteLLM supports
-      // anthropic-native built-in tools through its OpenAI-compatible endpoint.
+      ...(isAnthropicProvider(model) ? { tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 5 }] } : {}),
     }, tenantId)
   )
 
