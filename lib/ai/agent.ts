@@ -246,7 +246,7 @@ export async function enrichContactProfile(contact: Contact, tenantId?: string):
     liteLLMFetch(config, {
       model,
       messages: [{ role: 'user', content: buildContactProfilePrompt(contact) }],
-      max_tokens: 4096,
+      max_tokens: 8192,
       ...(isAnthropicProvider(model) ? { tools: [{ type: 'web_search_20260209', name: 'web_search', max_uses: 5 }] } : {}),
     }, tenantId)
   )
@@ -275,7 +275,7 @@ export async function enrichCompanyNews(company: string, contact?: Contact, tena
     liteLLMFetch(config, {
       model,
       messages: [{ role: 'user', content: buildCompanyNewsPrompt(company) }],
-      max_tokens: 4096,
+      max_tokens: 8192,
       ...(isAnthropicProvider(model) ? { tools: [{ type: 'web_search_20260209', name: 'web_search', max_uses: 5 }] } : {}),
     }, tenantId)
   )
