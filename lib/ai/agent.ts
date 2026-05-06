@@ -71,7 +71,24 @@ const FIELD_DESCRIPTIONS: Record<ExtractableField, string> = {
 // ---------------------------------------------------------------------------
 
 interface ChatCompletionResponse {
-  choices: Array<{ message: { content: string } }>
+  choices: Array<{
+    message: {
+      content: string | Array<{ type: string; text?: string }> | null
+      tool_calls?: unknown[]
+    }
+    finish_reason?: string
+  }>
+}
+
+function extractTextContent(
+  content: string | Array<{ type: string; text?: string }> | null
+): string {
+  if (!content) return ''
+  if (typeof content === 'string') return content
+  return content
+    .filter((block) => block.type === 'text' && block.text)
+    .map((block) => block.text!)
+    .join('\n')
 }
 
 interface LiteLLMError extends Error {
@@ -140,7 +157,7 @@ Si une information n'est pas trouvée, omet simplement ce champ.`
         response_format: { type: 'json_object' },
       }, tenantId)
     )
-    const content = data.choices[0]?.message?.content ?? '{}'
+    const content = extractTextContent(data.choices[0]?.message?.content ?? null) || '{}'
     const validated = extractedFieldsSchema.safeParse(JSON.parse(content))
     if (!validated.success) return {}
     return Object.fromEntries(
@@ -234,7 +251,7 @@ export async function enrichContactProfile(contact: Contact, tenantId?: string):
     }, tenantId)
   )
 
-  const summary = data.choices[0]?.message?.content ?? ''
+  const summary = extractTextContent(data.choices[0]?.message?.content ?? null)
   if (!summary) throw new Error('Aucun résultat généré par le modèle.')
 
   const fieldsToExtract: ExtractableField[] = []
@@ -263,7 +280,7 @@ export async function enrichCompanyNews(company: string, contact?: Contact, tena
     }, tenantId)
   )
 
-  const summary = data.choices[0]?.message?.content ?? ''
+  const summary = extractTextContent(data.choices[0]?.message?.content ?? null)
   if (!summary) throw new Error('Aucun résultat généré par le modèle.')
 
   const fieldsToExtract: ExtractableField[] = []
