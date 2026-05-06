@@ -185,7 +185,7 @@ export function buildContactProfilePrompt(contact: Contact): string {
     contact.city && `Localisation : ${contact.city}${contact.country ? ', ' + contact.country : ''}`,
   ].filter(Boolean).join('\n')
 
-  return `Recherche des informations professionnelles sur **${name}**.
+  return `Tu as accès à un outil de recherche web en temps réel. Utilise-le pour rechercher des informations actualisées sur cette personne avant de rédiger le rapport.\n\nRecherche des informations professionnelles sur **${name}**.
 
 Contexte disponible :
 ${context || '(aucun contexte supplémentaire)'}
@@ -210,7 +210,7 @@ Si tu ne trouves pas d'informations suffisantes, indique-le clairement et préci
 }
 
 export function buildCompanyNewsPrompt(company: string): string {
-  return `Recherche les dernières actualités sur l'entreprise **${company}**.
+  return `Tu as accès à un outil de recherche web en temps réel. Utilise-le pour rechercher les dernières actualités sur cette entreprise avant de rédiger le rapport.\n\nRecherche les dernières actualités sur l'entreprise **${company}**.
 
 Fournis un rapport de veille structuré en français comprenant :
 
