@@ -2,13 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { getTenantFromHeaders } from '@/lib/tenant/context'
-import {
-  buildContactProfilePrompt,
-  buildCompanyNewsPrompt,
-  extractFieldsFromReport,
-} from '@/lib/ai/agent'
-import { getLiteLLMConfig } from '@/lib/ai/client'
-import { resolveAIConfig } from '@/lib/ai/config'
+import { enrichContactProfile, enrichCompanyNews } from '@/lib/ai/agent'
+import { getAIModel } from '@/lib/ai/client'
 
 // ---------------------------------------------------------------------------
 // Rate limiter — in-memory, per contactId:type (max 1 req / 10 s)
@@ -82,145 +77,96 @@ export async function POST(request: NextRequest): Promise<Response> {
     return NextResponse.json({ data: null, error: 'Contact introuvable' }, { status: 404 })
   }
 
-  // 5. Build prompt
-  let prompt: string
-  if (enrichType === 'contact_profile') {
-    prompt = buildContactProfilePrompt(contact)
-  } else {
-    const company = contact.company?.trim()
+  // 5. Validate company for company_news type
+  let company: string | undefined
+  if (enrichType === 'company_news') {
+    company = contact.company?.trim()
     if (!company) {
       return NextResponse.json(
         { data: null, error: 'Ce contact n\'a pas d\'entreprise associée.' },
         { status: 400 }
       )
     }
-    prompt = buildCompanyNewsPrompt(company)
   }
 
-  // 6. Stream AI response — DB save + field extraction happen in the TransformStream flush
-  const aiConfig = await resolveAIConfig(tenantId ?? undefined)
-  const liteLLMConfig = getLiteLLMConfig(aiConfig.apiKey)
-  const aiModel = aiConfig.model
+  // 6. Call the agentic enrichment function (handles webSearch multi-turn loop internally)
+  let summary: string
+  let extracted_fields: Partial<{
+    linkedin_url: string
+    twitter_url: string
+    email: string
+    website: string
+  }>
 
-  const llmResponse = await fetch(`${liteLLMConfig.baseURL}/chat/completions`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${liteLLMConfig.apiKey}`,
-    },
-    body: JSON.stringify({
-      model: aiModel,
-      messages: [{ role: 'user', content: prompt }],
-      max_tokens: 4096,
-      stream: true,
-      // TODO: Pass Anthropic webSearch tool once LiteLLM supports
-      // anthropic-native built-in tools through its OpenAI-compatible endpoint.
-      ...(tenantId !== null ? { user: tenantId } : {}),
-    }),
-  })
-
-  if (!llmResponse.ok) {
+  try {
+    if (enrichType === 'contact_profile') {
+      const result = await enrichContactProfile(contact, tenantId ?? undefined)
+      summary = result.summary
+      extracted_fields = result.extracted_fields
+    } else {
+      const result = await enrichCompanyNews(company!, contact, tenantId ?? undefined)
+      summary = result.summary
+      extracted_fields = result.extracted_fields
+    }
+  } catch (err) {
+    const status = (err as { status?: number })?.status
     return NextResponse.json(
-      { data: null, error: `Erreur du service IA (${llmResponse.status})` },
-      { status: llmResponse.status }
+      { data: null, error: `Erreur du service IA${status ? ` (${status})` : ''}` },
+      { status: status ?? 502 }
     )
   }
 
-  if (!llmResponse.body) {
-    return NextResponse.json({ data: null, error: 'Réponse IA vide' }, { status: 502 })
+  // 7. Save to DB
+  const aiModel = await getAIModel(tenantId ?? undefined)
+
+  const { error: saveErr } = await supabase
+    .from('ai_enrichments')
+    .insert({
+      contact_id: contactId,
+      tenant_id: tenantId,
+      type: enrichType,
+      content: summary,
+      model: aiModel,
+    })
+
+  if (!saveErr) {
+    // 8. Validate extracted fields and update contact
+    const contactUpdates: Record<string, unknown> = {}
+
+    const urlFields = ['linkedin_url', 'twitter_url', 'website'] as const
+    for (const field of urlFields) {
+      const value = extracted_fields[field]
+      if (value && !contact[field]) {
+        const parsed = urlSchema.safeParse(value)
+        if (parsed.success) contactUpdates[field] = parsed.data
+      }
+    }
+
+    if (extracted_fields.email && !(contact.email as string[] | null)?.length) {
+      const parsed = emailSchema.safeParse(extracted_fields.email)
+      if (parsed.success) {
+        const existing = (contact.email as string[] | null) ?? []
+        if (!existing.includes(parsed.data)) {
+          contactUpdates.email = [...existing, parsed.data]
+        }
+      }
+    }
+
+    if (Object.keys(contactUpdates).length > 0) {
+      await supabase
+        .from('contacts')
+        .update({ ...contactUpdates, updated_at: new Date().toISOString() })
+        .eq('id', contactId)
+    }
   }
 
-  // Pipe the SSE stream through a TransformStream that:
-  // 1. Forwards every chunk to the client unchanged
-  // 2. Accumulates the full text so we can save to DB and extract fields on flush
-  let fullText = ''
-  const sseDecoder = new TextDecoder()
-  let sseBuffer = ''
+  // 9. Return as SSE for frontend compatibility
+  const encoder = new TextEncoder()
+  const sseBody = encoder.encode(
+    `data: ${JSON.stringify({ content: summary })}\n\ndata: [DONE]\n\n`
+  )
 
-  const transform = new TransformStream<Uint8Array, Uint8Array>({
-    transform(chunk, controller) {
-      sseBuffer += sseDecoder.decode(chunk, { stream: true })
-      const lines = sseBuffer.split('\n')
-      sseBuffer = lines.pop() ?? ''
-      for (const line of lines) {
-        if (!line.startsWith('data: ')) continue
-        const data = line.slice(6).trim()
-        if (data === '[DONE]') continue
-        try {
-          const parsed = JSON.parse(data) as {
-            choices?: Array<{ delta?: { content?: string } }>
-          }
-          const content = parsed.choices?.[0]?.delta?.content
-          if (content) fullText += content
-        } catch {
-          // ignore malformed SSE frames
-        }
-      }
-      controller.enqueue(chunk)
-    },
-    async flush() {
-      if (!fullText) return
-
-      const { error: saveErr } = await supabase
-        .from('ai_enrichments')
-        .insert({
-          contact_id: contactId,
-          tenant_id: tenantId,
-          type: enrichType,
-          content: fullText,
-          model: aiModel,
-        })
-
-      if (saveErr) return
-
-      const fieldsToExtract: ('linkedin_url' | 'twitter_url' | 'email' | 'website')[] = []
-      if (enrichType === 'contact_profile') {
-        if (!contact.linkedin_url) fieldsToExtract.push('linkedin_url')
-        if (!contact.twitter_url)  fieldsToExtract.push('twitter_url')
-        if (!(contact.email as string[] | null)?.length) fieldsToExtract.push('email')
-      } else {
-        if (!contact.website) fieldsToExtract.push('website')
-      }
-
-      const extracted_fields = await extractFieldsFromReport(
-        fullText,
-        fieldsToExtract,
-        tenantId ?? undefined
-      )
-      if (Object.keys(extracted_fields).length === 0) return
-
-      const contactUpdates: Record<string, unknown> = {}
-
-      const urlFields = ['linkedin_url', 'twitter_url', 'website'] as const
-      for (const field of urlFields) {
-        const value = extracted_fields[field]
-        if (value && !contact[field]) {
-          const parsed = urlSchema.safeParse(value)
-          if (parsed.success) contactUpdates[field] = parsed.data
-        }
-      }
-
-      if (extracted_fields.email && !(contact.email as string[] | null)?.length) {
-        const parsed = emailSchema.safeParse(extracted_fields.email)
-        if (parsed.success) {
-          const existing = (contact.email as string[] | null) ?? []
-          if (!existing.includes(parsed.data)) {
-            contactUpdates.email = [...existing, parsed.data]
-          }
-        }
-      }
-
-      if (Object.keys(contactUpdates).length > 0) {
-        // Silent failure — contact fields will stay empty if update fails
-        await supabase
-          .from('contacts')
-          .update({ ...contactUpdates, updated_at: new Date().toISOString() })
-          .eq('id', contactId)
-      }
-    },
-  })
-
-  return new Response(llmResponse.body.pipeThrough(transform), {
+  return new Response(sseBody, {
     headers: {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',

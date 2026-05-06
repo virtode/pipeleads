@@ -115,9 +115,10 @@ export function AIEnrichmentPanel({
           if (data === '[DONE]') continue
           try {
             const parsed = JSON.parse(data) as {
+              content?: string
               choices?: Array<{ delta?: { content?: string } }>
             }
-            const content = parsed.choices?.[0]?.delta?.content
+            const content = parsed.content ?? parsed.choices?.[0]?.delta?.content
             if (content) setCompletion((prev) => prev + content)
           } catch {
             // ignore malformed SSE frames
